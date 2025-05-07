@@ -1,0 +1,17 @@
+- use bun instead of npm 
+- use tailwindcss
+-use grid for layout
+- use zustand for state management
+- use nextjs for the frontend
+- use prisma for the database
+- use sqlite for the database
+- use next-auth for authentication
+- use react-hook-form for form handling
+- use zod for validation
+- use next/image for image handling
+- use next/router for routing
+
+-please use the todo.md file as a reference for the project structure. And After Finish Update the todo.md file.
+-please use the project.md file as a reference for the project overview
+-please use the WindsurfRules.md file as a reference for the project rules
+-
