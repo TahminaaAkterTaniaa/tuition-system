@@ -1,7 +1,11 @@
+'use client';
+
 import Image from "next/image";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 export default function Home() {
+  const { data: session } = useSession();
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -15,18 +19,29 @@ export default function Home() {
               A comprehensive tuition management system designed for students, teachers, parents, and administrators.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="/register"
-                className="bg-white text-indigo-600 hover:bg-gray-100 px-6 py-3 rounded-md font-medium text-lg transition-colors duration-300 text-center"
-              >
-                Get Started
-              </Link>
-              <Link
-                href="/login"
-                className="bg-transparent border-2 border-white hover:bg-white/10 px-6 py-3 rounded-md font-medium text-lg transition-colors duration-300 text-center"
-              >
-                Sign In
-              </Link>
+              {!session ? (
+                <>
+                  <Link
+                    href="/register"
+                    className="bg-white text-indigo-600 hover:bg-gray-100 px-6 py-3 rounded-md font-medium text-lg transition-colors duration-300 text-center"
+                  >
+                    Get Started
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="bg-transparent border-2 border-white hover:bg-white/10 px-6 py-3 rounded-md font-medium text-lg transition-colors duration-300 text-center"
+                  >
+                    Sign In
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  href={`/${session.user.role.toLowerCase()}`}
+                  className="bg-white text-indigo-600 hover:bg-gray-100 px-6 py-3 rounded-md font-medium text-lg transition-colors duration-300 text-center"
+                >
+                  Go to Dashboard
+                </Link>
+              )}
             </div>
           </div>
           <div className="hidden md:block">
@@ -137,12 +152,21 @@ export default function Home() {
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to transform your educational institution?</h2>
           <p className="text-xl mb-8 max-w-3xl mx-auto">Join thousands of educational institutions that have streamlined their operations with our tuition management system.</p>
-          <Link
-            href="/register"
-            className="bg-white text-indigo-600 hover:bg-gray-100 px-8 py-3 rounded-md font-medium text-lg inline-block transition-colors duration-300"
-          >
-            Get Started Today
-          </Link>
+          {!session ? (
+            <Link
+              href="/register"
+              className="bg-white text-indigo-600 hover:bg-gray-100 px-8 py-3 rounded-md font-medium text-lg inline-block transition-colors duration-300"
+            >
+              Get Started Today
+            </Link>
+          ) : (
+            <Link
+              href={`/${session.user.role.toLowerCase()}`}
+              className="bg-white text-indigo-600 hover:bg-gray-100 px-8 py-3 rounded-md font-medium text-lg inline-block transition-colors duration-300"
+            >
+              Go to Dashboard
+            </Link>
+          )}
         </div>
       </section>
     </div>
