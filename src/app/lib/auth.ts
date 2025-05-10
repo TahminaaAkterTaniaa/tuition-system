@@ -6,7 +6,9 @@ import { prisma } from "./prisma";
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
+  secret: process.env.NEXTAUTH_SECRET || "your-secret-key-here",
   pages: {
     signIn: "/login",
     signOut: "/",
@@ -59,11 +61,20 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
+    async jwt({ token, user, account }) {
+      // Initial sign in
+      if (account && user) {
+        console.log('JWT Callback - Initial sign in:', { userId: user.id, role: user.role });
+        return {
+          ...token,
+          id: user.id,
+          role: user.role,
+          // Add any additional user data you want in the token
+        };
       }
+
+      // Return previous token if the user hasn't changed
+      console.log('JWT Callback - Using existing token');
       return token;
     },
   },

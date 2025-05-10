@@ -32,7 +32,7 @@ export default function StudentClasses() {
     if (status === 'loading') {
       return;
     }
-
+    
     if (status === 'unauthenticated') {
       router.push('/login');
       return;
@@ -46,68 +46,34 @@ export default function StudentClasses() {
     // Fetch student's classes
     const fetchClasses = async () => {
       try {
+        setIsLoading(true);
         const response = await fetch('/api/student/classes');
         
         if (!response.ok) {
-          throw new Error('Failed to fetch classes');
+          // Try to get more detailed error information
+          let errorMessage = 'Failed to fetch classes';
+          try {
+            const errorData = await response.json();
+            if (errorData && errorData.error) {
+              errorMessage = errorData.error;
+            }
+          } catch (parseError) {
+            // If we can't parse the error response, use the default message
+          }
+          
+          console.error('Error response:', errorMessage);
+          throw new Error(errorMessage);
         }
         
         const data = await response.json();
+        console.log('Classes fetched successfully:', data.length);
         setClasses(data);
-        setIsLoading(false);
+        setError(null); // Clear any previous errors
       } catch (err) {
         console.error('Error fetching classes:', err);
-        setError('Failed to load classes. Please try again later.');
+        setError(`Failed to load classes. Please try again later. ${err instanceof Error ? err.message : ''}`);
+      } finally {
         setIsLoading(false);
-        
-        // For demo purposes, set some sample data
-        setClasses([
-          {
-            id: '1',
-            name: 'Mathematics 101',
-            subject: 'Mathematics',
-            description: 'Introduction to algebra and calculus',
-            schedule: 'Monday, Wednesday, Friday 10:00 AM - 11:30 AM',
-            room: 'Room 101',
-            teacher: {
-              user: {
-                name: 'Dr. Smith'
-              }
-            },
-            startDate: '2025-01-15T00:00:00.000Z',
-            endDate: '2025-05-30T00:00:00.000Z'
-          },
-          {
-            id: '2',
-            name: 'Physics Fundamentals',
-            subject: 'Physics',
-            description: 'Basic principles of mechanics and thermodynamics',
-            schedule: 'Tuesday, Thursday 1:00 PM - 2:30 PM',
-            room: 'Lab 203',
-            teacher: {
-              user: {
-                name: 'Prof. Johnson'
-              }
-            },
-            startDate: '2025-01-16T00:00:00.000Z',
-            endDate: '2025-05-28T00:00:00.000Z'
-          },
-          {
-            id: '3',
-            name: 'World History',
-            subject: 'History',
-            description: 'Survey of major historical events and civilizations',
-            schedule: 'Monday, Wednesday 9:00 AM - 10:30 AM',
-            room: 'Room 105',
-            teacher: {
-              user: {
-                name: 'Ms. Garcia'
-              }
-            },
-            startDate: '2025-01-15T00:00:00.000Z',
-            endDate: '2025-05-30T00:00:00.000Z'
-          }
-        ]);
       }
     };
 
@@ -179,10 +145,10 @@ export default function StudentClasses() {
         ))}
       </div>
 
-      {classes.length === 0 && (
+      {classes.length === 0 && !error && (
         <div className="bg-gray-50 p-8 rounded-lg text-center">
           <h3 className="text-xl font-medium text-gray-700 mb-2">No Classes Found</h3>
-          <p className="text-gray-500">You are not enrolled in any classes yet.</p>
+          <p className="text-gray-500">You haven't enrolled in any classes yet.</p>
         </div>
       )}
     </div>

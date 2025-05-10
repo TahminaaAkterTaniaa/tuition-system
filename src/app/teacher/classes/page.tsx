@@ -5,39 +5,25 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+interface Class {
+  id: string;
+  name: string;
+  subject: string;
+  description: string | null;
+  schedule: string | null;
+  room: string | null;
+  students: number;
+  status: string;
+  startDate: string;
+  endDate: string | null;
+}
+
 export default function TeacherClasses() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [classes, setClasses] = useState([
-    {
-      id: 1,
-      name: 'Advanced Mathematics',
-      schedule: '9:00 AM - 10:30 AM',
-      room: 'Room 101',
-      students: 25,
-      description: 'Advanced calculus and linear algebra for senior students',
-      days: ['Monday', 'Wednesday', 'Friday']
-    },
-    {
-      id: 2,
-      name: 'Physics',
-      schedule: '1:00 PM - 2:30 PM',
-      room: 'Lab 203',
-      students: 18,
-      description: 'Mechanics, thermodynamics, and electromagnetism',
-      days: ['Tuesday', 'Thursday']
-    },
-    {
-      id: 3,
-      name: 'Chemistry',
-      schedule: '3:00 PM - 4:30 PM',
-      room: 'Lab 205',
-      students: 22,
-      description: 'Organic chemistry and chemical reactions',
-      days: ['Monday', 'Wednesday']
-    }
-  ]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'loading') {
@@ -54,7 +40,43 @@ export default function TeacherClasses() {
       return;
     }
 
-    setIsLoading(false);
+    // Fetch teacher's classes
+    const fetchClasses = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/teacher/classes');
+        
+        if (!response.ok) {
+          // Try to get more detailed error information
+          let errorMessage = 'Failed to fetch classes';
+          try {
+            const errorData = await response.json();
+            if (errorData && errorData.error) {
+              errorMessage = errorData.error;
+            }
+          } catch (parseError) {
+            // If we can't parse the error response, use the default message
+          }
+          
+          console.error('Error response:', errorMessage);
+          setError(errorMessage);
+          setIsLoading(false);
+          return;
+        }
+        
+        const data = await response.json();
+        console.log('Classes fetched successfully:', data.length);
+        setClasses(data);
+        setError(null); // Clear any previous errors
+      } catch (err) {
+        console.error('Error fetching classes:', err);
+        setError(`Failed to load classes. Please try again later. ${err instanceof Error ? err.message : ''}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClasses();
   }, [session, status, router]);
 
   if (isLoading) {
@@ -74,13 +96,19 @@ export default function TeacherClasses() {
         </button>
       </div>
 
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {classes.map((classItem) => (
           <div key={classItem.id} className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h2 className="text-xl font-semibold">{classItem.name}</h2>
-                <p className="text-gray-600 mt-1">{classItem.description}</p>
+                <p className="text-gray-600 mt-1">{classItem.description || classItem.subject}</p>
               </div>
               <div className="flex space-x-2">
                 <Link 
@@ -106,19 +134,27 @@ export default function TeacherClasses() {
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <p className="text-sm text-gray-500">Schedule</p>
-                <p className="font-medium">{classItem.schedule}</p>
+                <p className="font-medium">{classItem.schedule || 'Not scheduled'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Room</p>
-                <p className="font-medium">{classItem.room}</p>
+                <p className="font-medium">{classItem.room || 'Not assigned'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Students</p>
                 <p className="font-medium">{classItem.students}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Days</p>
-                <p className="font-medium">{classItem.days.join(', ')}</p>
+                <p className="text-sm text-gray-500">Status</p>
+                <p className="font-medium">
+                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    classItem.status === 'active' ? 'bg-green-100 text-green-800' : 
+                    classItem.status === 'completed' ? 'bg-blue-100 text-blue-800' : 
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {classItem.status}
+                  </span>
+                </p>
               </div>
             </div>
             
@@ -154,105 +190,15 @@ export default function TeacherClasses() {
           </div>
         ))}
       </div>
-
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Class Schedule</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Time
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Monday
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tuesday
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Wednesday
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Thursday
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Friday
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  9:00 - 10:30
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600">
-                  Advanced Mathematics<br/>
-                  <span className="text-gray-500">Room 101</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600">
-                  Advanced Mathematics<br/>
-                  <span className="text-gray-500">Room 101</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600">
-                  Advanced Mathematics<br/>
-                  <span className="text-gray-500">Room 101</span>
-                </td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  1:00 - 2:30
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600">
-                  Physics<br/>
-                  <span className="text-gray-500">Lab 203</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600">
-                  Physics<br/>
-                  <span className="text-gray-500">Lab 203</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  
-                </td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  3:00 - 4:30
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600">
-                  Chemistry<br/>
-                  <span className="text-gray-500">Lab 205</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600">
-                  Chemistry<br/>
-                  <span className="text-gray-500">Lab 205</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      
+      {classes.length === 0 && !error && (
+        <div className="bg-gray-50 p-8 rounded-lg text-center">
+          <h3 className="text-xl font-medium text-gray-700 mb-2">No Classes Found</h3>
+          <p className="text-gray-500">You haven't been assigned to any classes yet.</p>
         </div>
-      </div>
+      )}
+
+
     </div>
   );
 }
