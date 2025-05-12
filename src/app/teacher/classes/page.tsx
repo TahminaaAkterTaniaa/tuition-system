@@ -25,6 +25,47 @@ export default function TeacherClasses() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Function to fetch classes
+  const fetchClasses = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/teacher/classes');
+      
+      if (!response.ok) {
+        // Try to get more detailed error information
+        let errorMessage = 'Failed to fetch classes';
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          // If we can't parse the error response, use the default message
+        }
+        
+        console.error('Error response:', errorMessage);
+        setError(errorMessage);
+        setIsLoading(false);
+        return;
+      }
+      
+      const data = await response.json();
+      console.log('Classes fetched successfully:', data.length);
+      setClasses(data);
+      setError(null); // Clear any previous errors
+    } catch (err) {
+      console.error('Error fetching classes:', err);
+      setError(`Failed to load classes. Please try again later. ${err instanceof Error ? err.message : ''}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle refresh button click
+  const handleRefresh = () => {
+    fetchClasses();
+  };
+
   useEffect(() => {
     if (status === 'loading') {
       return;
@@ -40,42 +81,7 @@ export default function TeacherClasses() {
       return;
     }
 
-    // Fetch teacher's classes
-    const fetchClasses = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch('/api/teacher/classes');
-        
-        if (!response.ok) {
-          // Try to get more detailed error information
-          let errorMessage = 'Failed to fetch classes';
-          try {
-            const errorData = await response.json();
-            if (errorData && errorData.error) {
-              errorMessage = errorData.error;
-            }
-          } catch (parseError) {
-            // If we can't parse the error response, use the default message
-          }
-          
-          console.error('Error response:', errorMessage);
-          setError(errorMessage);
-          setIsLoading(false);
-          return;
-        }
-        
-        const data = await response.json();
-        console.log('Classes fetched successfully:', data.length);
-        setClasses(data);
-        setError(null); // Clear any previous errors
-      } catch (err) {
-        console.error('Error fetching classes:', err);
-        setError(`Failed to load classes. Please try again later. ${err instanceof Error ? err.message : ''}`);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
+    // Fetch classes on initial load
     fetchClasses();
   }, [session, status, router]);
 
@@ -90,10 +96,21 @@ export default function TeacherClasses() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">My Classes</h1>
-        <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md">
+        <div className="flex items-center">
+          <h1 className="text-3xl font-bold mr-4">My Classes</h1>
+          <button 
+            onClick={handleRefresh} 
+            className="text-gray-600 hover:text-indigo-600 p-2 rounded-full hover:bg-gray-100"
+            title="Refresh Classes"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
+        <Link href="/teacher/classes/create" className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md">
           Create New Class
-        </button>
+        </Link>
       </div>
 
       {error && (

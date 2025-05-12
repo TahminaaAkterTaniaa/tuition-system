@@ -51,9 +51,14 @@ export default function TeacherDashboard() {
             </div>
           </div>
           <p className="text-gray-600 mb-4">Manage your assigned classes and schedules</p>
-          <Link href="/teacher/classes" className="text-indigo-600 hover:text-indigo-800 font-medium">
-            View Classes →
-          </Link>
+          <div className="flex justify-between">
+            <Link href="/teacher/classes" className="text-indigo-600 hover:text-indigo-800 font-medium">
+              View Classes →
+            </Link>
+            <Link href="/teacher/classes/create" className="text-green-600 hover:text-green-800 font-medium">
+              Create Class +
+            </Link>
+          </div>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
