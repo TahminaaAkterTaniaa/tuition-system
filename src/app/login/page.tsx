@@ -48,7 +48,7 @@ export default function LoginPage() {
       // Redirect based on user role (will be implemented later)
       router.push('/');
       router.refresh();
-    } catch (error) {
+    } catch (_) {
       setError('An unexpected error occurred. Please try again.');
       setIsLoading(false);
     }
