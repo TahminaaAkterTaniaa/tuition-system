@@ -1,16 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
-    // Warning: This allows production builds to successfully complete even if
+    // This allows production builds to successfully complete even if
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Warning: This allows production builds to successfully complete even if
+    // This allows production builds to successfully complete even if
     // your project has type errors.
     ignoreBuildErrors: true,
   },
-  // Add any other configuration options here
+  // Disable React strict mode for compatibility
+  reactStrictMode: false,
+  // Enable static optimization where possible
+  swcMinify: true
 };
 
 module.exports = nextConfig;

@@ -1,1 +1,24 @@
+# Ignore Prisma generated files
 src/generated/prisma
+
+# Ignore development files
+.git
+.github
+.vscode
+.idea
+
+# Ignore test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Ignore documentation
+README.md
+CHANGELOG.md
+LICENSE
+
+# Ignore local development files
+.env.local
+.env.development
+.env.development.local

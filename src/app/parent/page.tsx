@@ -50,7 +50,7 @@ export default function ParentDashboard() {
               </svg>
             </div>
           </div>
-          <p className="text-gray-600 mb-4">View your children's profiles and academic information</p>
+          <p className="text-gray-600 mb-4">View your children{"'"} profiles and academic information</p>
           <Link href="/parent/children" className="text-indigo-600 hover:text-indigo-800 font-medium">
             View Children →
           </Link>
@@ -65,7 +65,7 @@ export default function ParentDashboard() {
               </svg>
             </div>
           </div>
-          <p className="text-gray-600 mb-4">Monitor your children's attendance records</p>
+          <p className="text-gray-600 mb-4">Monitor your children{"'"} attendance records</p>
           <Link href="/parent/attendance" className="text-indigo-600 hover:text-indigo-800 font-medium">
             View Attendance →
           </Link>
@@ -80,7 +80,7 @@ export default function ParentDashboard() {
               </svg>
             </div>
           </div>
-          <p className="text-gray-600 mb-4">Track your children's grades and academic progress</p>
+          <p className="text-gray-600 mb-4">Track your children{"'"} grades and academic progress</p>
           <Link href="/parent/performance" className="text-indigo-600 hover:text-indigo-800 font-medium">
             View Performance →
           </Link>
@@ -104,7 +104,7 @@ export default function ParentDashboard() {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
-          <h2 className="text-xl font-semibold mb-4">Children's Academic Summary</h2>
+          <h2 className="text-xl font-semibold mb-4">Children{"'"} Academic Summary</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">

@@ -1,4 +1,17 @@
+# Ignore all generated Prisma files
 src/generated/**/*
+
+# Ignore build outputs
 node_modules
 .next
 out
+build
+dist
+
+# Ignore cache directories
+.vercel
+.turbo
+
+# Ignore environment files
+.env*
+!.env.example

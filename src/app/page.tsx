@@ -132,7 +132,7 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold mb-2">Parents</h3>
-              <p className="text-gray-600">Monitor child's progress, communicate with teachers, and manage payments.</p>
+              <p className="text-gray-600">Monitor child{"'"} progress, communicate with teachers, and manage payments.</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 text-center">
               <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">

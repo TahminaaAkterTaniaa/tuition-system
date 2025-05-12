@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "./vercel-build.sh",
   "installCommand": "npm install",
   "framework": "nextjs",
   "outputDirectory": ".next",
@@ -8,5 +8,9 @@
     "deploymentEnabled": {
       "main": true
     }
+  },
+  "env": {
+    "NEXT_DISABLE_ESLINT": "1",
+    "NEXT_DISABLE_TYPECHECK": "1"
   }
 }

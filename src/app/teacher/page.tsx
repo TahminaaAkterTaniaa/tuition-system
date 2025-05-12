@@ -203,7 +203,7 @@ export default function TeacherDashboard() {
             <div className="border-l-4 border-green-500 pl-4 py-2">
               <p className="text-sm text-gray-600 mb-1">Yesterday, 2:30 PM</p>
               <h3 className="font-medium text-gray-900">Resource Uploaded</h3>
-              <p className="text-sm text-gray-600">You uploaded "Physics Lab Manual" for Physics class.</p>
+              <p className="text-sm text-gray-600">You uploaded {"\"Physics Lab Manual\""} for Physics class.</p>
             </div>
             <div className="border-l-4 border-blue-500 pl-4 py-2">
               <p className="text-sm text-gray-600 mb-1">May 5, 2025</p>
