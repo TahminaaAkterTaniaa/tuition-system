@@ -7,7 +7,27 @@ echo "Starting custom build process..."
 export NEXT_DISABLE_ESLINT=1
 export NEXT_DISABLE_TYPECHECK=1
 
-# Generate Prisma client first
+# Check if we're in a Vercel environment
+if [ -n "$VERCEL" ]; then
+  echo "Running in Vercel environment"
+  
+  # Check for PostgreSQL environment variables
+  if [ -n "$POSTGRES_PRISMA_URL" ]; then
+    echo "PostgreSQL environment variables detected"
+    
+    # Create a Vercel-specific Prisma schema
+    echo "Setting up Vercel-specific Prisma schema"
+    cp prisma/schema.vercel.prisma prisma/schema.prisma
+    
+    # Run the Vercel deployment script
+    echo "Running Vercel deployment script"
+    node prisma/vercel-deploy.js
+  else
+    echo "WARNING: POSTGRES_PRISMA_URL is not set. Database connections may fail."
+  fi
+fi
+
+# Generate Prisma client
 echo "Generating Prisma client..."
 npx prisma generate
 

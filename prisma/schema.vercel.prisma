@@ -1,0 +1,276 @@
+// This is your Prisma schema file for Vercel PostgreSQL deployment
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+// User model
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  student     Student?
+  teacher     Teacher?
+  parent      Parent?
+  admin       Admin?
+  enrollments Enrollment[]
+  payments    Payment[]
+}
+
+// Student model
+model Student {
+  id             String   @id @default(cuid())
+  studentId      String   @unique
+  enrollmentDate DateTime
+  dateOfBirth    DateTime?
+  address        String?
+  phoneNumber    String?
+  grade          String?
+  section        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  userId      String       @unique
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+  attendances Attendance[]
+  assignments Assignment[]
+}
+
+// Teacher model
+model Teacher {
+  id            String   @id @default(cuid())
+  teacherId     String   @unique
+  dateOfJoining DateTime
+  dateOfBirth   DateTime?
+  address       String?
+  phoneNumber   String?
+  qualification String?
+  specialization String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  userId      String       @unique
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classes     Class[]
+  attendances Attendance[]
+  assignments Assignment[]
+}
+
+// Parent model
+model Parent {
+  id          String   @id @default(cuid())
+  parentId    String   @unique
+  occupation  String?
+  address     String?
+  phoneNumber String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userId      String       @unique
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students    StudentParent[]
+}
+
+// Admin model
+model Admin {
+  id        String   @id @default(cuid())
+  adminId   String   @unique
+  department String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Class model
+model Class {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  schedule    String?
+  room        String?
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  teacherId   String?
+  teacher     Teacher?       @relation(fields: [teacherId], references: [id])
+  enrollments Enrollment[]
+  attendances Attendance[]
+  assignments Assignment[]
+}
+
+// Enrollment model
+model Enrollment {
+  id         String       @id @default(cuid())
+  status     EnrollmentStatus @default(PENDING)
+  enrolledAt DateTime     @default(now())
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  // Relations
+  studentId  String
+  student    Student      @relation(fields: [studentId], references: [id])
+  classId    String
+  class      Class        @relation(fields: [classId], references: [id])
+  userId     String
+  user       User         @relation(fields: [userId], references: [id])
+  payments   Payment[]
+  documents  EnrollmentDocument[]
+}
+
+// Enrollment Document model
+model EnrollmentDocument {
+  id           String   @id @default(cuid())
+  documentType String
+  documentUrl  String
+  uploadedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+}
+
+// Payment model
+model Payment {
+  id          String       @id @default(cuid())
+  amount      Float
+  currency    String       @default("USD")
+  status      PaymentStatus @default(PENDING)
+  paymentDate DateTime?
+  dueDate     DateTime?
+  paymentMethod String?
+  transactionId String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  enrollmentId String
+  enrollment   Enrollment  @relation(fields: [enrollmentId], references: [id])
+  userId       String
+  user         User        @relation(fields: [userId], references: [id])
+}
+
+// Attendance model
+model Attendance {
+  id        String   @id @default(cuid())
+  date      DateTime
+  status    AttendanceStatus
+  remarks   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id])
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id])
+  teacherId String
+  teacher   Teacher  @relation(fields: [teacherId], references: [id])
+}
+
+// Assignment model
+model Assignment {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  maxScore    Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  classId     String
+  class       Class    @relation(fields: [classId], references: [id])
+  teacherId   String
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+  submissions AssignmentSubmission[]
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id])
+}
+
+// Assignment Submission model
+model AssignmentSubmission {
+  id         String   @id @default(cuid())
+  content    String?
+  fileUrl    String?
+  score      Float?
+  feedback   String?
+  submittedAt DateTime?
+  gradedAt   DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+}
+
+// Student-Parent relationship
+model StudentParent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+  parentId  String
+  parent    Parent  @relation(fields: [parentId], references: [id])
+
+  @@unique([studentId, parentId])
+}
+
+// Enums
+enum Role {
+  STUDENT
+  TEACHER
+  PARENT
+  ADMIN
+}
+
+enum EnrollmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}

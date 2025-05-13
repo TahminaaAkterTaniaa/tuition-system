@@ -7,6 +7,7 @@ const logDatabaseInfo = () => {
   console.log(`POSTGRES_PRISMA_URL exists: ${Boolean(process.env.POSTGRES_PRISMA_URL)}`);
   console.log(`POSTGRES_URL_NON_POOLING exists: ${Boolean(process.env.POSTGRES_URL_NON_POOLING)}`);
   console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`VERCEL: ${process.env.VERCEL}`);
 };
 
 // Call this function to log database info
@@ -31,17 +32,39 @@ const getDatabaseUrl = () => {
   return 'postgresql://postgres:postgres@localhost:5432/tuition-system';
 };
 
-// Configure Prisma Client with explicit database URL
+// Get the non-pooling URL for direct connections (needed for some operations on Vercel)
+const getDirectUrl = () => {
+  if (process.env.POSTGRES_URL_NON_POOLING) {
+    return process.env.POSTGRES_URL_NON_POOLING;
+  }
+  return undefined;
+};
+
+// Configure Prisma Client with explicit database URLs
 const prismaClientSingleton = () => {
-  return new PrismaClient({
+  const url = getDatabaseUrl();
+  const directUrl = getDirectUrl();
+  
+  // Log the connection configuration
+  console.log(`Initializing Prisma Client with URL: ${url ? 'Set' : 'Not set'}`);
+  console.log(`Direct URL: ${directUrl ? 'Set' : 'Not set'}`);
+  
+  const clientOptions: any = {
     datasources: {
       db: {
-        url: getDatabaseUrl(),
+        url,
       },
     },
     // Enable query logging in development
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  });
+    log: ['error', 'warn', 'info'],
+  };
+  
+  // Add directUrl if available
+  if (directUrl) {
+    clientOptions.datasources.db.directUrl = directUrl;
+  }
+  
+  return new PrismaClient(clientOptions);
 };
 
 // Use globalThis to prevent multiple instances in development
@@ -55,4 +78,15 @@ export const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
 // Save the instance in development to prevent connection exhaustion
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
+}
+
+// Test the connection and log the result
+try {
+  prisma.$connect().then(() => {
+    console.log('Prisma client connected successfully');
+  }).catch(error => {
+    console.error('Failed to connect Prisma client:', error);
+  });
+} catch (error) {
+  console.error('Error initializing Prisma client:', error);
 }
