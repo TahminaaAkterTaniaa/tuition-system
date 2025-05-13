@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 
 interface AttendanceRecord {
@@ -43,7 +43,7 @@ const formatDate = (dateString: string): string => {
   return new Date(dateString).toLocaleDateString(undefined, options);
 };
 
-export default function TeacherAttendance() {
+function AttendanceContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -562,5 +562,14 @@ export default function TeacherAttendance() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap the component in a Suspense boundary to fix the build error
+export default function TeacherAttendance() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">Loading attendance data...</div>}>
+      <AttendanceContent />
+    </Suspense>
   );
 }
