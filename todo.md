@@ -43,7 +43,7 @@
 - [x] Assign teachers to classes
   - *Implemented in class creation and management interfaces*
 
-- [ ] Build Timetable Generator (drag-and-drop to avoid conflicts)
+- [ ] Build Timetable Generator (drag-and-drop to avoid class schedule conflicts)
   - *Not implemented yet*
 
 - [x] Create and manage Teacher Profiles (qualifications, availability)
@@ -63,10 +63,6 @@
 - [ ] Add two-factor authentication
   - *Not implemented yet*
 
-## 📱 Mobile Responsiveness
-- [ ] Optimize all interfaces for mobile devices
-  - *Basic responsive design exists but needs improvement*
-
 ## 📊 Admin Dashboard
 - [ ] Create comprehensive analytics dashboard
   - *Basic admin view exists but lacks detailed analytics*
@@ -79,4 +75,7 @@
 
 - [ ] Update parent registration form to include `student_id` input
 - [ ] Validate student ID during parent registration
-- [ ] Secure parent dashboard to only show linked student's data
+- [ ] Secure parent dashboard to only show his children(linked student's) data
+- [ ] Add messaging system between parent and teacher(assigned teacher for child's enroled classes)
+- [ ] Add payment status of  child's courses 
+
