@@ -1,220 +1,82 @@
 # Todo List for Tuition System Development
 
-## Project Setup
+## 🎓 Student Management
+- [ ] Build Student Profiles (view/edit guardian info, academic history)
 
-- [ ] Initialize Next.js project
-  ```bash
-  npx create-next-app@latest tuition-system --typescript --tailwind --eslint
-  ```
-- [ ] Set up Prisma with SQLite
-  ```bash
-  npm install prisma @prisma/client
-  npx prisma init --datasource-provider sqlite
-  ```
-- [ ] Configure authentication system
-  ```bash
-  npm install next-auth
-  ```
-- [ ] Install additional dependencies
-  ```bash
-  npm install react-hook-form zod @hookform/resolvers/zod zustand axios date-fns
-  ```
-- [ ] Set up project structure
-  ```
-  /app
-    /api
-    /components
-    /lib
-    /models
-    /utils
-    /hooks
-    /styles
-  ```
-- [ ] Configure environment variables (.env file)
+- [x] Implement Enrollment Form (with document upload)
+  - *Implemented in `/classes/enroll/[classId]/page.tsx` with multi-step enrollment process*
 
-## Database Design
+- [x] Setup Application Review Flow (approve/reject, auto email)
+  - *Implemented in `/api/admin/enrollments/review/route.ts` for admin approval workflow*
 
-- [ ] Design and implement database schema in Prisma
-  - [ ] User model (base entity)
-  - [ ] Profile models (Student, Teacher, Admin, Parent)
-  - [ ] Class model
-  - [ ] Enrollment model
-  - [ ] Attendance model
-  - [ ] Grade/Performance model
-  - [ ] Payment/Invoice model
-  - [ ] Resource model
-  - [ ] Communication model
-- [ ] Create database migrations
-  ```bash
-  npx prisma migrate dev --name init
-  ```
-- [ ] Set up seed data for development
-  ```bash
-  npx prisma db seed
-  ```
+- [ ] Integrate Payment Gateway (Stripe, PayPal, HitPay, PayNow)
+  - *Basic payment form exists but needs real payment gateway integration*
 
-## Authentication & User Management
+- [x] Generate Enrollment Receipt
+  - *Implemented in `EnrollmentReceipt` component with transaction details*
 
-- [ ] Implement NextAuth.js configuration
-- [ ] Create sign-up pages for different user roles
-- [ ] Implement login functionality
-- [ ] Build role-based access control system
-- [ ] Create user profile pages
-- [ ] Implement password reset functionality
-- [ ] Add email verification
+## 🕒 Attendance Tracking
+- [x] Implement calendar/QR-based attendance marking
+  - *Calendar view implemented in `/teacher/attendance/page.tsx`*
+  - *Marking functionality in `/teacher/attendance/mark/[id]/page.tsx`*
 
-## Admin Features
+- [x] Sync attendance with database in real-time
+  - *API implemented in `/api/student/attendance/route.ts`*
 
-- [ ] Build admin dashboard
-- [ ] Create class management system
-  - [ ] Class creation interface
-  - [ ] Class scheduling tools
-  - [ ] Teacher assignment feature
-- [ ] Implement student application review system
-  - [ ] Application review queue
-  - [ ] Approval/rejection workflow
-  - [ ] Notification system
-- [ ] Create financial management tools
-  - [ ] Fee configuration system
-  - [ ] Invoice generation
-  - [ ] Payment tracking
-- [ ] Develop system administration tools
-  - [ ] User management
-  - [ ] System settings
-  - [ ] Access control
+- [ ] Setup absence alert system (triggered after 3 consecutive absences)
+  - *Database model exists but notification system not implemented*
 
-## Teacher Features
+- [ ] Build parent-teacher communication module for absence discussion
+  - *Message model exists but interface not implemented*
 
-- [ ] Build teacher dashboard
-- [ ] Create class view for teachers
-- [ ] Implement attendance tracking system
-  - [ ] Calendar interface
-  - [ ] Batch attendance updates
-  - [ ] Attendance reports
-- [ ] Develop gradebook functionality
-  - [ ] Grade entry interface
-  - [ ] Assessment creation
-  - [ ] Performance tracking
-- [ ] Add resource sharing capabilities
-  - [ ] File upload system
-  - [ ] Resource organization by class
-  - [ ] Access control for materials
+## 📊 Performance Tracking
+- [x] Create Digital Gradebook for teachers
+  - *Implemented in `/teacher/gradebook/class/[id]/page.tsx`*
 
-## Student Features
+- [ ] Generate progress reports (PDF/Excel) for students/admins
+  - *Basic grade display exists but export functionality missing*
 
-- [ ] Build student dashboard
-- [ ] Create enrollment application system
-  - [ ] Application form
-  - [ ] Document upload
-  - [ ] Status tracking
-- [ ] Implement class schedule view
-- [ ] Develop performance tracking interface
-  - [ ] Grade view
-  - [ ] Progress reports
-  - [ ] Attendance history
-- [ ] Add resource access system
-  - [ ] Material download
-  - [ ] Assignment submission
+## 🧑‍🏫 Class & Teacher Management
+- [x] Create Class Setup (name, subject, schedule, capacity)
+  - *Implemented in `/teacher/classes/create/page.tsx`*
 
-## Parent Features
+- [x] Assign teachers to classes
+  - *Implemented in class creation and management interfaces*
 
-- [ ] Build parent dashboard
-- [ ] Create student performance view
-- [ ] Implement payment system
-  - [ ] Invoice viewing
-  - [ ] Online payment integration
-  - [ ] Payment history
-- [ ] Add communication tools with teachers
+- [ ] Build Timetable Generator (drag-and-drop to avoid conflicts)
+  - *Not implemented yet*
 
-## Financial System
+- [x] Create and manage Teacher Profiles (qualifications, availability)
+  - *Teacher model implemented with qualification and experience fields*
 
-- [ ] Integrate payment gateway (Stripe/PayPal)
-- [ ] Create invoice generation system
-- [ ] Implement payment tracking
-- [ ] Develop financial reporting
-- [ ] Add automated payment reminder system
+- [x] Add Resource Sharing: teachers upload study material
+  - *Resource model and API implemented in `/api/student/resources/route.ts`*
 
-## Communication System
+## 🔐 Authentication & Security
+- [x] Implement Role-based user registration and login system.
+  - *Enhanced registration form with role-specific fields for all user types*
+  - *Updated API to handle role-specific profile information*
 
-- [ ] Build announcement system
-- [ ] Implement in-app messaging
-- [ ] Create email notification service
-- [ ] Develop alert system for important events
+- [x] Role-based access control (Student, Teacher, Admin, Parent)
+  - *Implemented with role-specific interfaces and API routes*
 
-## Reporting & Analytics
+- [ ] Add two-factor authentication
+  - *Not implemented yet*
 
-- [ ] Build analytics dashboard
-- [ ] Create enrollment reports
-- [ ] Develop performance analytics
-- [ ] Implement financial reporting
-- [ ] Add system usage statistics
+## 📱 Mobile Responsiveness
+- [ ] Optimize all interfaces for mobile devices
+  - *Basic responsive design exists but needs improvement*
 
-## UI/UX Implementation
+## 📊 Admin Dashboard
+- [ ] Create comprehensive analytics dashboard
+  - *Basic admin view exists but lacks detailed analytics*
 
-- [ ] Design and implement responsive layouts
-- [ ] Create reusable UI components
-  - [ ] Navigation system
-  - [ ] Data tables
-  - [ ] Forms
-  - [ ] Cards
-  - [ ] Modals
-  - [ ] Alerts/Notifications
-- [ ] Implement dark/light mode
-- [ ] Add loading states and error handling
-- [ ] Ensure mobile responsiveness
+- [ ] Add financial reporting tools
+  - *Payment model exists but reporting tools not implemented*
 
-## API Development
 
-- [ ] Create RESTful API endpoints for all features
-- [ ] Implement data validation
-- [ ] Add error handling
-- [ ] Set up API documentation
-- [ ] Implement rate limiting and security
+  ## Missing FEATURES
 
-## Testing
-
-- [ ] Write unit tests for core functionality
-- [ ] Implement integration tests
-- [ ] Perform user acceptance testing
-- [ ] Conduct performance testing
-- [ ] Test on different devices and browsers
-
-## Deployment & DevOps
-
-- [ ] Set up CI/CD pipeline
-- [ ] Configure production environment
-- [ ] Implement database backup strategy
-- [ ] Set up monitoring and logging
-- [ ] Deploy to production server
-
-## Documentation
-
-- [ ] Create API documentation
-- [ ] Write user guides for different roles
-- [ ] Prepare administrator documentation
-- [ ] Document codebase for developers
-- [ ] Create deployment instructions
-
-## Security & Compliance
-
-- [ ] Implement data encryption
-- [ ] Add CSRF protection
-- [ ] Configure secure headers
-- [ ] Perform security audit
-- [ ] Ensure GDPR/FERPA compliance
-
-## Performance Optimization
-
-- [ ] Optimize database queries
-- [ ] Implement caching strategies
-- [ ] Optimize frontend assets
-- [ ] Add pagination for large data sets
-- [ ] Implement lazy loading where appropriate
-
-## Feature Enhancements (Post-MVP)
-
-- [ ] Develop mobile application
-- [ ] Implement AI-powered attendance
-- [ ] Add advanced analytics
-- [ ] Create virtual classroom capabilities
-- [ ] Build integration with learning management systems
+- [ ] Update parent registration form to include `student_id` input
+- [ ] Validate student ID during parent registration
+- [ ] Secure parent dashboard to only show linked student's data

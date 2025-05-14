@@ -3,13 +3,46 @@ import { hash } from 'bcrypt';
 import { z } from 'zod';
 import { prisma } from '@/app/lib/prisma';
 
-// Schema for user registration validation
-const userSchema = z.object({
+// Base schema for all registrations
+const baseSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   role: z.enum(['STUDENT', 'TEACHER', 'PARENT', 'ADMIN']),
 });
+
+// Role-specific schema extensions
+const studentSchema = baseSchema.extend({
+  academicLevel: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  phoneNumber: z.string().optional(),
+});
+
+const teacherSchema = baseSchema.extend({
+  qualification: z.string().optional(),
+  specialization: z.string().optional(),
+  experience: z.number().optional().or(z.string().optional()),
+});
+
+const parentSchema = baseSchema.extend({
+  studentId: z.string().min(1, 'Student ID is required'),
+  relationship: z.string().optional(),
+  occupation: z.string().optional(),
+  alternatePhone: z.string().optional(),
+});
+
+const adminSchema = baseSchema.extend({
+  department: z.string().optional(),
+  accessLevel: z.enum(['standard', 'elevated', 'super']).optional().default('standard'),
+});
+
+// Combined schema with validation based on role
+const userSchema = z.discriminatedUnion('role', [
+  studentSchema.extend({ role: z.literal('STUDENT') }),
+  teacherSchema.extend({ role: z.literal('TEACHER') }),
+  parentSchema.extend({ role: z.literal('PARENT') }),
+  adminSchema.extend({ role: z.literal('ADMIN') }),
+]);
 
 export async function POST(req: NextRequest) {
   console.log('Starting registration process...');
@@ -109,6 +142,9 @@ export async function POST(req: NextRequest) {
             userId: user.id,
             studentId: `ST${Date.now().toString().slice(-6)}`,
             enrollmentDate: new Date(),
+            academicLevel: body.academicLevel || undefined,
+            dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : undefined,
+            phoneNumber: body.phoneNumber || undefined,
           },
         });
       } else if (role === 'TEACHER') {
@@ -117,20 +153,64 @@ export async function POST(req: NextRequest) {
             userId: user.id,
             teacherId: `TE${Date.now().toString().slice(-6)}`,
             dateOfJoining: new Date(),
+            qualification: body.qualification || undefined,
+            specialization: body.specialization || undefined,
+            experience: body.experience ? Number(body.experience) : undefined,
           },
         });
       } else if (role === 'PARENT') {
-        await prisma.parent.create({
-          data: {
-            userId: user.id,
-            parentId: `PA${Date.now().toString().slice(-6)}`,
-          },
-        });
+        // Verify that the student ID exists
+        const studentIdToLink = body.studentId;
+        console.log(`Verifying student ID: ${studentIdToLink}`);
+        
+        try {
+          const existingStudent = await prisma.student.findUnique({
+            where: { studentId: studentIdToLink },
+          });
+          
+          if (!existingStudent) {
+            console.error(`Student with ID ${studentIdToLink} not found`);
+            return NextResponse.json(
+              { message: `Student with ID ${studentIdToLink} not found. Please check the ID and try again.` },
+              { status: 400 }
+            );
+          }
+          
+          console.log(`Found student with ID ${studentIdToLink}`);
+          
+          // Create parent profile
+          const parent = await prisma.parent.create({
+            data: {
+              userId: user.id,
+              parentId: `PA${Date.now().toString().slice(-6)}`,
+              relationship: body.relationship || undefined,
+              occupation: body.occupation || undefined,
+              alternatePhone: body.alternatePhone || undefined,
+            },
+          });
+          
+          // Create parent-student relationship
+          await prisma.parentStudent.create({
+            data: {
+              parentId: parent.id,
+              studentId: existingStudent.id,
+              relationship: body.relationship || 'Guardian',
+              isPrimary: true,
+            },
+          });
+          
+          console.log(`Created parent-student relationship for student ${studentIdToLink}`);
+        } catch (error) {
+          console.error('Error linking parent to student:', error);
+          throw error; // Let the outer catch block handle this
+        }
       } else if (role === 'ADMIN') {
         await prisma.admin.create({
           data: {
             userId: user.id,
             adminId: `AD${Date.now().toString().slice(-6)}`,
+            department: body.department || undefined,
+            accessLevel: body.accessLevel || 'standard',
           },
         });
       }
