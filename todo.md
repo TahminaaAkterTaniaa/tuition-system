@@ -81,5 +81,9 @@
 - [ ] Each course will have a cost . For each course enrollment a payment is needed. and payment status should be updated in the enrollment record.
 
 
--After Registration success redirect to login page. 
-- showing error when trying to submit application for enrollment (Error submitting enrollment: TypeError: Failed to fetch) 
+-After Registration success redirect to login page is not working.
+-on parent dashboard,under payment status  component data isn't updating correctly. 
+ All status(total due, paid, pending) shows -0.00$  which should be showing based on  the total amount of the course . also shows-"no payment found" under all course
+- the massage 
+
+

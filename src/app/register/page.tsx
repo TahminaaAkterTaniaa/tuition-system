@@ -154,8 +154,13 @@ export default function RegisterPage() {
       const response = await axios.post('/api/auth/register', registrationData);
       
       if (response.data.success) {
-        // Redirect to login page after successful registration
-        router.push('/login?registered=true');
+        // Set a success message
+        setError(null);
+        // Add a small delay before redirecting to ensure the API response is fully processed
+        setTimeout(() => {
+          // Redirect to login page after successful registration
+          router.push('/login?registered=true');
+        }, 1000);
       }
     } catch (err: any) {
       console.error('Registration error:', err);

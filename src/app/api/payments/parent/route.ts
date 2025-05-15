@@ -59,6 +59,50 @@ export async function GET(req: NextRequest) {
       },
     });
     
+    // Get all enrollment payment statuses in a single query for better performance
+    const enrollmentIds = parentStudents.flatMap(ps => 
+      ps.student.enrollments.map(enrollment => enrollment.id)
+    );
+    
+    const enrollmentPayments = await prisma.enrollment.findMany({
+      where: {
+        id: { in: enrollmentIds }
+      },
+      select: {
+        id: true,
+        classId: true,
+        paymentStatus: true,
+        paymentId: true,
+        paymentDate: true
+      }
+    });
+    
+    // Get all classes to access their fees
+    const classIds = parentStudents.flatMap(ps => 
+      ps.student.enrollments.map(enrollment => enrollment.classId)
+    );
+    
+    const classes = await prisma.class.findMany({
+      where: {
+        id: { in: classIds }
+      },
+      select: {
+        id: true,
+        fee: true
+      }
+    });
+    
+    // Create maps for quick lookup
+    const enrollmentPaymentMap = new Map();
+    enrollmentPayments.forEach(ep => {
+      enrollmentPaymentMap.set(ep.id, ep);
+    });
+    
+    const classFeesMap = new Map();
+    classes.forEach(cls => {
+      classFeesMap.set(cls.id, cls.fee);
+    });
+    
     // Create a structured response with payment status for each child's courses
     const childrenPayments = parentStudents.map(ps => {
       const childEnrollments = ps.student.enrollments.map(enrollment => {
@@ -68,11 +112,17 @@ export async function GET(req: NextRequest) {
           payment.description.includes(enrollment.class.subject)
         );
         
+        // Get payment status from our map
+        const enrollmentWithPayment = enrollmentPaymentMap.get(enrollment.id);
+        
         return {
           classId: enrollment.classId,
           className: enrollment.class.name,
           subject: enrollment.class.subject,
           enrollmentStatus: enrollment.status,
+          enrollmentPaymentStatus: enrollmentWithPayment?.paymentStatus || 'pending',
+          enrollmentPaymentId: enrollmentWithPayment?.paymentId,
+          enrollmentPaymentDate: enrollmentWithPayment?.paymentDate,
           payments: classPayments.map(payment => ({
             id: payment.id,
             amount: payment.amount,
@@ -84,11 +134,13 @@ export async function GET(req: NextRequest) {
             status: payment.status,
             paymentMethod: payment.paymentMethod,
           })),
-          paymentStatus: classPayments.length > 0 
-            ? classPayments.every(p => p.status === 'paid') 
-              ? 'Fully Paid' 
-              : 'Partially Paid'
-            : 'No Payments Found',
+          paymentStatus: enrollmentWithPayment?.paymentStatus === 'paid' 
+            ? 'Fully Paid'
+            : classPayments.length > 0 
+              ? classPayments.every(p => p.status === 'paid') 
+                ? 'Fully Paid' 
+                : 'Partially Paid'
+              : 'No Payments Found',
         };
       });
       
@@ -100,16 +152,42 @@ export async function GET(req: NextRequest) {
       };
     });
     
-    // Summary of all payments
+    // Calculate payment summary based on enrollment status and class fees
+    let totalAmount = 0;
+    let paidAmount = 0;
+    let pendingAmount = 0;
+    let overdueAmount = 0;
+    let totalPaid = 0;
+    let totalPending = 0;
+    let totalOverdue = 0;
+    
+    // Count enrollments by status
+    enrollmentPayments.forEach(enrollment => {
+      const classFee = classFeesMap.get(enrollment.classId) || 0;
+      
+      totalAmount += classFee;
+      
+      if (enrollment.paymentStatus === 'paid') {
+        paidAmount += classFee;
+        totalPaid++;
+      } else if (enrollment.paymentStatus === 'pending') {
+        pendingAmount += classFee;
+        totalPending++;
+      } else if (enrollment.paymentStatus === 'overdue') {
+        overdueAmount += classFee;
+        totalOverdue++;
+      }
+    });
+    
     const paymentSummary = {
-      totalPayments: payments.length,
-      totalPaid: payments.filter(p => p.status === 'paid').length,
-      totalPending: payments.filter(p => p.status === 'pending').length,
-      totalOverdue: payments.filter(p => p.status === 'overdue').length,
-      totalAmount: payments.reduce((sum, p) => sum + p.amount, 0),
-      paidAmount: payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0),
-      pendingAmount: payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0),
-      overdueAmount: payments.filter(p => p.status === 'overdue').reduce((sum, p) => sum + p.amount, 0),
+      totalPayments: totalPaid + totalPending + totalOverdue,
+      totalPaid,
+      totalPending,
+      totalOverdue,
+      totalAmount,
+      paidAmount,
+      pendingAmount,
+      overdueAmount,
     };
     
     return NextResponse.json({ 
