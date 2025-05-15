@@ -221,6 +221,7 @@ exports.Prisma.ClassScalarFieldEnum = {
   capacity: 'capacity',
   room: 'room',
   teacherId: 'teacherId',
+  fee: 'fee',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -232,7 +233,10 @@ exports.Prisma.EnrollmentScalarFieldEnum = {
   classId: 'classId',
   enrollmentDate: 'enrollmentDate',
   status: 'status',
-  notes: 'notes'
+  notes: 'notes',
+  paymentId: 'paymentId',
+  paymentStatus: 'paymentStatus',
+  paymentDate: 'paymentDate'
 };
 
 exports.Prisma.AttendanceScalarFieldEnum = {

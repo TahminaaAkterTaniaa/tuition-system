@@ -174,6 +174,7 @@ model Class {
   capacity          Int
   room              String?
   teacherId         String?
+  fee               Float     @default(99.99) // Enrollment fee for the class
   status            String    @default("active") // active, completed, cancelled
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -194,6 +195,9 @@ model Enrollment {
   enrollmentDate    DateTime  @default(now())
   status            String    @default("enrolled") // enrolled, completed, dropped, pending
   notes             String?
+  paymentId         String?   // Reference to payment ID
+  paymentStatus     String    @default("pending") // pending, paid, failed, refunded
+  paymentDate       DateTime? // When payment was processed
 
   // Relations
   student           Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)

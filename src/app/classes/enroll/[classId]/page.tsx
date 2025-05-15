@@ -19,6 +19,7 @@ interface ClassDetails {
   capacity: number;
   availableSeats: number;
   isFull: boolean;
+  fee: number; // Added fee property for class-specific enrollment fee
   teacher: {
     user: {
       name: string | null;
@@ -239,6 +240,9 @@ export default function EnrollPage() {
                   <div className="mb-2">
                     <span className="font-medium">Available Seats:</span> {classDetails.availableSeats} of {classDetails.capacity}
                   </div>
+                  <div className="mb-2">
+                    <span className="font-medium">Enrollment Fee:</span> ${classDetails.fee.toFixed(2)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -278,7 +282,7 @@ export default function EnrollPage() {
             enrollmentId={enrollmentId}
             classId={classId}
             className={classDetails.name}
-            amount={99.99} // In a real app, this would come from the class details or a pricing API
+            amount={classDetails.fee} // Using the class-specific fee from the database
             onSuccess={(paymentData: PaymentData) => handlePaymentSuccess(paymentData)}
             userId={session?.user?.id || ''}
           />

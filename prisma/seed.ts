@@ -77,7 +77,9 @@ async function main() {
   // Create classes
   const mathClass = await prisma.class.upsert({
     where: { id: 'cls001' },
-    update: {},
+    update: {
+      fee: 129.99 // Update existing records with a fee
+    },
     create: {
       id: 'cls001',
       name: 'Advanced Mathematics',
@@ -88,6 +90,7 @@ async function main() {
       schedule: 'Monday, Wednesday, Friday 10:00 AM - 11:30 AM',
       capacity: 30,
       room: 'Room 101',
+      fee: 129.99, // Higher fee for advanced course
       status: 'active',
       teacherId: teacher.teacher?.id
     }
@@ -95,7 +98,9 @@ async function main() {
 
   const physicsClass = await prisma.class.upsert({
     where: { id: 'cls002' },
-    update: {},
+    update: {
+      fee: 149.99 // Update existing records with a fee
+    },
     create: {
       id: 'cls002',
       name: 'Physics Fundamentals',
@@ -106,6 +111,7 @@ async function main() {
       schedule: 'Tuesday, Thursday 1:00 PM - 2:30 PM',
       capacity: 24,
       room: 'Lab 203',
+      fee: 149.99, // Lab course with higher fee due to materials
       status: 'active',
       teacherId: teacher.teacher?.id
     }
@@ -113,7 +119,9 @@ async function main() {
 
   const historyClass = await prisma.class.upsert({
     where: { id: 'cls003' },
-    update: {},
+    update: {
+      fee: 89.99 // Update existing records with a fee
+    },
     create: {
       id: 'cls003',
       name: 'World History',
@@ -124,6 +132,7 @@ async function main() {
       schedule: 'Monday, Wednesday 9:00 AM - 10:30 AM',
       capacity: 35,
       room: 'Room 105',
+      fee: 89.99, // Lower fee for this course
       status: 'active',
       teacherId: teacher.teacher?.id
     }

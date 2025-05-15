@@ -114,12 +114,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create a new enrollment
+    // Create a new enrollment with pending payment status
     const enrollment = await prisma.enrollment.create({
       data: {
         studentId: student.id,
         classId,
         status: 'pending', // Initial status is pending until payment is confirmed
+        paymentStatus: 'pending', // Initial payment status is pending
         notes: 'Enrollment initiated through online application'
       }
     });

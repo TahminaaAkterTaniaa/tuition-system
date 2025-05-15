@@ -33,7 +33,7 @@
 - [x] Create Digital Gradebook for teachers
   - *Implemented in `/teacher/gradebook/class/[id]/page.tsx`*
 
-- [ ] Generate progress reports (PDF/Excel) for students/admins
+- [ ] Generate progress reports (PDF/Excel) for students
   - *Basic grade display exists but export functionality missing*
 
 ## 🧑‍🏫 Class & Teacher Management
@@ -78,4 +78,8 @@
 - [ ] Secure parent dashboard to only show his children(linked student's) data
 - [ ] Add messaging system between parent and teacher(assigned teacher for child's enroled classes)
 - [ ] Add payment status of  child's courses 
+- [ ] Each course will have a cost . For each course enrollment a payment is needed. and payment status should be updated in the enrollment record.
 
+
+-After Registration success redirect to login page. 
+- showing error when trying to submit application for enrollment (Error submitting enrollment: TypeError: Failed to fetch) 

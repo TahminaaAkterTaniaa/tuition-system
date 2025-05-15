@@ -12835,10 +12835,12 @@ export namespace Prisma {
 
   export type ClassAvgAggregateOutputType = {
     capacity: number | null
+    fee: number | null
   }
 
   export type ClassSumAggregateOutputType = {
     capacity: number | null
+    fee: number | null
   }
 
   export type ClassMinAggregateOutputType = {
@@ -12852,6 +12854,7 @@ export namespace Prisma {
     capacity: number | null
     room: string | null
     teacherId: string | null
+    fee: number | null
     status: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -12868,6 +12871,7 @@ export namespace Prisma {
     capacity: number | null
     room: string | null
     teacherId: string | null
+    fee: number | null
     status: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -12884,6 +12888,7 @@ export namespace Prisma {
     capacity: number
     room: number
     teacherId: number
+    fee: number
     status: number
     createdAt: number
     updatedAt: number
@@ -12893,10 +12898,12 @@ export namespace Prisma {
 
   export type ClassAvgAggregateInputType = {
     capacity?: true
+    fee?: true
   }
 
   export type ClassSumAggregateInputType = {
     capacity?: true
+    fee?: true
   }
 
   export type ClassMinAggregateInputType = {
@@ -12910,6 +12917,7 @@ export namespace Prisma {
     capacity?: true
     room?: true
     teacherId?: true
+    fee?: true
     status?: true
     createdAt?: true
     updatedAt?: true
@@ -12926,6 +12934,7 @@ export namespace Prisma {
     capacity?: true
     room?: true
     teacherId?: true
+    fee?: true
     status?: true
     createdAt?: true
     updatedAt?: true
@@ -12942,6 +12951,7 @@ export namespace Prisma {
     capacity?: true
     room?: true
     teacherId?: true
+    fee?: true
     status?: true
     createdAt?: true
     updatedAt?: true
@@ -13045,6 +13055,7 @@ export namespace Prisma {
     capacity: number
     room: string | null
     teacherId: string | null
+    fee: number
     status: string
     createdAt: Date
     updatedAt: Date
@@ -13080,6 +13091,7 @@ export namespace Prisma {
     capacity?: boolean
     room?: boolean
     teacherId?: boolean
+    fee?: boolean
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -13102,6 +13114,7 @@ export namespace Prisma {
     capacity?: boolean
     room?: boolean
     teacherId?: boolean
+    fee?: boolean
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -13119,6 +13132,7 @@ export namespace Prisma {
     capacity?: boolean
     room?: boolean
     teacherId?: boolean
+    fee?: boolean
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -13136,12 +13150,13 @@ export namespace Prisma {
     capacity?: boolean
     room?: boolean
     teacherId?: boolean
+    fee?: boolean
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ClassOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "subject" | "description" | "startDate" | "endDate" | "schedule" | "capacity" | "room" | "teacherId" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["class"]>
+  export type ClassOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "subject" | "description" | "startDate" | "endDate" | "schedule" | "capacity" | "room" | "teacherId" | "fee" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["class"]>
   export type ClassInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     teacher?: boolean | Class$teacherArgs<ExtArgs>
     enrollments?: boolean | Class$enrollmentsArgs<ExtArgs>
@@ -13177,6 +13192,7 @@ export namespace Prisma {
       capacity: number
       room: string | null
       teacherId: string | null
+      fee: number
       status: string
       createdAt: Date
       updatedAt: Date
@@ -13618,6 +13634,7 @@ export namespace Prisma {
     readonly capacity: FieldRef<"Class", 'Int'>
     readonly room: FieldRef<"Class", 'String'>
     readonly teacherId: FieldRef<"Class", 'String'>
+    readonly fee: FieldRef<"Class", 'Float'>
     readonly status: FieldRef<"Class", 'String'>
     readonly createdAt: FieldRef<"Class", 'DateTime'>
     readonly updatedAt: FieldRef<"Class", 'DateTime'>
@@ -14167,6 +14184,9 @@ export namespace Prisma {
     enrollmentDate: Date | null
     status: string | null
     notes: string | null
+    paymentId: string | null
+    paymentStatus: string | null
+    paymentDate: Date | null
   }
 
   export type EnrollmentMaxAggregateOutputType = {
@@ -14176,6 +14196,9 @@ export namespace Prisma {
     enrollmentDate: Date | null
     status: string | null
     notes: string | null
+    paymentId: string | null
+    paymentStatus: string | null
+    paymentDate: Date | null
   }
 
   export type EnrollmentCountAggregateOutputType = {
@@ -14185,6 +14208,9 @@ export namespace Prisma {
     enrollmentDate: number
     status: number
     notes: number
+    paymentId: number
+    paymentStatus: number
+    paymentDate: number
     _all: number
   }
 
@@ -14196,6 +14222,9 @@ export namespace Prisma {
     enrollmentDate?: true
     status?: true
     notes?: true
+    paymentId?: true
+    paymentStatus?: true
+    paymentDate?: true
   }
 
   export type EnrollmentMaxAggregateInputType = {
@@ -14205,6 +14234,9 @@ export namespace Prisma {
     enrollmentDate?: true
     status?: true
     notes?: true
+    paymentId?: true
+    paymentStatus?: true
+    paymentDate?: true
   }
 
   export type EnrollmentCountAggregateInputType = {
@@ -14214,6 +14246,9 @@ export namespace Prisma {
     enrollmentDate?: true
     status?: true
     notes?: true
+    paymentId?: true
+    paymentStatus?: true
+    paymentDate?: true
     _all?: true
   }
 
@@ -14296,6 +14331,9 @@ export namespace Prisma {
     enrollmentDate: Date
     status: string
     notes: string | null
+    paymentId: string | null
+    paymentStatus: string
+    paymentDate: Date | null
     _count: EnrollmentCountAggregateOutputType | null
     _min: EnrollmentMinAggregateOutputType | null
     _max: EnrollmentMaxAggregateOutputType | null
@@ -14322,6 +14360,9 @@ export namespace Prisma {
     enrollmentDate?: boolean
     status?: boolean
     notes?: boolean
+    paymentId?: boolean
+    paymentStatus?: boolean
+    paymentDate?: boolean
     student?: boolean | StudentDefaultArgs<ExtArgs>
     class?: boolean | ClassDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["enrollment"]>
@@ -14333,6 +14374,9 @@ export namespace Prisma {
     enrollmentDate?: boolean
     status?: boolean
     notes?: boolean
+    paymentId?: boolean
+    paymentStatus?: boolean
+    paymentDate?: boolean
     student?: boolean | StudentDefaultArgs<ExtArgs>
     class?: boolean | ClassDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["enrollment"]>
@@ -14344,6 +14388,9 @@ export namespace Prisma {
     enrollmentDate?: boolean
     status?: boolean
     notes?: boolean
+    paymentId?: boolean
+    paymentStatus?: boolean
+    paymentDate?: boolean
     student?: boolean | StudentDefaultArgs<ExtArgs>
     class?: boolean | ClassDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["enrollment"]>
@@ -14355,9 +14402,12 @@ export namespace Prisma {
     enrollmentDate?: boolean
     status?: boolean
     notes?: boolean
+    paymentId?: boolean
+    paymentStatus?: boolean
+    paymentDate?: boolean
   }
 
-  export type EnrollmentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "studentId" | "classId" | "enrollmentDate" | "status" | "notes", ExtArgs["result"]["enrollment"]>
+  export type EnrollmentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "studentId" | "classId" | "enrollmentDate" | "status" | "notes" | "paymentId" | "paymentStatus" | "paymentDate", ExtArgs["result"]["enrollment"]>
   export type EnrollmentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     student?: boolean | StudentDefaultArgs<ExtArgs>
     class?: boolean | ClassDefaultArgs<ExtArgs>
@@ -14384,6 +14434,9 @@ export namespace Prisma {
       enrollmentDate: Date
       status: string
       notes: string | null
+      paymentId: string | null
+      paymentStatus: string
+      paymentDate: Date | null
     }, ExtArgs["result"]["enrollment"]>
     composites: {}
   }
@@ -14815,6 +14868,9 @@ export namespace Prisma {
     readonly enrollmentDate: FieldRef<"Enrollment", 'DateTime'>
     readonly status: FieldRef<"Enrollment", 'String'>
     readonly notes: FieldRef<"Enrollment", 'String'>
+    readonly paymentId: FieldRef<"Enrollment", 'String'>
+    readonly paymentStatus: FieldRef<"Enrollment", 'String'>
+    readonly paymentDate: FieldRef<"Enrollment", 'DateTime'>
   }
     
 
@@ -22295,6 +22351,7 @@ export namespace Prisma {
     capacity: 'capacity',
     room: 'room',
     teacherId: 'teacherId',
+    fee: 'fee',
     status: 'status',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -22309,7 +22366,10 @@ export namespace Prisma {
     classId: 'classId',
     enrollmentDate: 'enrollmentDate',
     status: 'status',
-    notes: 'notes'
+    notes: 'notes',
+    paymentId: 'paymentId',
+    paymentStatus: 'paymentStatus',
+    paymentDate: 'paymentDate'
   };
 
   export type EnrollmentScalarFieldEnum = (typeof EnrollmentScalarFieldEnum)[keyof typeof EnrollmentScalarFieldEnum]
@@ -23180,6 +23240,7 @@ export namespace Prisma {
     capacity?: IntFilter<"Class"> | number
     room?: StringNullableFilter<"Class"> | string | null
     teacherId?: StringNullableFilter<"Class"> | string | null
+    fee?: FloatFilter<"Class"> | number
     status?: StringFilter<"Class"> | string
     createdAt?: DateTimeFilter<"Class"> | Date | string
     updatedAt?: DateTimeFilter<"Class"> | Date | string
@@ -23201,6 +23262,7 @@ export namespace Prisma {
     capacity?: SortOrder
     room?: SortOrderInput | SortOrder
     teacherId?: SortOrderInput | SortOrder
+    fee?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -23225,6 +23287,7 @@ export namespace Prisma {
     capacity?: IntFilter<"Class"> | number
     room?: StringNullableFilter<"Class"> | string | null
     teacherId?: StringNullableFilter<"Class"> | string | null
+    fee?: FloatFilter<"Class"> | number
     status?: StringFilter<"Class"> | string
     createdAt?: DateTimeFilter<"Class"> | Date | string
     updatedAt?: DateTimeFilter<"Class"> | Date | string
@@ -23246,6 +23309,7 @@ export namespace Prisma {
     capacity?: SortOrder
     room?: SortOrderInput | SortOrder
     teacherId?: SortOrderInput | SortOrder
+    fee?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -23270,6 +23334,7 @@ export namespace Prisma {
     capacity?: IntWithAggregatesFilter<"Class"> | number
     room?: StringNullableWithAggregatesFilter<"Class"> | string | null
     teacherId?: StringNullableWithAggregatesFilter<"Class"> | string | null
+    fee?: FloatWithAggregatesFilter<"Class"> | number
     status?: StringWithAggregatesFilter<"Class"> | string
     createdAt?: DateTimeWithAggregatesFilter<"Class"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Class"> | Date | string
@@ -23285,6 +23350,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeFilter<"Enrollment"> | Date | string
     status?: StringFilter<"Enrollment"> | string
     notes?: StringNullableFilter<"Enrollment"> | string | null
+    paymentId?: StringNullableFilter<"Enrollment"> | string | null
+    paymentStatus?: StringFilter<"Enrollment"> | string
+    paymentDate?: DateTimeNullableFilter<"Enrollment"> | Date | string | null
     student?: XOR<StudentScalarRelationFilter, StudentWhereInput>
     class?: XOR<ClassScalarRelationFilter, ClassWhereInput>
   }
@@ -23296,6 +23364,9 @@ export namespace Prisma {
     enrollmentDate?: SortOrder
     status?: SortOrder
     notes?: SortOrderInput | SortOrder
+    paymentId?: SortOrderInput | SortOrder
+    paymentStatus?: SortOrder
+    paymentDate?: SortOrderInput | SortOrder
     student?: StudentOrderByWithRelationInput
     class?: ClassOrderByWithRelationInput
   }
@@ -23311,6 +23382,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeFilter<"Enrollment"> | Date | string
     status?: StringFilter<"Enrollment"> | string
     notes?: StringNullableFilter<"Enrollment"> | string | null
+    paymentId?: StringNullableFilter<"Enrollment"> | string | null
+    paymentStatus?: StringFilter<"Enrollment"> | string
+    paymentDate?: DateTimeNullableFilter<"Enrollment"> | Date | string | null
     student?: XOR<StudentScalarRelationFilter, StudentWhereInput>
     class?: XOR<ClassScalarRelationFilter, ClassWhereInput>
   }, "id" | "studentId_classId">
@@ -23322,6 +23396,9 @@ export namespace Prisma {
     enrollmentDate?: SortOrder
     status?: SortOrder
     notes?: SortOrderInput | SortOrder
+    paymentId?: SortOrderInput | SortOrder
+    paymentStatus?: SortOrder
+    paymentDate?: SortOrderInput | SortOrder
     _count?: EnrollmentCountOrderByAggregateInput
     _max?: EnrollmentMaxOrderByAggregateInput
     _min?: EnrollmentMinOrderByAggregateInput
@@ -23337,6 +23414,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeWithAggregatesFilter<"Enrollment"> | Date | string
     status?: StringWithAggregatesFilter<"Enrollment"> | string
     notes?: StringNullableWithAggregatesFilter<"Enrollment"> | string | null
+    paymentId?: StringNullableWithAggregatesFilter<"Enrollment"> | string | null
+    paymentStatus?: StringWithAggregatesFilter<"Enrollment"> | string
+    paymentDate?: DateTimeNullableWithAggregatesFilter<"Enrollment"> | Date | string | null
   }
 
   export type AttendanceWhereInput = {
@@ -24566,6 +24646,7 @@ export namespace Prisma {
     schedule?: string | null
     capacity: number
     room?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -24587,6 +24668,7 @@ export namespace Prisma {
     capacity: number
     room?: string | null
     teacherId?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -24606,6 +24688,7 @@ export namespace Prisma {
     schedule?: NullableStringFieldUpdateOperationsInput | string | null
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -24627,6 +24710,7 @@ export namespace Prisma {
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -24647,6 +24731,7 @@ export namespace Prisma {
     capacity: number
     room?: string | null
     teacherId?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -24662,6 +24747,7 @@ export namespace Prisma {
     schedule?: NullableStringFieldUpdateOperationsInput | string | null
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -24678,6 +24764,7 @@ export namespace Prisma {
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -24688,6 +24775,9 @@ export namespace Prisma {
     enrollmentDate?: Date | string
     status?: string
     notes?: string | null
+    paymentId?: string | null
+    paymentStatus?: string
+    paymentDate?: Date | string | null
     student: StudentCreateNestedOneWithoutEnrollmentsInput
     class: ClassCreateNestedOneWithoutEnrollmentsInput
   }
@@ -24699,6 +24789,9 @@ export namespace Prisma {
     enrollmentDate?: Date | string
     status?: string
     notes?: string | null
+    paymentId?: string | null
+    paymentStatus?: string
+    paymentDate?: Date | string | null
   }
 
   export type EnrollmentUpdateInput = {
@@ -24706,6 +24799,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentStatus?: StringFieldUpdateOperationsInput | string
+    paymentDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     student?: StudentUpdateOneRequiredWithoutEnrollmentsNestedInput
     class?: ClassUpdateOneRequiredWithoutEnrollmentsNestedInput
   }
@@ -24717,6 +24813,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentStatus?: StringFieldUpdateOperationsInput | string
+    paymentDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type EnrollmentCreateManyInput = {
@@ -24726,6 +24825,9 @@ export namespace Prisma {
     enrollmentDate?: Date | string
     status?: string
     notes?: string | null
+    paymentId?: string | null
+    paymentStatus?: string
+    paymentDate?: Date | string | null
   }
 
   export type EnrollmentUpdateManyMutationInput = {
@@ -24733,6 +24835,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentStatus?: StringFieldUpdateOperationsInput | string
+    paymentDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type EnrollmentUncheckedUpdateManyInput = {
@@ -24742,6 +24847,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentStatus?: StringFieldUpdateOperationsInput | string
+    paymentDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type AttendanceCreateInput = {
@@ -25957,6 +26065,17 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
+  export type FloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
   export type ClassCountOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
@@ -25968,6 +26087,7 @@ export namespace Prisma {
     capacity?: SortOrder
     room?: SortOrder
     teacherId?: SortOrder
+    fee?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -25975,6 +26095,7 @@ export namespace Prisma {
 
   export type ClassAvgOrderByAggregateInput = {
     capacity?: SortOrder
+    fee?: SortOrder
   }
 
   export type ClassMaxOrderByAggregateInput = {
@@ -25988,6 +26109,7 @@ export namespace Prisma {
     capacity?: SortOrder
     room?: SortOrder
     teacherId?: SortOrder
+    fee?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -26004,6 +26126,7 @@ export namespace Prisma {
     capacity?: SortOrder
     room?: SortOrder
     teacherId?: SortOrder
+    fee?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -26011,6 +26134,7 @@ export namespace Prisma {
 
   export type ClassSumOrderByAggregateInput = {
     capacity?: SortOrder
+    fee?: SortOrder
   }
 
   export type IntWithAggregatesFilter<$PrismaModel = never> = {
@@ -26027,6 +26151,22 @@ export namespace Prisma {
     _sum?: NestedIntFilter<$PrismaModel>
     _min?: NestedIntFilter<$PrismaModel>
     _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type ClassScalarRelationFilter = {
@@ -26046,6 +26186,9 @@ export namespace Prisma {
     enrollmentDate?: SortOrder
     status?: SortOrder
     notes?: SortOrder
+    paymentId?: SortOrder
+    paymentStatus?: SortOrder
+    paymentDate?: SortOrder
   }
 
   export type EnrollmentMaxOrderByAggregateInput = {
@@ -26055,6 +26198,9 @@ export namespace Prisma {
     enrollmentDate?: SortOrder
     status?: SortOrder
     notes?: SortOrder
+    paymentId?: SortOrder
+    paymentStatus?: SortOrder
+    paymentDate?: SortOrder
   }
 
   export type EnrollmentMinOrderByAggregateInput = {
@@ -26064,6 +26210,9 @@ export namespace Prisma {
     enrollmentDate?: SortOrder
     status?: SortOrder
     notes?: SortOrder
+    paymentId?: SortOrder
+    paymentStatus?: SortOrder
+    paymentDate?: SortOrder
   }
 
   export type AttendanceStudentIdClassIdDateCompoundUniqueInput = {
@@ -26106,17 +26255,6 @@ export namespace Prisma {
     recordedBy?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-  }
-
-  export type FloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
   }
 
   export type GradeCountOrderByAggregateInput = {
@@ -26174,22 +26312,6 @@ export namespace Prisma {
     score?: SortOrder
     maxScore?: SortOrder
     weight?: SortOrder
-  }
-
-  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type PaymentCountOrderByAggregateInput = {
@@ -27264,6 +27386,14 @@ export namespace Prisma {
     divide?: number
   }
 
+  export type FloatFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
   export type TeacherUpdateOneWithoutClassesNestedInput = {
     create?: XOR<TeacherCreateWithoutClassesInput, TeacherUncheckedCreateWithoutClassesInput>
     connectOrCreate?: TeacherCreateOrConnectWithoutClassesInput
@@ -27452,14 +27582,6 @@ export namespace Prisma {
     create?: XOR<ClassCreateWithoutGradesInput, ClassUncheckedCreateWithoutGradesInput>
     connectOrCreate?: ClassCreateOrConnectWithoutGradesInput
     connect?: ClassWhereUniqueInput
-  }
-
-  export type FloatFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type StudentUpdateOneRequiredWithoutGradesNestedInput = {
@@ -27753,6 +27875,17 @@ export namespace Prisma {
     _max?: NestedBoolFilter<$PrismaModel>
   }
 
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -27767,17 +27900,6 @@ export namespace Prisma {
     _sum?: NestedIntFilter<$PrismaModel>
     _min?: NestedIntFilter<$PrismaModel>
     _max?: NestedIntFilter<$PrismaModel>
-  }
-
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
   }
 
   export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
@@ -28577,6 +28699,9 @@ export namespace Prisma {
     enrollmentDate?: Date | string
     status?: string
     notes?: string | null
+    paymentId?: string | null
+    paymentStatus?: string
+    paymentDate?: Date | string | null
     class: ClassCreateNestedOneWithoutEnrollmentsInput
   }
 
@@ -28586,6 +28711,9 @@ export namespace Prisma {
     enrollmentDate?: Date | string
     status?: string
     notes?: string | null
+    paymentId?: string | null
+    paymentStatus?: string
+    paymentDate?: Date | string | null
   }
 
   export type EnrollmentCreateOrConnectWithoutStudentInput = {
@@ -28771,6 +28899,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeFilter<"Enrollment"> | Date | string
     status?: StringFilter<"Enrollment"> | string
     notes?: StringNullableFilter<"Enrollment"> | string | null
+    paymentId?: StringNullableFilter<"Enrollment"> | string | null
+    paymentStatus?: StringFilter<"Enrollment"> | string
+    paymentDate?: DateTimeNullableFilter<"Enrollment"> | Date | string | null
   }
 
   export type AttendanceUpsertWithWhereUniqueWithoutStudentInput = {
@@ -28921,6 +29052,7 @@ export namespace Prisma {
     schedule?: string | null
     capacity: number
     room?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -28940,6 +29072,7 @@ export namespace Prisma {
     schedule?: string | null
     capacity: number
     room?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -29080,6 +29213,7 @@ export namespace Prisma {
     capacity?: IntFilter<"Class"> | number
     room?: StringNullableFilter<"Class"> | string | null
     teacherId?: StringNullableFilter<"Class"> | string | null
+    fee?: FloatFilter<"Class"> | number
     status?: StringFilter<"Class"> | string
     createdAt?: DateTimeFilter<"Class"> | Date | string
     updatedAt?: DateTimeFilter<"Class"> | Date | string
@@ -29599,6 +29733,9 @@ export namespace Prisma {
     enrollmentDate?: Date | string
     status?: string
     notes?: string | null
+    paymentId?: string | null
+    paymentStatus?: string
+    paymentDate?: Date | string | null
     student: StudentCreateNestedOneWithoutEnrollmentsInput
   }
 
@@ -29608,6 +29745,9 @@ export namespace Prisma {
     enrollmentDate?: Date | string
     status?: string
     notes?: string | null
+    paymentId?: string | null
+    paymentStatus?: string
+    paymentDate?: Date | string | null
   }
 
   export type EnrollmentCreateOrConnectWithoutClassInput = {
@@ -29876,6 +30016,7 @@ export namespace Prisma {
     schedule?: string | null
     capacity: number
     room?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -29896,6 +30037,7 @@ export namespace Prisma {
     capacity: number
     room?: string | null
     teacherId?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -29973,6 +30115,7 @@ export namespace Prisma {
     schedule?: NullableStringFieldUpdateOperationsInput | string | null
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29993,6 +30136,7 @@ export namespace Prisma {
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30048,6 +30192,7 @@ export namespace Prisma {
     schedule?: string | null
     capacity: number
     room?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30068,6 +30213,7 @@ export namespace Prisma {
     capacity: number
     room?: string | null
     teacherId?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30145,6 +30291,7 @@ export namespace Prisma {
     schedule?: NullableStringFieldUpdateOperationsInput | string | null
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30165,6 +30312,7 @@ export namespace Prisma {
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30220,6 +30368,7 @@ export namespace Prisma {
     schedule?: string | null
     capacity: number
     room?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30240,6 +30389,7 @@ export namespace Prisma {
     capacity: number
     room?: string | null
     teacherId?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30317,6 +30467,7 @@ export namespace Prisma {
     schedule?: NullableStringFieldUpdateOperationsInput | string | null
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30337,6 +30488,7 @@ export namespace Prisma {
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30411,6 +30563,7 @@ export namespace Prisma {
     schedule?: string | null
     capacity: number
     room?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30431,6 +30584,7 @@ export namespace Prisma {
     capacity: number
     room?: string | null
     teacherId?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30494,6 +30648,7 @@ export namespace Prisma {
     schedule?: NullableStringFieldUpdateOperationsInput | string | null
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30514,6 +30669,7 @@ export namespace Prisma {
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
     teacherId?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31063,6 +31219,9 @@ export namespace Prisma {
     enrollmentDate?: Date | string
     status?: string
     notes?: string | null
+    paymentId?: string | null
+    paymentStatus?: string
+    paymentDate?: Date | string | null
   }
 
   export type AttendanceCreateManyStudentInput = {
@@ -31103,6 +31262,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentStatus?: StringFieldUpdateOperationsInput | string
+    paymentDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     class?: ClassUpdateOneRequiredWithoutEnrollmentsNestedInput
   }
 
@@ -31112,6 +31274,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentStatus?: StringFieldUpdateOperationsInput | string
+    paymentDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type EnrollmentUncheckedUpdateManyWithoutStudentInput = {
@@ -31120,6 +31285,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentStatus?: StringFieldUpdateOperationsInput | string
+    paymentDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type AttendanceUpdateWithoutStudentInput = {
@@ -31231,6 +31399,7 @@ export namespace Prisma {
     schedule?: string | null
     capacity: number
     room?: string | null
+    fee?: number
     status?: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -31261,6 +31430,7 @@ export namespace Prisma {
     schedule?: NullableStringFieldUpdateOperationsInput | string | null
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31280,6 +31450,7 @@ export namespace Prisma {
     schedule?: NullableStringFieldUpdateOperationsInput | string | null
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31299,6 +31470,7 @@ export namespace Prisma {
     schedule?: NullableStringFieldUpdateOperationsInput | string | null
     capacity?: IntFieldUpdateOperationsInput | number
     room?: NullableStringFieldUpdateOperationsInput | string | null
+    fee?: FloatFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31447,6 +31619,9 @@ export namespace Prisma {
     enrollmentDate?: Date | string
     status?: string
     notes?: string | null
+    paymentId?: string | null
+    paymentStatus?: string
+    paymentDate?: Date | string | null
   }
 
   export type AttendanceCreateManyClassInput = {
@@ -31494,6 +31669,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentStatus?: StringFieldUpdateOperationsInput | string
+    paymentDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     student?: StudentUpdateOneRequiredWithoutEnrollmentsNestedInput
   }
 
@@ -31503,6 +31681,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentStatus?: StringFieldUpdateOperationsInput | string
+    paymentDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type EnrollmentUncheckedUpdateManyWithoutClassInput = {
@@ -31511,6 +31692,9 @@ export namespace Prisma {
     enrollmentDate?: DateTimeFieldUpdateOperationsInput | Date | string
     status?: StringFieldUpdateOperationsInput | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentStatus?: StringFieldUpdateOperationsInput | string
+    paymentDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type AttendanceUpdateWithoutClassInput = {

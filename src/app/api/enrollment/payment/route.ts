@@ -69,13 +69,26 @@ export async function POST(req: NextRequest) {
 
     console.log('Generated transaction ID:', transactionId);
 
+    // Get the class fee from the database
+    const classDetails = await prisma.class.findUnique({
+      where: { id: classId },
+      select: { fee: true, name: true }
+    });
+
+    if (!classDetails) {
+      return NextResponse.json(
+        { error: 'Class details not found.' },
+        { status: 404 }
+      );
+    }
+
     // In development mode, we'll create a mock payment without using the Payment model
     // This avoids issues with the parentId foreign key constraint
     const mockPayment = {
       id: `pay_dev_${Date.now()}`,
-      amount: amount || 99.99,
+      amount: amount || classDetails.fee, // Use the class-specific fee from the database
       currency: 'USD',
-      description: `Enrollment fee for ${enrollment.class.name}`,
+      description: `Enrollment fee for ${classDetails.name}`,
       invoiceNumber: `INV-DEV-${Date.now()}`,
       paymentDate: new Date(),
       status: 'paid',
@@ -85,7 +98,7 @@ export async function POST(req: NextRequest) {
     
     console.log('Mock payment created:', mockPayment.id);
 
-    // Update the enrollment status to 'enrolled'
+    // Update the enrollment status to 'enrolled' and add payment information
     console.log('Updating enrollment status to enrolled for enrollment ID:', enrollment.id);
     
     let updatedEnrollment;
@@ -94,16 +107,19 @@ export async function POST(req: NextRequest) {
         where: { id: enrollment.id },
         data: {
           status: 'enrolled',
+          paymentId: mockPayment.id,
+          paymentStatus: 'paid',
+          paymentDate: new Date(),
           notes: JSON.stringify({
-            paymentId: mockPayment.id,
-            paymentDate: new Date().toISOString(),
             transactionId,
+            paymentMethod: paymentMethod || 'Development Mode',
+            amount: mockPayment.amount,
             developmentMode: true
           })
         }
       });
       
-      console.log('Successfully updated enrollment status to enrolled:', updatedEnrollment);
+      console.log('Successfully updated enrollment status to enrolled with payment information:', updatedEnrollment);
     } catch (error) {
       console.error('Error updating enrollment status:', error);
       throw error;
