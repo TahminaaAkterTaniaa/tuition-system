@@ -120,36 +120,55 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
       }
 
       // First submit the enrollment application
-      const enrollResponse = await fetch('/api/enrollment/enroll', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          classId,
-          userId, // Pass the userId directly in the request body
-        }),
-        credentials: 'include', // Include cookies for authentication
-      });
+      console.log('Submitting enrollment request with:', { classId, userId });
+      let enrollData;
+      try {
+        const enrollResponse = await fetch('/api/enrollment/enroll', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            classId,
+            userId, // Pass the userId directly in the request body
+          }),
+          credentials: 'include', // Include cookies for authentication
+        });
 
-      if (!enrollResponse.ok) {
-        const errorData = await enrollResponse.json();
-        throw new Error(errorData.error || 'Failed to submit enrollment');
+        console.log('Enrollment response status:', enrollResponse.status);
+        
+        if (!enrollResponse.ok) {
+          const errorData = await enrollResponse.json();
+          console.error('Enrollment error response:', errorData);
+          throw new Error(errorData.error || 'Failed to submit enrollment');
+        }
+        
+        enrollData = await enrollResponse.json();
+        console.log('Enrollment created:', enrollData);
+      } catch (error) {
+        console.error('Error during enrollment request:', error);
+        throw error;
       }
-
-      const enrollData = await enrollResponse.json();
-      console.log('Enrollment created:', enrollData);
       
       // Then submit the additional form data and documents
-      const applicationResponse = await fetch('/api/enrollment/application', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include', // Include cookies for authentication
-      });
+      console.log('Submitting application form data');
+      try {
+        const applicationResponse = await fetch('/api/enrollment/application', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include', // Include cookies for authentication
+        });
 
-      if (!applicationResponse.ok) {
-        const errorData = await applicationResponse.json();
-        throw new Error(errorData.error || 'Failed to submit application details');
+        console.log('Application response status:', applicationResponse.status);
+        
+        if (!applicationResponse.ok) {
+          const errorData = await applicationResponse.json();
+          console.error('Application error response:', errorData);
+          throw new Error(errorData.error || 'Failed to submit application details');
+        }
+      } catch (error) {
+        console.error('Error during application submission:', error);
+        throw error;
       }
 
       console.log('Application submitted successfully');

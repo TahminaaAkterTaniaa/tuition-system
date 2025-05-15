@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/app/lib/prisma';
 
 export async function GET(
@@ -8,8 +8,13 @@ export async function GET(
   { params }: { params: { classId: string } }
 ) {
   try {
-    // Ensure params is awaited properly
-    const classId = params?.classId;
+    // Extract classId from the URL path directly
+    const url = new URL(req.url);
+    const pathParts = url.pathname.split('/');
+    // Use the last part of the path as the classId
+    const classId = pathParts[pathParts.length - 1];
+    
+    console.log('Class details API called for classId:', classId);
     
     if (!classId) {
       return NextResponse.json(

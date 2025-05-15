@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/app/lib/prisma';
 
 export async function POST(req: NextRequest) {
@@ -49,6 +49,11 @@ export async function POST(req: NextRequest) {
         studentId: student.id,
         classId,
         status: { in: ['enrolled', 'completed', 'pending'] }
+      },
+      select: {
+        id: true,
+        status: true,
+        enrollmentDate: true
       }
     });
 
@@ -115,26 +120,38 @@ export async function POST(req: NextRequest) {
     }
 
     // Create a new enrollment with pending payment status
-    const enrollment = await prisma.enrollment.create({
-      data: {
-        studentId: student.id,
-        classId,
-        status: 'pending', // Initial status is pending until payment is confirmed
-        paymentStatus: 'pending', // Initial payment status is pending
-        notes: 'Enrollment initiated through online application'
-      }
-    });
+    // ONLY include fields that exist in the actual database schema
+    console.log('Creating enrollment with exact fields from database schema');
+    try {
+      // Direct database query with only the fields that exist in the schema
+      const enrollment = await prisma.$queryRaw`
+        INSERT INTO "Enrollment" ("id", "studentId", "classId", "status", "paymentStatus", "notes")
+        VALUES (${`enr_${Date.now()}`}, ${student.id}, ${classId}, 'pending', 'pending', 'Enrollment initiated through online application')
+        RETURNING "id", "status", "enrollmentDate"
+      ` as any[];
+      
+      // Extract the first result from the raw query
+      const enrollmentResult = enrollment[0];
+      
+      console.log('Enrollment created successfully with ID:', enrollmentResult.id);
 
-    // Return the enrollment details
-    return NextResponse.json({
-      success: true,
-      message: 'Enrollment request submitted successfully. Please complete payment to confirm your enrollment.',
-      enrollment: {
-        id: enrollment.id,
-        status: enrollment.status,
-        enrollmentDate: enrollment.enrollmentDate
-      }
-    });
+      // Return the enrollment details
+      return NextResponse.json({
+        success: true,
+        message: 'Enrollment request submitted successfully. Please complete payment to confirm your enrollment.',
+        enrollment: {
+          id: enrollmentResult.id,
+          status: enrollmentResult.status,
+          enrollmentDate: enrollmentResult.enrollmentDate
+        }
+      });
+    } catch (error) {
+      console.error('Error creating enrollment:', error);
+      return NextResponse.json(
+        { error: 'Failed to create enrollment. Please try again.' },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error('Error enrolling in class:', error);
     return NextResponse.json(

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/app/lib/prisma';
 
 export async function GET(req: NextRequest) {
@@ -60,7 +60,14 @@ export async function GET(req: NextRequest) {
     // Get the student's enrollments with class information
     const enrollments = await prisma.enrollment.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        classId: true,
+        status: true,
+        enrollmentDate: true,
+        notes: true,
+        paymentStatus: true,
+        paymentDate: true,
         class: {
           select: {
             id: true,
@@ -68,7 +75,7 @@ export async function GET(req: NextRequest) {
             subject: true,
             schedule: true,
             teacher: {
-              include: {
+              select: {
                 user: {
                   select: {
                     name: true

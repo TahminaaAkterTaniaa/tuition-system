@@ -86,4 +86,4 @@
  All status(total due, paid, pending) shows -0.00$  which should be showing based on  the total amount of the course . also shows-"no payment found" under all course
 - the massage 
 
-
+--In parent register we are varifying student_id of child.  lets do it with student email instead of student_id.
