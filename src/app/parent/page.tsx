@@ -55,19 +55,19 @@ export default function ParentDashboard() {
         <div className="px-4 py-6 sm:px-0">
           {/* Student Information Section */}
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">My Children</h2>
+            {/* <h2 className="text-xl font-semibold mb-4">My Children</h2> */}
             <LinkedStudents />
           </div>
           
           {/* Payment Status Section */}
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Payment Status</h2>
+            {/* <h2 className="text-xl font-semibold mb-4">Payment Status</h2> */}
             <PaymentStatus />
           </div>
           
           {/* Messaging System Section */}
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Messages</h2>
+            {/* <h2 className="text-xl font-semibold mb-4">Messages</h2> */}
             <MessagingSystem />
           </div>
         </div>

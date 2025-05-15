@@ -152,7 +152,7 @@ export default function MessagingSystem() {
   
   if (loading) {
     return (
-      <div className="p-6 bg-white rounded-lg shadow-md">
+      <div className="p-4">
         <div className="flex justify-center items-center h-40">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
         </div>
@@ -161,52 +161,77 @@ export default function MessagingSystem() {
   }
   
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="border-b">
-        <nav className="flex">
-          <button
-            className={`px-4 py-3 text-sm font-medium ${
-              activeTab === 'inbox'
-                ? 'text-indigo-600 border-b-2 border-indigo-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('inbox')}
-          >
-            Inbox ({messages.filter(m => !m.isRead).length})
-          </button>
-          <button
-            className={`px-4 py-3 text-sm font-medium ${
-              activeTab === 'sent'
-                ? 'text-indigo-600 border-b-2 border-indigo-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('sent')}
-          >
-            Sent
-          </button>
-          <button
-            className={`px-4 py-3 text-sm font-medium ${
-              activeTab === 'compose'
-                ? 'text-indigo-600 border-b-2 border-indigo-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('compose')}
-          >
-            Compose
-          </button>
-        </nav>
+    <div className="p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-xl font-semibold mb-6 text-indigo-800 flex items-center">
+        <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        </svg>
+        Messages
+      </h2>
+      
+      {/* Tabs */}
+      <div className="flex mb-6 bg-gray-50 p-1 rounded-lg">
+        <button
+          className={`flex items-center justify-center px-4 py-2 rounded-md flex-1 transition-all ${activeTab === 'inbox' ? 'bg-white shadow-sm text-indigo-700 font-medium' : 'text-gray-600 hover:text-indigo-600 hover:bg-gray-100'}`}
+          onClick={() => {
+            setActiveTab('inbox');
+            setSelectedMessage(null);
+          }}
+        >
+          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          Inbox
+          {messages.filter(m => !m.isRead).length > 0 && (
+            <span className="ml-1 bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-0.5 rounded-full">
+              {messages.filter(m => !m.isRead).length}
+            </span>
+          )}
+        </button>
+        <button
+          className={`flex items-center justify-center px-4 py-2 rounded-md flex-1 transition-all ${activeTab === 'sent' ? 'bg-white shadow-sm text-indigo-700 font-medium' : 'text-gray-600 hover:text-indigo-600 hover:bg-gray-100'}`}
+          onClick={() => {
+            setActiveTab('sent');
+            setSelectedMessage(null);
+          }}
+        >
+          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
+          Sent
+        </button>
+        <button
+          className={`flex items-center justify-center px-4 py-2 rounded-md flex-1 transition-all ${activeTab === 'compose' ? 'bg-white shadow-sm text-indigo-700 font-medium' : 'text-gray-600 hover:text-indigo-600 hover:bg-gray-100'}`}
+          onClick={() => {
+            setActiveTab('compose');
+            setSelectedMessage(null);
+          }}
+        >
+          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+          Compose
+        </button>
       </div>
       
       <div className="p-4">
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md">
-            {error}
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+            <svg className="w-6 h-6 mx-auto text-red-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-red-600">{error}</p>
           </div>
         )}
         
         {sendSuccess && (
-          <div className="mb-4 p-3 bg-green-50 text-green-600 rounded-md">
-            Message sent successfully!
+          <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-4">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <p className="text-sm text-green-700">Message sent successfully!</p>
+            </div>
           </div>
         )}
         
@@ -220,63 +245,54 @@ export default function MessagingSystem() {
             ) : (
               <div className="space-y-4">
                 {selectedMessage ? (
-                  <div>
-                    <button
-                      onClick={() => setSelectedMessage(null)}
-                      className="mb-4 text-sm text-indigo-600 hover:text-indigo-800"
-                    >
-                      ← Back to messages
-                    </button>
-                    
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center mb-4">
-                        <div className="mr-3">
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="bg-indigo-50 p-4 border-b border-gray-200">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center">
                           {selectedMessage.sender.image ? (
-                            <Image
-                              src={selectedMessage.sender.image}
-                              alt={selectedMessage.sender.name || ''}
-                              width={40}
-                              height={40}
-                              className="rounded-full"
-                            />
+                            <div className="relative w-10 h-10 rounded-full overflow-hidden mr-3 border-2 border-white shadow-sm">
+                              <Image
+                                src={selectedMessage.sender.image}
+                                alt={selectedMessage.sender.name || ''}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
                           ) : (
-                            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                              <span className="text-indigo-800 font-medium">
-                                {selectedMessage.sender.name?.charAt(0) || '?'}
-                              </span>
+                            <div className="w-10 h-10 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center mr-3 text-white font-bold border-2 border-white shadow-sm">
+                              {selectedMessage.sender.name?.charAt(0) || '?'}
                             </div>
                           )}
+                          <div>
+                            <p className="font-medium text-indigo-900">{selectedMessage.sender.name}</p>
+                            <p className="text-xs text-indigo-700">{selectedMessage.sender.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium">{selectedMessage.sender.name}</h3>
-                          <p className="text-sm text-gray-500">{selectedMessage.sender.email}</p>
-                          <p className="text-xs text-gray-400">
-                            {new Date(selectedMessage.createdAt).toLocaleString()}
-                          </p>
+                        <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded-md shadow-sm">
+                          {new Date(selectedMessage.createdAt).toLocaleString(undefined, {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                         </div>
                       </div>
-                      
                       {selectedMessage.subject && (
-                        <h2 className="text-lg font-medium mb-2">{selectedMessage.subject}</h2>
+                        <h3 className="text-lg font-medium text-indigo-900 mt-2">{selectedMessage.subject}</h3>
                       )}
-                      
-                      <div className="prose max-w-none">
-                        <p>{selectedMessage.content}</p>
-                      </div>
-                      
-                      <div className="mt-6 pt-4 border-t">
-                        <button
-                          onClick={() => {
-                            setActiveTab('compose');
-                            setSelectedTeacher(selectedMessage.sender.id);
-                            setSubject(selectedMessage.subject ? `Re: ${selectedMessage.subject}` : '');
-                            setContent(`\n\n> ${selectedMessage.content}`);
-                          }}
-                          className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                        >
-                          Reply
-                        </button>
-                      </div>
+                    </div>
+                    <div className="p-4 whitespace-pre-wrap text-gray-700">{selectedMessage.content}</div>
+                    <div className="bg-gray-50 px-4 py-3 flex justify-end border-t border-gray-200">
+                      <button
+                        onClick={() => setSelectedMessage(null)}
+                        className="flex items-center px-4 py-2 text-sm text-indigo-700 hover:text-indigo-900 bg-white rounded-md shadow-sm border border-indigo-200 hover:bg-indigo-50 transition-colors"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back to Messages
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -284,9 +300,7 @@ export default function MessagingSystem() {
                     <div
                       key={message.id}
                       onClick={() => setSelectedMessage(message)}
-                      className={`border rounded-lg p-4 cursor-pointer hover:bg-gray-50 ${
-                        !message.isRead ? 'border-l-4 border-l-indigo-500' : ''
-                      }`}
+                      className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50"
                     >
                       <div className="flex justify-between">
                         <div className="flex items-center">
@@ -340,49 +354,54 @@ export default function MessagingSystem() {
             ) : (
               <div className="space-y-4">
                 {selectedMessage ? (
-                  <div>
-                    <button
-                      onClick={() => setSelectedMessage(null)}
-                      className="mb-4 text-sm text-indigo-600 hover:text-indigo-800"
-                    >
-                      ← Back to messages
-                    </button>
-                    
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center mb-4">
-                        <div className="mr-3">
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="bg-indigo-50 p-4 border-b border-gray-200">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center">
                           {selectedMessage.receiver?.image ? (
-                            <Image
-                              src={selectedMessage.receiver.image}
-                              alt={selectedMessage.receiver.name || ''}
-                              width={40}
-                              height={40}
-                              className="rounded-full"
-                            />
+                            <div className="relative w-10 h-10 rounded-full overflow-hidden mr-3 border-2 border-white shadow-sm">
+                              <Image
+                                src={selectedMessage.receiver.image}
+                                alt={selectedMessage.receiver.name || ''}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
                           ) : (
-                            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                              <span className="text-indigo-800 font-medium">
-                                {selectedMessage.receiver?.name?.charAt(0) || '?'}
-                              </span>
+                            <div className="w-10 h-10 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center mr-3 text-white font-bold border-2 border-white shadow-sm">
+                              {selectedMessage.receiver?.name?.charAt(0) || '?'}
                             </div>
                           )}
+                          <div>
+                            <p className="font-medium text-indigo-900">To: {selectedMessage.receiver?.name}</p>
+                            <p className="text-xs text-indigo-700">{selectedMessage.receiver?.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium">To: {selectedMessage.receiver?.name}</h3>
-                          <p className="text-sm text-gray-500">{selectedMessage.receiver?.email}</p>
-                          <p className="text-xs text-gray-400">
-                            {new Date(selectedMessage.createdAt).toLocaleString()}
-                          </p>
+                        <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded-md shadow-sm">
+                          {new Date(selectedMessage.createdAt).toLocaleString(undefined, {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                         </div>
                       </div>
-                      
                       {selectedMessage.subject && (
-                        <h2 className="text-lg font-medium mb-2">{selectedMessage.subject}</h2>
+                        <h3 className="text-lg font-medium text-indigo-900 mt-2">{selectedMessage.subject}</h3>
                       )}
-                      
-                      <div className="prose max-w-none">
-                        <p>{selectedMessage.content}</p>
-                      </div>
+                    </div>
+                    <div className="p-4 whitespace-pre-wrap text-gray-700">{selectedMessage.content}</div>
+                    <div className="bg-gray-50 px-4 py-3 flex justify-end border-t border-gray-200">
+                      <button
+                        onClick={() => setSelectedMessage(null)}
+                        className="flex items-center px-4 py-2 text-sm text-indigo-700 hover:text-indigo-900 bg-white rounded-md shadow-sm border border-indigo-200 hover:bg-indigo-50 transition-colors"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back to Messages
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -436,66 +455,123 @@ export default function MessagingSystem() {
         
         {/* Compose Message */}
         {activeTab === 'compose' && (
-          <form onSubmit={handleSendMessage} className="space-y-4">
-            <div>
-              <label htmlFor="teacher" className="block text-sm font-medium text-gray-700 mb-1">
-                Recipient (Teacher)
-              </label>
-              <select
-                id="teacher"
-                value={selectedTeacher}
-                onChange={(e) => setSelectedTeacher(e.target.value)}
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                required
-              >
-                <option value="">Select a teacher</option>
-                {teachers.map((teacher) => (
-                  <option key={teacher.id} value={teacher.id}>
-                    {teacher.name} ({teacher.email})
-                  </option>
-                ))}
-              </select>
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-indigo-900 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                Compose New Message
+              </h3>
             </div>
             
-            <div>
-              <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
-                Subject (Optional)
-              </label>
-              <input
-                type="text"
-                id="subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Enter subject"
-              />
+            <div className="p-4">
+              <form onSubmit={handleSendMessage} className="space-y-4">
+                {sendSuccess && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-4">
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <p className="text-sm text-green-700">Message sent successfully!</p>
+                    </div>
+                  </div>
+                )}
+                
+                <div>
+                  <label htmlFor="teacher" className="block text-sm font-medium text-gray-700 mb-1">
+                    Recipient (Teacher)
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="teacher"
+                      value={selectedTeacher}
+                      onChange={(e) => setSelectedTeacher(e.target.value)}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm pr-10"
+                      required
+                    >
+                      <option value="">Select a teacher</option>
+                      {teachers.map((teacher) => (
+                        <option key={teacher.id} value={teacher.id}>
+                          {teacher.name} ({teacher.email})
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
+                    Subject (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    id="subject"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="Enter subject"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+                    Message
+                  </label>
+                  <textarea
+                    id="content"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    rows={6}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="Type your message here..."
+                    required
+                  ></textarea>
+                </div>
+                
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTeacher('');
+                      setSubject('');
+                      setContent('');
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sending}
+                    className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                  >
+                    {sending ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        Send Message
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
-            
-            <div>
-              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
-                Message
-              </label>
-              <textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={6}
-                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Type your message here..."
-                required
-              ></textarea>
-            </div>
-            
-            <div>
-              <button
-                type="submit"
-                disabled={sending}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-              >
-                {sending ? 'Sending...' : 'Send Message'}
-              </button>
-            </div>
-          </form>
+          </div>
         )}
       </div>
     </div>
