@@ -153,15 +153,16 @@ export default function RegisterPage() {
       // Register the user
       const response = await axios.post('/api/auth/register', registrationData);
       
-      if (response.data.success) {
-        // Set a success message
-        setError(null);
-        // Add a small delay before redirecting to ensure the API response is fully processed
-        setTimeout(() => {
-          // Redirect to login page after successful registration
-          router.push('/login?registered=true');
-        }, 1000);
-      }
+      console.log('Registration response:', response.data);
+      
+      // Set a success message
+      setError(null);
+      
+      // Show success message
+      alert('Registration successful! Please log in with your new account.');
+      
+      // Use window.location for a hard redirect instead of Next.js router
+      window.location.href = '/login?registered=true';
     } catch (err: any) {
       console.error('Registration error:', err);
       setError(err.response?.data?.message || 'An error occurred during registration');
