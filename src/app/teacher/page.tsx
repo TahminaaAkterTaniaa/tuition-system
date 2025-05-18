@@ -8,11 +8,13 @@ import TodaysClasses from '../components/TodaysClasses';
 import TeacherAttendance from '../components/TeacherAttendance';
 import TeacherMessages from '../components/TeacherMessages';
 import RecentActivities from '../components/RecentActivities';
+import CreateGradeModal from '../components/CreateGradeModal';
 
 export default function TeacherDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') {
@@ -93,9 +95,17 @@ export default function TeacherDashboard() {
             </div>
           </div>
           <p className="text-gray-600 mb-4">Record and manage student grades</p>
-          <Link href="/teacher/gradebook" className="text-indigo-600 hover:text-indigo-800 font-medium">
-            Open Gradebook →
-          </Link>
+          <div className="flex justify-between">
+            <Link href="/teacher/gradebook" className="text-indigo-600 hover:text-indigo-800 font-medium">
+              Open Gradebook →
+            </Link>
+            <button
+              onClick={() => setIsGradeModalOpen(true)}
+              className="text-green-600 hover:text-green-800 font-medium"
+            >
+              Create Grade +
+            </button>
+          </div>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
@@ -132,6 +142,15 @@ export default function TeacherDashboard() {
           <TeacherMessages />
         </div>
       </div>
+      
+      {/* Grade Creation Modal */}
+      <CreateGradeModal 
+        isOpen={isGradeModalOpen} 
+        onClose={() => setIsGradeModalOpen(false)} 
+        onSuccess={() => {
+          // Optionally refresh data after successful grade creation
+        }} 
+      />
     </div>
   );
 }

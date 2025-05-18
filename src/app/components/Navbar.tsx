@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useState } from 'react';
+import LogoutButton from './LogoutButton';
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -85,12 +86,7 @@ export default function Navbar() {
                     {session.user.name || session.user.email}
                   </span>
                 </Link>
-                <button
-                  onClick={() => signOut()}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
-                >
-                  Logout
-                </button>
+                <LogoutButton className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700" />
               </div>
             ) : (
               <div className="flex items-center space-x-4">
@@ -222,12 +218,7 @@ export default function Navbar() {
                     </div>
                   </div>
                 </Link>
-                <button
-                  onClick={() => signOut()}
-                  className="ml-auto bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
-                >
-                  Logout
-                </button>
+                <LogoutButton className="ml-auto bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700" />
               </div>
             ) : (
               <div className="flex items-center justify-around px-4">

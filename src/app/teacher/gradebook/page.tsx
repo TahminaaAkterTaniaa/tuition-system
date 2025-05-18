@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import CreateAssessmentModal from '@/app/components/CreateAssessmentModal';
+import EditGradeModal from '@/app/components/EditGradeModal';
 
 interface ClassData {
   id: string;
@@ -97,6 +98,8 @@ export default function TeacherGradebook() {
   const [upcomingAssessments, setUpcomingAssessments] = useState<UpcomingAssessment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isCreateAssessmentModalOpen, setIsCreateAssessmentModalOpen] = useState(false);
+  const [isEditGradeModalOpen, setIsEditGradeModalOpen] = useState(false);
+  const [selectedGradeId, setSelectedGradeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'loading') {
@@ -378,9 +381,15 @@ export default function TeacherGradebook() {
                     <div className="text-sm text-gray-500">{grade.date}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <Link href={`/teacher/gradebook/edit/${grade.id}`} className="text-indigo-600 hover:text-indigo-900">
+                    <button 
+                      onClick={() => {
+                        setSelectedGradeId(grade.id);
+                        setIsEditGradeModalOpen(true);
+                      }} 
+                      className="text-indigo-600 hover:text-indigo-900"
+                    >
                       Edit
-                    </Link>
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -461,6 +470,46 @@ export default function TeacherGradebook() {
           
           fetchGradebookData();
         }}
+      />
+      
+      {/* Edit Grade Modal */}
+      <EditGradeModal
+        isOpen={isEditGradeModalOpen}
+        onClose={() => {
+          setIsEditGradeModalOpen(false);
+          setSelectedGradeId(null);
+        }}
+        onSuccess={() => {
+          // Refresh gradebook data after updating a grade
+          const fetchGradebookData = async () => {
+            try {
+              setIsLoading(true);
+              setError(null);
+              
+              // Fetch gradebook data
+              const gradebookResponse = await fetch('/api/teacher/gradebook');
+              
+              if (!gradebookResponse.ok) {
+                throw new Error('Failed to fetch gradebook data');
+              }
+              
+              const gradebookData = await gradebookResponse.json();
+              
+              setClasses(gradebookData.classes || []);
+              setRecentGrades(gradebookData.recentGrades || []);
+              setStudentPerformance(gradebookData.studentPerformance || []);
+              
+              setIsLoading(false);
+            } catch (err) {
+              console.error('Error refreshing gradebook data:', err);
+              setError('Failed to refresh data. Please try again later.');
+              setIsLoading(false);
+            }
+          };
+          
+          fetchGradebookData();
+        }}
+        gradeId={selectedGradeId}
       />
     </div>
   );
