@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -11,41 +8,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model (base entity with authentication details)
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  password      String?
-  image         String?
-  role          Role      @default(STUDENT)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  // Relations based on role
-  student Student?
-  teacher Teacher?
-  admin   Admin?
-  parent  Parent?
-
-  // Common relations
+  id               String         @id @default(cuid())
+  name             String?
+  email            String         @unique
+  emailVerified    DateTime?
+  password         String?
+  image            String?
+  role             Role           @default(STUDENT)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   accounts         Account[]
-  sessions         Session[]
-  sentMessages     Message[]      @relation("MessageSender")
-  receivedMessages Message[]      @relation("MessageReceiver")
+  admin            Admin?
   announcements    Announcement[]
+  activityLogs     ActivityLog[]
+  receivedMessages Message[]      @relation("MessageReceiver")
+  sentMessages     Message[]      @relation("MessageSender")
+  parent           Parent?
+  sessions         Session[]
+  student          Student?
+  teacher          Teacher?
 }
 
-// Role enum for user types
-enum Role {
-  STUDENT
-  TEACHER
-  ADMIN
-  PARENT
-}
-
-// NextAuth models
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -59,8 +43,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -81,72 +64,59 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// Student profile model
 model Student {
-  id               String    @id @default(cuid())
-  userId           String    @unique
-  studentId        String    @unique
+  id               String          @id @default(cuid())
+  userId           String          @unique
+  studentId        String          @unique
   dateOfBirth      DateTime?
   address          String?
   phoneNumber      String?
   emergencyContact String?
   academicLevel    String?
-  enrollmentDate   DateTime  @default(now())
-  status           String    @default("active") // active, inactive, suspended, graduated
-
-  // Relations
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  enrollments    Enrollment[]
-  attendances    Attendance[]
-  grades         Grade[]
-  parentStudents ParentStudent[]
+  enrollmentDate   DateTime        @default(now())
+  status           String          @default("active")
+  attendances      Attendance[]
+  enrollments      Enrollment[]
+  grades           Grade[]
+  parentStudents   ParentStudent[]
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Teacher profile model
 model Teacher {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  teacherId      String   @unique
+  id             String     @id @default(cuid())
+  userId         String     @unique
+  teacherId      String     @unique
   qualification  String?
   specialization String?
   experience     Int?
-  dateOfJoining  DateTime @default(now())
-  status         String   @default("active") // active, inactive, terminated
-
-  // Relations
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  classes   Class[]
-  resources Resource[]
+  dateOfJoining  DateTime   @default(now())
+  status         String     @default("active")
+  classes        Class[]
+  resources      Resource[]
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Admin profile model
 model Admin {
   id          String  @id @default(cuid())
   userId      String  @unique
   adminId     String  @unique
   department  String?
-  accessLevel String  @default("standard") // standard, elevated, super
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessLevel String  @default("standard")
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Parent/Guardian profile model
 model Parent {
-  id             String  @id @default(cuid())
-  userId         String  @unique
-  parentId       String  @unique
-  relationship   String? // father, mother, guardian, etc.
+  id             String          @id @default(cuid())
+  userId         String          @unique
+  parentId       String          @unique
+  relationship   String?
   occupation     String?
   alternatePhone String?
-
-  // Relations
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   parentStudents ParentStudent[]
   payments       Payment[]
 }
 
-// Many-to-many relationship between parents and students
 model ParentStudent {
   id           String   @id @default(cuid())
   parentId     String
@@ -154,84 +124,73 @@ model ParentStudent {
   relationship String
   isPrimary    Boolean  @default(false)
   createdAt    DateTime @default(now())
-
-  // Relations
-  parent  Parent  @relation(fields: [parentId], references: [id], onDelete: Cascade)
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent       Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([parentId, studentId])
 }
 
-// Class model
 model Class {
-  id          String    @id @default(cuid())
+  id          String       @id @default(cuid())
   name        String
   subject     String
   description String?
   startDate   DateTime
   endDate     DateTime?
-  schedule    String? // JSON string with schedule details
+  schedule    String?
   capacity    Int
   room        String?
   teacherId   String?
-  fee         Float     @default(99.99) // Enrollment fee for the class
-  status      String    @default("active") // active, completed, cancelled
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  teacher     Teacher?     @relation(fields: [teacherId], references: [id])
-  enrollments Enrollment[]
+  status      String       @default("active")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  fee         Float        @default(99.99)
   attendances Attendance[]
-  resources   Resource[]
+  assessments Assessment[]
+  enrollments Enrollment[]
   grades      Grade[]
+  resources   Resource[]
+  teacher     Teacher?     @relation(fields: [teacherId], references: [id])
 }
 
-// Enrollment model (student-class relationship)
 model Enrollment {
   id             String    @id @default(cuid())
   studentId      String
   classId        String
   enrollmentDate DateTime  @default(now())
-  status         String    @default("enrolled") // enrolled, completed, dropped, pending
+  status         String    @default("enrolled")
   notes          String?
-  paymentId      String? // Reference to payment ID
-  paymentStatus  String    @default("pending") // pending, paid, failed, refunded
-  paymentDate    DateTime? // When payment was processed
-
-  // Relations
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  paymentDate    DateTime?
+  paymentId      String?
+  paymentStatus  String    @default("pending")
+  class          Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student        Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, classId])
 }
 
-// Attendance model
 model Attendance {
   id         String   @id @default(cuid())
   studentId  String
   classId    String
   date       DateTime
-  status     String // present, absent, late, excused
+  status     String
   notes      String?
   recordedBy String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-
-  // Relations
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, classId, date])
 }
 
-// Grade/Performance model
 model Grade {
   id             String   @id @default(cuid())
   studentId      String
   classId        String
   assessmentName String
-  assessmentType String // quiz, test, exam, assignment, project
+  assessmentType String
   score          Float
   maxScore       Float
   weight         Float    @default(1.0)
@@ -239,13 +198,10 @@ model Grade {
   gradedDate     DateTime @default(now())
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-
-  // Relations
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class          Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
-// Payment/Invoice model
 model Payment {
   id            String    @id @default(cuid())
   parentId      String
@@ -255,22 +211,19 @@ model Payment {
   invoiceNumber String    @unique
   dueDate       DateTime
   paymentDate   DateTime?
-  status        String    @default("pending") // pending, paid, overdue, cancelled
+  status        String    @default("pending")
   paymentMethod String?
   transactionId String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-
-  // Relations
-  parent Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  parent        Parent    @relation(fields: [parentId], references: [id], onDelete: Cascade)
 }
 
-// Resource model (teaching materials, assignments)
 model Resource {
   id          String    @id @default(cuid())
   title       String
   description String?
-  type        String // material, assignment, syllabus, etc.
+  type        String
   url         String?
   filePath    String?
   classId     String
@@ -280,13 +233,10 @@ model Resource {
   expiryDate  DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
-  // Relations
-  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
-  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher     Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 }
 
-// Communication models
 model Message {
   id         String    @id @default(cuid())
   senderId   String
@@ -296,10 +246,8 @@ model Message {
   isRead     Boolean   @default(false)
   readAt     DateTime?
   createdAt  DateTime  @default(now())
-
-  // Relations
-  sender   User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver User @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  receiver   User      @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender     User      @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
 }
 
 model Announcement {
@@ -307,14 +255,46 @@ model Announcement {
   title          String
   content        String
   authorId       String
-  targetAudience String // all, students, teachers, parents, specific-class
+  targetAudience String
   targetClassId  String?
   isPublished    Boolean   @default(false)
   publishDate    DateTime?
   expiryDate     DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  author         User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
 
-  // Relations
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String
+  description String
+  entityType  String
+  entityId    String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Assessment {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        String   @default("ASSIGNMENT")
+  maxScore    Float    @default(100)
+  weight      Float    @default(1.0)
+  dueDate     DateTime
+  classId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+  PARENT
 }

@@ -221,10 +221,10 @@ exports.Prisma.ClassScalarFieldEnum = {
   capacity: 'capacity',
   room: 'room',
   teacherId: 'teacherId',
-  fee: 'fee',
   status: 'status',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  fee: 'fee'
 };
 
 exports.Prisma.EnrollmentScalarFieldEnum = {
@@ -234,9 +234,9 @@ exports.Prisma.EnrollmentScalarFieldEnum = {
   enrollmentDate: 'enrollmentDate',
   status: 'status',
   notes: 'notes',
+  paymentDate: 'paymentDate',
   paymentId: 'paymentId',
-  paymentStatus: 'paymentStatus',
-  paymentDate: 'paymentDate'
+  paymentStatus: 'paymentStatus'
 };
 
 exports.Prisma.AttendanceScalarFieldEnum = {
@@ -323,6 +323,31 @@ exports.Prisma.AnnouncementScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ActivityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  action: 'action',
+  description: 'description',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AssessmentScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  type: 'type',
+  maxScore: 'maxScore',
+  weight: 'weight',
+  dueDate: 'dueDate',
+  classId: 'classId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -361,7 +386,9 @@ exports.Prisma.ModelName = {
   Payment: 'Payment',
   Resource: 'Resource',
   Message: 'Message',
-  Announcement: 'Announcement'
+  Announcement: 'Announcement',
+  ActivityLog: 'ActivityLog',
+  Assessment: 'Assessment'
 };
 
 /**

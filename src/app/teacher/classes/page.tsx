@@ -50,8 +50,18 @@ export default function TeacherClasses() {
       }
       
       const data = await response.json();
-      console.log('Classes fetched successfully:', data.length);
-      setClasses(data);
+      console.log('Classes fetched successfully:', data);
+      
+      // Check if data is an array or has a classes property
+      if (Array.isArray(data)) {
+        setClasses(data);
+      } else if (data.classes && Array.isArray(data.classes)) {
+        setClasses(data.classes);
+      } else {
+        console.error('Unexpected data format:', data);
+        setError('Received invalid data format from server');
+        setClasses([]);
+      }
       setError(null); // Clear any previous errors
     } catch (err) {
       console.error('Error fetching classes:', err);

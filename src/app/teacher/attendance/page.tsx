@@ -6,24 +6,23 @@ import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 
 interface AttendanceRecord {
-  id: number;
-  classId: number;
+  id: string;
+  classId: string;
   className: string;
   date: string;
   time: string;
-  present: number;
-  absent: number;
-  late?: number;
-  students?: any[];
+  status: string;
+  studentName: string;
+  studentId: string;
 }
 
 interface ClassData {
-  id: number;
+  id: string;
   name: string;
   schedule: string;
   room: string;
   students: number;
-  lastAttendance?: string;
+  lastAttendance?: string | null;
   attendanceRate?: string;
 }
 
@@ -38,7 +37,8 @@ interface AttendanceDatesMap {
 }
 
 // Helper function to format date for display
-const formatDate = (dateString: string): string => {
+const formatDate = (dateString: string | undefined): string => {
+  if (!dateString) return 'N/A';
   const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
   return new Date(dateString).toLocaleDateString(undefined, options);
 };
@@ -47,64 +47,63 @@ function AttendanceContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const updated = searchParams.get('updated') === 'true';
+  const updated = searchParams?.get('updated') === 'true';
   const [isLoading, setIsLoading] = useState(true);
   const [showUpdateMessage, setShowUpdateMessage] = useState(updated);
-  const [classes, setClasses] = useState<ClassData[]>([
-    {
-      id: 1,
-      name: 'Advanced Mathematics',
-      schedule: '9:00 AM - 10:30 AM',
-      room: 'Room 101',
-      students: 25,
-      lastAttendance: '2025-05-08',
-      attendanceRate: '92%'
-    },
-    {
-      id: 2,
-      name: 'Physics',
-      schedule: '1:00 PM - 2:30 PM',
-      room: 'Lab 203',
-      students: 18,
-      lastAttendance: '2025-05-07',
-      attendanceRate: '88%'
-    },
-    {
-      id: 3,
-      name: 'Chemistry',
-      schedule: '3:00 PM - 4:30 PM',
-      room: 'Lab 205',
-      students: 22,
-      lastAttendance: '2025-05-06',
-      attendanceRate: '95%'
-    }
-  ]);
-  
-  const [recentAttendance, setRecentAttendance] = useState<AttendanceRecord[]>([]); // Will be populated from localStorage
+  const [classes, setClasses] = useState<ClassData[]>([]);
+  const [recentAttendance, setRecentAttendance] = useState<AttendanceRecord[]>([]);
+  const [error, setError] = useState<string | null>(null);
   
   // Calendar state
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [attendanceDates, setAttendanceDates] = useState<AttendanceDatesMap>({});
 
-  // Function to load attendance records from localStorage
-  const loadAttendanceRecords = () => {
-    const recordsString = localStorage.getItem('attendanceRecords');
-    if (recordsString) {
-      const records = JSON.parse(recordsString) as AttendanceRecord[];
-      // Sort by date, most recent first
-      records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      setRecentAttendance(records);
+  // Function to fetch attendance data from API
+  const fetchAttendanceData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
       
-      // Create a map of dates with attendance records
-      const datesMap: AttendanceDatesMap = {};
-      records.forEach(record => {
-        if (!datesMap[record.date]) {
-          datesMap[record.date] = [];
-        }
-        datesMap[record.date].push(record);
-      });
-      setAttendanceDates(datesMap);
+      const response = await fetch('/api/teacher/attendance');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch attendance data');
+      }
+      
+      const data = await response.json();
+      
+      // Set classes data
+      if (data.classes && Array.isArray(data.classes)) {
+        setClasses(data.classes.map((cls: any) => ({
+          id: cls.id,
+          name: cls.name,
+          schedule: cls.schedule || 'No schedule',
+          room: cls.room || 'No room assigned',
+          students: cls.students || 0,
+          lastAttendance: cls.lastAttendance,
+          attendanceRate: cls.attendanceRate || '0%'
+        })));
+      }
+      
+      // Set recent attendance records
+      if (data.recentAttendance && Array.isArray(data.recentAttendance)) {
+        const records = data.recentAttendance;
+        // Sort by date, most recent first
+        records.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setRecentAttendance(records);
+      }
+      
+      // Set attendance dates map
+      if (data.attendanceDates) {
+        setAttendanceDates(data.attendanceDates);
+      }
+      
+    } catch (err) {
+      console.error('Error fetching attendance data:', err);
+      setError('Failed to load attendance data. Please try again later.');
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -128,22 +127,16 @@ function AttendanceContent() {
     // Calculate days from previous month to display
     const prevMonthDays: CalendarDay[] = [];
     for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const date = new Date(year, monthIndex - 1, prevMonthLastDate - i);
       prevMonthDays.push({
-        date: new Date(year, monthIndex - 1, prevMonthLastDate - i),
+        date,
         isCurrentMonth: false,
-        isToday: false
+        isToday: isToday(date)
       });
     }
     
-    // Calculate days for current month
+    // Calculate days from current month
     const currentMonthDays: CalendarDay[] = [];
-    const today = new Date();
-    const isToday = (date: Date) => {
-      return date.getDate() === today.getDate() && 
-             date.getMonth() === today.getMonth() && 
-             date.getFullYear() === today.getFullYear();
-    };
-    
     for (let i = 1; i <= lastDate; i++) {
       const date = new Date(year, monthIndex, i);
       currentMonthDays.push({
@@ -155,19 +148,29 @@ function AttendanceContent() {
     
     // Calculate days from next month to display
     const nextMonthDays: CalendarDay[] = [];
-    const totalDaysDisplayed = prevMonthDays.length + currentMonthDays.length;
-    const remainingDays = 42 - totalDaysDisplayed; // 6 rows x 7 days = 42
+    const totalDays = prevMonthDays.length + currentMonthDays.length;
+    const remainingDays = 42 - totalDays; // 6 rows of 7 days
     
     for (let i = 1; i <= remainingDays; i++) {
+      const date = new Date(year, monthIndex + 1, i);
       nextMonthDays.push({
-        date: new Date(year, monthIndex + 1, i),
+        date,
         isCurrentMonth: false,
-        isToday: false
+        isToday: isToday(date)
       });
     }
     
     // Combine all days
-    setCalendarDays([...prevMonthDays, ...currentMonthDays, ...nextMonthDays]);
+    const allDays = [...prevMonthDays, ...currentMonthDays, ...nextMonthDays];
+    setCalendarDays(allDays);
+    
+    // Helper function to check if a date is today
+    function isToday(date: Date): boolean {
+      const today = new Date();
+      return date.getDate() === today.getDate() && 
+             date.getMonth() === today.getMonth() && 
+             date.getFullYear() === today.getFullYear();
+    }
   };
   
   // Function to navigate to previous month
@@ -186,37 +189,62 @@ function AttendanceContent() {
   
   // Function to format date as YYYY-MM-DD for comparison
   const formatDateForComparison = (date: Date): string => {
-    return date.toISOString().split('T')[0];
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
   
   // Function to get attendance status for a date
   const getAttendanceStatus = (date: Date): string | null => {
     const dateString = formatDateForComparison(date);
-    if (attendanceDates[dateString]) {
-      const records = attendanceDates[dateString];
-      const totalStudents = records.reduce((sum: number, record: AttendanceRecord) => {
-        const lateCount = record.late || 0;
-        return sum + record.present + record.absent + lateCount;
-      }, 0);
-      const presentStudents = records.reduce((sum: number, record: AttendanceRecord) => sum + record.present, 0);
-      
-      if (presentStudents === 0) return 'missing';
-      if (presentStudents === totalStudents) return 'complete';
-      return 'partial';
-    }
-    return null;
+    
+    // Add null check for attendanceDates[dateString]
+    if (!dateString || !attendanceDates[dateString]) return null;
+    
+    const records = attendanceDates[dateString];
+    
+    // Count statuses
+    let present = 0;
+    let absent = 0;
+    let late = 0;
+    
+    records.forEach(record => {
+      if (record.status === 'present') present++;
+      else if (record.status === 'absent') absent++;
+      else if (record.status === 'late') late++;
+    });
+    
+    const totalStudents = present + absent + late;
+    
+    if (present === 0) return 'missing';
+    if (present < totalStudents) return 'partial';
+    return 'complete';
   };
   
   // Function to handle record deletion
-  const handleDeleteRecord = (recordId: number): void => {
-    if (confirm('Are you sure you want to delete this attendance record?')) {
-      const recordsString = localStorage.getItem('attendanceRecords');
-      if (recordsString) {
-        let records = JSON.parse(recordsString) as AttendanceRecord[];
-        records = records.filter(record => record.id !== recordId);
-        localStorage.setItem('attendanceRecords', JSON.stringify(records));
-        loadAttendanceRecords(); // Reload records
+  const handleDeleteRecord = async (recordId: string): Promise<void> => {
+    try {
+      // Show confirmation dialog
+      if (!confirm('Are you sure you want to delete this attendance record?')) {
+        return;
       }
+      
+      // Call API to delete the record
+      const response = await fetch(`/api/teacher/attendance/${recordId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete attendance record');
+      }
+      
+      // Refresh attendance data
+      fetchAttendanceData();
+      
+      // Show success message
+      alert('Attendance record deleted successfully');
+      
+    } catch (err) {
+      console.error('Error deleting attendance record:', err);
+      alert('Failed to delete attendance record. Please try again.');
     }
   };
 
@@ -235,19 +263,14 @@ function AttendanceContent() {
       return;
     }
     
-    // Load attendance records
-    loadAttendanceRecords();
+    // Fetch attendance data from API
+    fetchAttendanceData();
     
-    // Generate calendar days
-    generateCalendarDays(currentMonth);
-
-    setIsLoading(false);
-    
-    // Hide update message after 3 seconds
+    // Hide update message after 5 seconds
     if (showUpdateMessage) {
       const timer = setTimeout(() => {
         setShowUpdateMessage(false);
-      }, 3000);
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [session, status, router, showUpdateMessage]);
@@ -283,204 +306,89 @@ function AttendanceContent() {
             <div className="text-sm text-gray-500">{formatDate(new Date().toISOString().split('T')[0])}</div>
           </div>
           <div className="space-y-4">
-            <div className="border-l-4 border-indigo-500 pl-4 py-2">
-              <h3 className="font-medium text-gray-900">Advanced Mathematics</h3>
-              <p className="text-sm text-gray-600">9:00 AM - 10:30 AM | Room 101</p>
-              <div className="mt-2">
-                <Link 
-                  href="/teacher/attendance/mark/1" 
-                  className="inline-flex items-center text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                >
-                  Mark Attendance
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
+            {classes.length > 0 ? (
+              classes.map((cls) => (
+                <div key={cls.id} className="border-l-4 border-indigo-500 pl-4 py-2">
+                  <h3 className="font-medium text-gray-900">{cls.name}</h3>
+                  <p className="text-sm text-gray-600">{cls.schedule} | {cls.room}</p>
+                  <div className="mt-2">
+                    <Link 
+                      href={`/teacher/attendance/mark/${cls.id as string}`} 
+                      className="inline-flex items-center text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                    >
+                      Mark Attendance
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-gray-500">No classes scheduled for today</p>
               </div>
-            </div>
-            <div className="border-l-4 border-gray-300 pl-4 py-2">
-              <h3 className="font-medium text-gray-900">Chemistry</h3>
-              <p className="text-sm text-gray-600">3:00 PM - 4:30 PM | Lab 205</p>
-              <div className="mt-2">
-                <Link 
-                  href="/teacher/attendance/mark/3" 
-                  className="inline-flex items-center text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                >
-                  Mark Attendance
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              </div>
-            </div>
+            )}
           </div>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Attendance Overview</h2>
+          <h2 className="text-xl font-semibold mb-4">Class Statistics</h2>
           <div className="space-y-4">
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">Advanced Mathematics</span>
-                <span className="text-sm font-medium text-gray-700">92%</span>
+            {classes.length > 0 ? (
+              classes.map((cls) => (
+                <div key={cls.id} className="border-b border-gray-200 pb-3 last:border-b-0 last:pb-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium text-gray-900">{cls.name}</h3>
+                      <p className="text-sm text-gray-500">{cls.students} Students</p>
+                      {cls.lastAttendance && (
+                        <p className="text-xs text-gray-500">Last attendance: {formatDate(cls.lastAttendance)}</p>
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-right">
+                        <span className="text-sm font-medium text-gray-900">Attendance Rate</span>
+                        <div className="flex items-center mt-1">
+                          <div className="w-16 bg-gray-200 rounded-full h-2.5 mr-2 relative">
+                            <div 
+                              className={`h-2.5 rounded-full absolute top-0 left-0 ${
+                                cls.attendanceRate && parseInt(cls.attendanceRate) >= 90 ? 'bg-green-500' : 
+                                cls.attendanceRate && parseInt(cls.attendanceRate) >= 75 ? 'bg-yellow-500' : 'bg-red-500'
+                              } ${
+                                cls.attendanceRate && parseInt(cls.attendanceRate) <= 25 ? 'w-1/4' : 
+                                cls.attendanceRate && parseInt(cls.attendanceRate) <= 50 ? 'w-1/2' : 
+                                cls.attendanceRate && parseInt(cls.attendanceRate) <= 75 ? 'w-3/4' : 
+                                cls.attendanceRate && parseInt(cls.attendanceRate) <= 90 ? 'w-9/12' : 'w-full'
+                              }`} 
+                            ></div>
+                          </div>
+                          <span className="text-sm text-gray-500">{cls.attendanceRate || '0%'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-gray-500">No class data available</p>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-green-600 h-2.5 rounded-full" style={{ width: '92%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">Physics</span>
-                <span className="text-sm font-medium text-gray-700">88%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-green-600 h-2.5 rounded-full" style={{ width: '88%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">Chemistry</span>
-                <span className="text-sm font-medium text-gray-700">95%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-green-600 h-2.5 rounded-full" style={{ width: '95%' }}></div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-          <div className="space-y-3">
-            <Link 
-              href="/teacher/attendance/reports" 
-              className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
-            >
-              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">Generate Reports</h3>
-                <p className="text-sm text-gray-600">Create attendance reports</p>
-              </div>
-            </Link>
-            <Link 
-              href="/teacher/attendance/students" 
-              className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
-            >
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">Student Attendance</h3>
-                <p className="text-sm text-gray-600">View individual records</p>
-              </div>
-            </Link>
-            <Link 
-              href="/teacher/attendance/settings" 
-              className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
-            >
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">Settings</h3>
-                <p className="text-sm text-gray-600">Configure attendance options</p>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="md:col-span-2">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Recent Attendance Records</h2>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Class
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Present
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Absent
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Time
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {recentAttendance.length > 0 ? (
-                    recentAttendance.map((record) => (
-                      <tr key={record.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{record.className}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">{formatDate(record.date)}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-green-600">{record.present}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-red-600">{record.absent}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">{record.time}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <Link 
-                            href={`/teacher/attendance/mark/${record.classId}?edit=true&recordId=${record.id}`} 
-                            className="text-yellow-600 hover:text-yellow-900 mr-3"
-                          >
-                            Edit
-                          </Link>
-                          <button 
-                            onClick={() => handleDeleteRecord(record.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                        No attendance records found. Start by marking attendance for a class.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Attendance Calendar</h2>
+            <div className="text-sm text-gray-500">
+              {currentMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
             </div>
           </div>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Attendance Calendar</h2>
           <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium text-gray-900">
-                {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-sm font-medium text-gray-700">
+                {currentMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
               </h3>
               <div className="flex space-x-2">
                 <button 
@@ -559,6 +467,68 @@ function AttendanceContent() {
               <span className="text-gray-600">Missing</span>
             </div>
           </div>
+        </div>
+      </div>
+      
+      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+        <h2 className="text-xl font-semibold mb-4">Recent Attendance Records</h2>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Class & Date
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Student & Status
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Time
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {recentAttendance.length > 0 ? (
+                recentAttendance.map((record) => (
+                  <tr key={record.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{record.className}</div>
+                      <div className="text-xs text-gray-500">{formatDate(record.date)}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{record.studentName}</div>
+                      <div className={`text-sm ${
+                        record.status === 'present' ? 'text-green-600' : 
+                        record.status === 'late' ? 'text-yellow-600' : 'text-red-600'
+                      } capitalize`}>
+                        {record.status}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">{record.time}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleDeleteRecord(record.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
+                    No recent attendance records found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

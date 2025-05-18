@@ -1,0 +1,120 @@
+/* Grade badge styles */
+.gradeA {
+  background-color: rgb(220, 252, 231);
+  color: rgb(22, 101, 52);
+}
+
+.gradeB {
+  background-color: rgb(219, 234, 254);
+  color: rgb(29, 78, 216);
+}
+
+.gradeC {
+  background-color: rgb(254, 249, 195);
+  color: rgb(133, 77, 14);
+}
+
+.gradeD {
+  background-color: rgb(254, 215, 170);
+  color: rgb(154, 52, 18);
+}
+
+.gradeF {
+  background-color: rgb(254, 202, 202);
+  color: rgb(153, 27, 27);
+}
+
+/* Common badge style */
+.gradeBadge {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  display: inline-flex;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  border-radius: 9999px;
+}
+
+/* Progress bar styles */
+.progressBarContainer {
+  width: 100%;
+  background-color: rgb(229, 231, 235);
+  border-radius: 0.375rem;
+  height: 0.625rem;
+}
+
+.progressBarA {
+  background-color: rgb(22, 163, 74);
+  height: 0.625rem;
+  border-radius: 0.375rem;
+}
+
+.progressBarB {
+  background-color: rgb(37, 99, 235);
+  height: 0.625rem;
+  border-radius: 0.375rem;
+}
+
+.progressBarC {
+  background-color: rgb(202, 138, 4);
+  height: 0.625rem;
+  border-radius: 0.375rem;
+}
+
+.progressBarD {
+  background-color: rgb(234, 88, 12);
+  height: 0.625rem;
+  border-radius: 0.375rem;
+}
+
+.progressBarF {
+  background-color: rgb(220, 38, 38);
+  height: 0.625rem;
+  border-radius: 0.375rem;
+}
+
+/* Width classes for progress bars */
+.width0 {
+  width: 0%;
+}
+
+.width20 {
+  width: 20%;
+}
+
+.width40 {
+  width: 40%;
+}
+
+.width60 {
+  width: 60%;
+}
+
+.width80 {
+  width: 80%;
+}
+
+.width100 {
+  width: 100%;
+}
+
+/* Text color styles */
+.textGradeA {
+  color: rgb(22, 163, 74);
+}
+
+.textGradeB {
+  color: rgb(37, 99, 235);
+}
+
+.textGradeC {
+  color: rgb(202, 138, 4);
+}
+
+.textGradeD {
+  color: rgb(234, 88, 12);
+}
+
+.textGradeF {
+  color: rgb(220, 38, 38);
+}

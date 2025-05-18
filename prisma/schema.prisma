@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -21,6 +20,7 @@ model User {
   accounts         Account[]
   admin            Admin?
   announcements    Announcement[]
+  activityLogs     ActivityLog[]
   receivedMessages Message[]      @relation("MessageReceiver")
   sentMessages     Message[]      @relation("MessageSender")
   parent           Parent?
@@ -145,10 +145,11 @@ model Class {
   updatedAt   DateTime     @updatedAt
   fee         Float        @default(99.99)
   attendances Attendance[]
-  teacher     Teacher?     @relation(fields: [teacherId], references: [id])
+  assessments Assessment[]
   enrollments Enrollment[]
   grades      Grade[]
   resources   Resource[]
+  teacher     Teacher?     @relation(fields: [teacherId], references: [id])
 }
 
 model Enrollment {
@@ -261,6 +262,33 @@ model Announcement {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   author         User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String
+  description String
+  entityType  String
+  entityId    String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Assessment {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  type        String    @default("ASSIGNMENT")
+  maxScore    Float     @default(100)
+  weight      Float     @default(1.0)
+  dueDate     DateTime
+  classId     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
 }
 
 enum Role {

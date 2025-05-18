@@ -72,18 +72,68 @@
 
 
   ## Missing FEATURES
-
+check are these are working for parent registration ?
 - [ ] Update parent registration form to include `student_id` input
 - [ ] Validate student ID during parent registration
+- [ ] Update only 1 parent profile can be created for each student. if the student is already linked to a parent, the registration should be rejected and show error.
+
 - [ ] Secure parent dashboard to only show his children(linked student's) data
 - [ ] Add messaging system between parent and teacher(assigned teacher for child's enroled classes)
 - [ ] Add payment status of  child's courses 
 - [ ] Each course will have a cost . For each course enrollment a payment is needed. and payment status should be updated in the enrollment record.
 
 
--After Registration success redirect to login page is not working.
--on parent dashboard,under payment status  component data isn't updating correctly. 
- All status(total due, paid, pending) shows -0.00$  which should be showing based on  the total amount of the course . also shows-"no payment found" under all course
-- the massage 
 
---In parent register we are varifying student_id of child.  lets do it with student email instead of student_id.
+## Tasks:(16may)
+Profile Page:
+Continue building the profile page with both View and Edit functionality for all user types — Admin, Teacher, Student, and Parent.
+
+Messages Component:
+Add a Messages component to the Teacher Dashboard, allowing communication between teachers and parents via a message modal.
+
+Today's Classes (Teacher Dashboard):
+Update the Today's Classes component to show only the classes scheduled for the current day, based on the logged-in teacher’s assigned classes.
+
+Gradebook (Teacher Dashboard):
+ update the gradebook component to show the grades of the students assigned to the logged-in teacher’s classes. Aslo teacher can add new assignment or task, upload csv/exel file for grades. Also can create grade Reports
+ 
+
+Attendance (Teacher Dashboard):
+[x] Implement the Attendance component to work with real-time data and accurately reflect the students assigned to each teacher's classes.
+  - *Implemented in `/app/components/TeacherAttendance.tsx`*
+  - *Added real-time attendance marking in `/teacher/attendance/mark/[classId]/page.tsx`*
+  - *Created API endpoint for attendance management in `/api/teacher/attendance/route.ts`*
+  - *Added API endpoint for deleting attendance records in `/api/teacher/attendance/[id]/route.ts`*
+  - *Implemented class-specific attendance marking in `/api/teacher/classes/[classId]/attendance/route.ts`*
+
+## NEW FEATURES
+check are these are working for parent registration ?
+- [ ] Update parent registration form to include `student_id` input
+- [ ] Validate student ID during parent registration
+- [ ] Update only 1 parent profile can be created for each student. if the student is already linked to a parent, the registration should be rejected and show error.
+
+- [ ] Secure parent dashboard to only show his children(linked student's) data
+- [ ] Add messaging system between parent and teacher(assigned teacher for child's enroled classes)
+- [ ] Add payment status of  child's courses 
+- [ ] Each course will have a cost . For each course enrollment a payment is needed. and payment status should be updated in the enrollment record.
+
+
+## ------->Upcoming Tasks:(19may)
+
+# Teacher
+- Teachers should have the ability to give grades to students for their assigned classes.
+- On the Gradebook page, under each class, the teacher should be able to select a student and enter or update their grade for a specific assessment (e.g. test, assignment).
+- This grading functionality should work with real-time data — no dummy values — and must reflect immediately in the Gradebook, Recent Grades, and Student Performance sections.
+
+# Student
+“Withdraw” Option
+
+On the Classes page (Student Dashboard), under the "✓ You are enrolled in this class" badge, a "Withdraw" button needs to be added.
+
+This button should allow the student to unenroll from the class and update the backend and UI accordingly.
+
+Parent Registration Logic
+
+Need to enforce a rule where only one "Father" and one "Mother" profile can be registered per student.
+
+During registration, if a parent of the same relation is already linked to that student, the request should be rejected with an error message (e.g., "Student is already linked to a Mother.").

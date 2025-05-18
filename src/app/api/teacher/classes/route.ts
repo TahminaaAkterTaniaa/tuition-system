@@ -3,19 +3,17 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
 
+// GET handler for fetching classes assigned to the logged-in teacher
 export async function GET(req: NextRequest) {
   try {
-    // Get the authenticated user's session
     const session = await getServerSession(authOptions);
-    console.log('Session data:', JSON.stringify(session, null, 2));
-
-    // Check if user is authenticated and is a teacher
-    if (!session || !session.user || session.user.role !== 'TEACHER') {
-      console.log('Authentication issue:', { session: !!session, user: !!session?.user, role: session?.user?.role });
-      return NextResponse.json(
-        { error: 'Unauthorized. Only teachers can access this endpoint.' },
-        { status: 403 }
-      );
+    
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    if (session.user.role !== 'TEACHER') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Get the teacher's ID
@@ -70,8 +68,10 @@ export async function GET(req: NextRequest) {
       
       console.log(`Returning ${classesWithStudentCount.length} classes`);
       
-      // Return the classes (will be an empty array if no classes)
-      return NextResponse.json(classesWithStudentCount);
+      // Return the classes with a proper structure
+      return NextResponse.json({
+        classes: classesWithStudentCount
+      });
     } catch (classesError) {
       console.error('Error in classes query:', classesError);
       throw classesError; // Re-throw to be caught by the outer try-catch

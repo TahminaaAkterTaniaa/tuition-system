@@ -4,20 +4,45 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import styles from '../styles.module.css';
+
+interface Grade {
+  assessmentId: number;
+  score: number;
+  percentage: number;
+  letter: string;
+}
+
+interface Student {
+  id: number;
+  name: string;
+  grades: Grade[];
+  average: number;
+  letterGrade: string;
+}
+
+interface Assessment {
+  id: number;
+  name: string;
+  type: string;
+  date: string;
+  maxScore: number;
+  weight: number;
+}
 
 export default function ClassGradebook() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
-  const classId = params.id;
+  const gradeId = params.gradeId as string;
   const [isLoading, setIsLoading] = useState(true);
   const [classData, setClassData] = useState({
-    id: classId,
+    id: gradeId,
     name: 'Advanced Mathematics',
     description: 'Advanced calculus and linear algebra for senior students',
   });
   
-  const [assessments, setAssessments] = useState([
+  const [assessments, setAssessments] = useState<Assessment[]>([
     { id: 1, name: 'Quiz 1', type: 'Quiz', date: '2025-02-10', maxScore: 20, weight: 5 },
     { id: 2, name: 'Midterm Exam', type: 'Exam', date: '2025-03-15', maxScore: 100, weight: 25 },
     { id: 3, name: 'Assignment 1', type: 'Assignment', date: '2025-02-20', maxScore: 50, weight: 10 },
@@ -25,7 +50,7 @@ export default function ClassGradebook() {
     { id: 5, name: 'Assignment 2', type: 'Assignment', date: '2025-04-25', maxScore: 50, weight: 10 },
   ]);
   
-  const [students, setStudents] = useState([
+  const [students, setStudents] = useState<Student[]>([
     { 
       id: 1, 
       name: 'Emma Johnson', 
@@ -108,12 +133,12 @@ export default function ClassGradebook() {
       return;
     }
 
-    // In a real application, fetch class data, assessments, and student grades based on classId
+    // In a real application, fetch class data, assessments, and student grades based on gradeId
     // For now, we're using mock data
     setIsLoading(false);
-  }, [session, status, router, classId]);
+  }, [session, status, router, gradeId]);
 
-  const getGradeForStudent = (studentId, assessmentId) => {
+  const getGradeForStudent = (studentId: number, assessmentId: number) => {
     const student = students.find(s => s.id === studentId);
     if (!student) return null;
     
@@ -121,7 +146,7 @@ export default function ClassGradebook() {
     return grade || null;
   };
 
-  const handleEditGrade = (studentId, assessmentId) => {
+  const handleEditGrade = (studentId: number, assessmentId: number) => {
     // In a real application, this would open a modal or navigate to an edit page
     alert(`Edit grade for student ID ${studentId}, assessment ID ${assessmentId}`);
   };
@@ -143,13 +168,13 @@ export default function ClassGradebook() {
         </div>
         <div className="flex space-x-3">
           <Link 
-            href={`/teacher/classes/${classId}`}
+            href={`/teacher/classes/${gradeId}`}
             className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm font-medium"
           >
             Back to Class
           </Link>
           <Link 
-            href={`/teacher/gradebook/new-assessment?classId=${classId}`}
+            href={`/teacher/gradebook/new-assessment?classId=${gradeId}`}
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
           >
             New Assessment
@@ -174,7 +199,7 @@ export default function ClassGradebook() {
             <div className="bg-gray-50 p-4 rounded-md">
               <p className="text-sm text-gray-500">Lowest Grade</p>
               <p className="text-2xl font-bold text-yellow-600">79.0%</p>
-              <p className="text-sm font-medium text-gray-700">Liam Davis</p>
+              <p className={styles.textGradeC}>Liam Davis</p>
             </div>
           </div>
           
@@ -185,8 +210,8 @@ export default function ClassGradebook() {
                 <span className="text-sm font-medium text-gray-700">A (90-100%)</span>
                 <span className="text-sm font-medium text-gray-700">40%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-green-600 h-2.5 rounded-full" style={{ width: '40%' }}></div>
+              <div className={styles.progressBarContainer}>
+                <div className={`${styles.progressBarA} ${styles.width40}`}></div>
               </div>
             </div>
             <div>
@@ -194,8 +219,8 @@ export default function ClassGradebook() {
                 <span className="text-sm font-medium text-gray-700">B (80-89%)</span>
                 <span className="text-sm font-medium text-gray-700">40%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: '40%' }}></div>
+              <div className={styles.progressBarContainer}>
+                <div className={`${styles.progressBarB} ${styles.width40}`}></div>
               </div>
             </div>
             <div>
@@ -204,7 +229,7 @@ export default function ClassGradebook() {
                 <span className="text-sm font-medium text-gray-700">20%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-yellow-600 h-2.5 rounded-full" style={{ width: '20%' }}></div>
+                <div className={`${styles.progressBarC} ${styles.width20}`}></div>
               </div>
             </div>
             <div>
@@ -213,7 +238,7 @@ export default function ClassGradebook() {
                 <span className="text-sm font-medium text-gray-700">0%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-orange-600 h-2.5 rounded-full" style={{ width: '0%' }}></div>
+                <div className={`${styles.progressBarD} ${styles.width0}`}></div>
               </div>
             </div>
             <div>
@@ -222,7 +247,7 @@ export default function ClassGradebook() {
                 <span className="text-sm font-medium text-gray-700">0%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-red-600 h-2.5 rounded-full" style={{ width: '0%' }}></div>
+                <div className={`${styles.progressBarF} ${styles.width0}`}></div>
               </div>
             </div>
           </div>
@@ -255,7 +280,7 @@ export default function ClassGradebook() {
           </div>
           <div className="mt-4">
             <Link 
-              href={`/teacher/gradebook/new-assessment?classId=${classId}`}
+              href={`/teacher/gradebook/new-assessment?classId=${gradeId}`}
               className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
             >
               Add New Assessment →
@@ -330,12 +355,12 @@ export default function ClassGradebook() {
                     <div className="text-sm font-medium text-gray-900">{student.average.toFixed(1)}%</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      student.letterGrade.startsWith('A') ? 'bg-green-100 text-green-800' :
-                      student.letterGrade.startsWith('B') ? 'bg-blue-100 text-blue-800' :
-                      student.letterGrade.startsWith('C') ? 'bg-yellow-100 text-yellow-800' :
-                      student.letterGrade.startsWith('D') ? 'bg-orange-100 text-orange-800' :
-                      'bg-red-100 text-red-800'
+                    <span className={`${styles.gradeBadge} ${
+                      student.letterGrade.startsWith('A') ? styles.gradeA :
+                      student.letterGrade.startsWith('B') ? styles.gradeB :
+                      student.letterGrade.startsWith('C') ? styles.gradeC :
+                      student.letterGrade.startsWith('D') ? styles.gradeD :
+                      styles.gradeF
                     }`}>
                       {student.letterGrade}
                     </span>
@@ -351,7 +376,7 @@ export default function ClassGradebook() {
         <h2 className="text-xl font-semibold mb-4">Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link 
-            href={`/teacher/gradebook/new-assessment?classId=${classId}`}
+            href={`/teacher/gradebook/new-assessment?classId=${gradeId}`}
             className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
           >
             <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
@@ -365,7 +390,7 @@ export default function ClassGradebook() {
             </div>
           </Link>
           <Link 
-            href={`/teacher/gradebook/import?classId=${classId}`}
+            href={`/teacher/gradebook/import?classId=${gradeId}`}
             className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
           >
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
@@ -379,7 +404,7 @@ export default function ClassGradebook() {
             </div>
           </Link>
           <Link 
-            href={`/teacher/gradebook/reports?classId=${classId}`}
+            href={`/teacher/gradebook/reports?classId=${gradeId}`}
             className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
           >
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">

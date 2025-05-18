@@ -4,6 +4,10 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import TodaysClasses from '../components/TodaysClasses';
+import TeacherAttendance from '../components/TeacherAttendance';
+import TeacherMessages from '../components/TeacherMessages';
+import RecentActivities from '../components/RecentActivities';
 
 export default function TeacherDashboard() {
   const { data: session, status } = useSession();
@@ -71,9 +75,12 @@ export default function TeacherDashboard() {
             </div>
           </div>
           <p className="text-gray-600 mb-4">Mark and track student attendance</p>
-          <Link href="/teacher/attendance" className="text-indigo-600 hover:text-indigo-800 font-medium">
-            Manage Attendance →
-          </Link>
+          <div className="flex flex-col space-y-2">
+            <Link href="/teacher/attendance" className="text-indigo-600 hover:text-indigo-800 font-medium">
+              Manage Attendance →
+            </Link>
+            <span className="text-xs text-gray-500">Real-time attendance tracking now available!</span>
+          </div>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
@@ -107,120 +114,22 @@ export default function TeacherDashboard() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
-          <h2 className="text-xl font-semibold mb-4">Today's Classes</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Class
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Time
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Room
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Students
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {/* Sample data - would be replaced with real data */}
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">Advanced Mathematics</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">10:00 AM - 11:30 AM</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">Room 101</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">25</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <Link href="/teacher/classes/1" className="text-indigo-600 hover:text-indigo-900 mr-3">View</Link>
-                    <Link href="/teacher/attendance/mark/1" className="text-green-600 hover:text-green-900">Attendance</Link>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">Physics</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">1:00 PM - 2:30 PM</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">Lab 203</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">18</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <Link href="/teacher/classes/2" className="text-indigo-600 hover:text-indigo-900 mr-3">View</Link>
-                    <Link href="/teacher/attendance/mark/2" className="text-green-600 hover:text-green-900">Attendance</Link>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">Chemistry</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">3:00 PM - 4:30 PM</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">Lab 205</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">22</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <Link href="/teacher/classes/3" className="text-indigo-600 hover:text-indigo-900 mr-3">View</Link>
-                    <Link href="/teacher/attendance/mark/3" className="text-green-600 hover:text-green-900">Attendance</Link>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2">
+          <TodaysClasses />
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Recent Activities</h2>
-          <div className="space-y-4">
-            <div className="border-l-4 border-indigo-500 pl-4 py-2">
-              <p className="text-sm text-gray-600 mb-1">Today, 9:15 AM</p>
-              <h3 className="font-medium text-gray-900">Attendance Marked</h3>
-              <p className="text-sm text-gray-600">You marked attendance for Advanced Mathematics class.</p>
-            </div>
-            <div className="border-l-4 border-green-500 pl-4 py-2">
-              <p className="text-sm text-gray-600 mb-1">Yesterday, 2:30 PM</p>
-              <h3 className="font-medium text-gray-900">Resource Uploaded</h3>
-              <p className="text-sm text-gray-600">You uploaded {"\"Physics Lab Manual\""} for Physics class.</p>
-            </div>
-            <div className="border-l-4 border-blue-500 pl-4 py-2">
-              <p className="text-sm text-gray-600 mb-1">May 5, 2025</p>
-              <h3 className="font-medium text-gray-900">Grades Updated</h3>
-              <p className="text-sm text-gray-600">You updated grades for Chemistry mid-term exam.</p>
-            </div>
-            <div className="border-l-4 border-yellow-500 pl-4 py-2">
-              <p className="text-sm text-gray-600 mb-1">May 4, 2025</p>
-              <h3 className="font-medium text-gray-900">Announcement Posted</h3>
-              <p className="text-sm text-gray-600">You posted an announcement about the upcoming Science Fair.</p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <Link href="/teacher/activities" className="text-indigo-600 hover:text-indigo-800 font-medium">
-              View All Activities →
-            </Link>
-          </div>
+          <RecentActivities />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <TeacherAttendance />
+        
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Messages</h2>
+          <TeacherMessages />
         </div>
       </div>
     </div>

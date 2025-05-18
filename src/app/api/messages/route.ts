@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
+import { Server as SocketIOServer } from 'socket.io';
+
+// Global variable to store the Socket.IO server instance
+let io: SocketIOServer | null = null;
 
 // GET - Fetch messages for the current user
 export async function GET(req: NextRequest) {
@@ -107,9 +111,62 @@ export async function POST(req: NextRequest) {
         subject,
         content,
       },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            role: true,
+          },
+        },
+        receiver: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            role: true,
+          },
+        },
+      },
     });
     
-    return NextResponse.json({ success: true, message });
+    // Log activity for the teacher
+    if (session.user.role === 'TEACHER') {
+      try {
+        // Use a try-catch block to handle the case where ActivityLog model might not be available yet
+        // @ts-ignore - Prisma client will be updated at runtime
+        await prisma.activityLog.create({
+          data: {
+            userId: session.user.id,
+            action: 'SEND_MESSAGE',
+            description: `You sent a message to ${receiver.name || receiver.email}`,
+            entityType: 'MESSAGE',
+            entityId: message.id,
+            metadata: JSON.stringify({
+              messageId: message.id,
+              subject: subject || 'No subject',
+              receiverId: receiverId,
+              receiverName: receiver.name || receiver.email,
+            }),
+          },
+        });
+      } catch (error) {
+        console.error('Error logging activity:', error);
+        // Continue even if logging fails
+      }
+    }
+    
+    // Emit the new message event to connected clients
+    // This will be handled on the client side
+    const messageData = {
+      ...message,
+      timestamp: new Date().toISOString(),
+    };
+    
+    return NextResponse.json({ success: true, message: messageData });
   } catch (error) {
     console.error('Error sending message:', error);
     return NextResponse.json(

@@ -11,9 +11,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   // Disable React strict mode for compatibility
-  reactStrictMode: false,
-  // Enable static optimization where possible
-  swcMinify: true
+  reactStrictMode: false
 };
 
 module.exports = nextConfig;

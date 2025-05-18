@@ -72,9 +72,19 @@ export default function Navbar() {
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
             {session ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700">
-                  {session.user.name || session.user.email}
-                </span>
+                <Link
+                  href="/profile"
+                  className="flex items-center text-gray-700 hover:text-indigo-700"
+                >
+                  <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center mr-2">
+                    <span className="text-indigo-600 font-bold">
+                      {session.user.name?.charAt(0) || session.user.email.charAt(0)}
+                    </span>
+                  </div>
+                  <span className="text-sm">
+                    {session.user.name || session.user.email}
+                  </span>
+                </Link>
                 <button
                   onClick={() => signOut()}
                   className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
@@ -195,21 +205,23 @@ export default function Navbar() {
           <div className="pt-4 pb-3 border-t border-gray-200">
             {session ? (
               <div className="flex items-center px-4">
-                <div className="flex-shrink-0">
-                  <div className="h-10 w-10 rounded-full bg-indigo-200 flex items-center justify-center">
-                    <span className="text-indigo-600 font-bold">
-                      {session.user.name?.charAt(0) || session.user.email.charAt(0)}
-                    </span>
+                <Link href="/profile" className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-indigo-200 flex items-center justify-center">
+                      <span className="text-indigo-600 font-bold">
+                        {session.user.name?.charAt(0) || session.user.email.charAt(0)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="ml-3">
-                  <div className="text-base font-medium text-gray-800">
-                    {session.user.name || session.user.email}
+                  <div className="ml-3">
+                    <div className="text-base font-medium text-gray-800">
+                      {session.user.name || session.user.email}
+                    </div>
+                    <div className="text-sm font-medium text-gray-500">
+                      {session.user.email}
+                    </div>
                   </div>
-                  <div className="text-sm font-medium text-gray-500">
-                    {session.user.email}
-                  </div>
-                </div>
+                </Link>
                 <button
                   onClick={() => signOut()}
                   className="ml-auto bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
