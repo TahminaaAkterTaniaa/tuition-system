@@ -76,33 +76,53 @@ export async function POST(req: NextRequest) {
     }
 
     // Update the enrollment status to 'withdrawn'
-    const updatedEnrollment = await prisma.enrollment.update({
-      where: { id: enrollmentId },
-      data: { 
-        status: 'withdrawn'
-        // Note: If you want to track withdrawal date, you would need to add a withdrawnDate field to the Enrollment model in your schema
-      }
-    });
+    console.log('Updating enrollment status for ID:', enrollmentId);
+    
+    let updatedEnrollment;
+    try {
+      updatedEnrollment = await prisma.enrollment.update({
+        where: { id: enrollmentId },
+        data: { 
+          status: 'withdrawn'
+        }
+      });
+      
+      console.log('Successfully updated enrollment:', updatedEnrollment);
+    } catch (updateError) {
+      console.error('Error updating enrollment status:', updateError);
+      return NextResponse.json(
+        { error: 'Failed to update enrollment status', details: updateError instanceof Error ? updateError.message : 'Unknown error' },
+        { status: 500 }
+      );
+    }
 
     // Log this activity
-    await prisma.activityLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'WITHDRAW_CLASS',
-        description: `Withdrew from class: ${enrollment.class.name} (${enrollment.class.subject})`,
-        entityType: 'ENROLLMENT',
-        entityId: enrollmentId,
-        metadata: JSON.stringify({
-          className: enrollment.class.name,
-          classSubject: enrollment.class.subject
-        })
-      }
-    });
+    try {
+      await prisma.activityLog.create({
+        data: {
+          userId: session.user.id,
+          action: 'WITHDRAW_CLASS',
+          description: `Withdrew from class: ${enrollment.class.name} (${enrollment.class.subject})`,
+          entityType: 'ENROLLMENT',
+          entityId: enrollmentId,
+          metadata: JSON.stringify({
+            className: enrollment.class.name,
+            classSubject: enrollment.class.subject
+          })
+        }
+      });
+    } catch (logError) {
+      console.error('Error logging activity:', logError);
+      // Continue even if logging fails
+    }
 
     return NextResponse.json({
       success: true,
       message: `Successfully withdrawn from ${enrollment.class.name}`,
-      enrollment: updatedEnrollment
+      enrollment: {
+        id: enrollmentId,
+        status: 'withdrawn'
+      }
     });
   } catch (error) {
     console.error('Error withdrawing from class:', error);
