@@ -19,6 +19,8 @@ interface Class {
   } | null;
   startDate: string;
   endDate: string | null;
+  enrollmentStatus: 'enrolled' | 'pending' | 'completed' | 'withdrawn';
+  enrollmentId: string;
 }
 
 export default function StudentClasses() {
@@ -27,6 +29,55 @@ export default function StudentClasses() {
   const [isLoading, setIsLoading] = useState(true);
   const [classes, setClasses] = useState<Class[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [withdrawingClassId, setWithdrawingClassId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Function to handle class withdrawal
+  const handleWithdraw = async (enrollmentId: string, className: string) => {
+    if (!confirm(`Are you sure you want to withdraw from ${className}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setWithdrawingClassId(enrollmentId);
+      setError(null);
+      
+      const response = await fetch('/api/student/classes/withdraw', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ enrollmentId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to withdraw from class');
+      }
+
+      // Update the class list
+      setClasses(prevClasses => 
+        prevClasses.map(c => 
+          c.enrollmentId === enrollmentId 
+            ? { ...c, enrollmentStatus: 'withdrawn' as const } 
+            : c
+        )
+      );
+
+      setSuccessMessage(`Successfully withdrawn from ${className}`);
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
+    } catch (err) {
+      console.error('Error withdrawing from class:', err);
+      setError(`Failed to withdraw from class. ${err instanceof Error ? err.message : ''}`);
+    } finally {
+      setWithdrawingClassId(null);
+    }
+  };
 
   useEffect(() => {
     if (status === 'loading') {
@@ -103,12 +154,40 @@ export default function StudentClasses() {
         </div>
       )}
 
+      {successMessage && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+          {successMessage}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {classes.map((classItem) => (
           <div key={classItem.id} className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="bg-indigo-600 text-white px-4 py-2">
               <h2 className="text-xl font-semibold">{classItem.name}</h2>
               <p className="text-indigo-100">{classItem.subject}</p>
+              <div className="mt-1">
+                {classItem.enrollmentStatus === 'enrolled' && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ✓ You are enrolled in this class
+                  </span>
+                )}
+                {classItem.enrollmentStatus === 'pending' && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    ⏳ Enrollment pending
+                  </span>
+                )}
+                {classItem.enrollmentStatus === 'completed' && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    ✓ Completed
+                  </span>
+                )}
+                {classItem.enrollmentStatus === 'withdrawn' && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    ✗ Withdrawn
+                  </span>
+                )}
+              </div>
             </div>
             <div className="p-4">
               <p className="text-gray-700 mb-2">{classItem.description}</p>
@@ -135,7 +214,16 @@ export default function StudentClasses() {
                 </div>
               </div>
               
-              <div className="mt-6 flex justify-end">
+              <div className="mt-6 flex justify-end space-x-2">
+                {classItem.enrollmentStatus === 'enrolled' && (
+                  <button 
+                    onClick={() => handleWithdraw(classItem.enrollmentId, classItem.name)}
+                    disabled={withdrawingClassId === classItem.enrollmentId}
+                    className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {withdrawingClassId === classItem.enrollmentId ? 'Withdrawing...' : 'Withdraw'}
+                  </button>
+                )}
                 <button className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded hover:bg-indigo-200 transition-colors">
                   View Details
                 </button>

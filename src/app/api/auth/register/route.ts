@@ -26,7 +26,7 @@ const teacherSchema = baseSchema.extend({
 
 const parentSchema = baseSchema.extend({
   studentId: z.string().min(1, 'Student ID is required'),
-  relationship: z.string().optional(),
+  relationship: z.enum(['Father', 'Mother', 'Guardian']).default('Guardian'),
   occupation: z.string().optional(),
   alternatePhone: z.string().optional(),
 });
@@ -161,11 +161,19 @@ export async function POST(req: NextRequest) {
       } else if (role === 'PARENT') {
         // Verify that the student ID exists
         const studentIdToLink = body.studentId;
-        console.log(`Verifying student ID: ${studentIdToLink}`);
+        const parentRelationship = body.relationship || 'Guardian';
+        console.log(`Verifying student ID: ${studentIdToLink} for ${parentRelationship} registration`);
         
         try {
           const existingStudent = await prisma.student.findUnique({
             where: { studentId: studentIdToLink },
+            include: {
+              parentStudents: {
+                include: {
+                  parent: true
+                }
+              }
+            }
           });
           
           if (!existingStudent) {
@@ -178,12 +186,27 @@ export async function POST(req: NextRequest) {
           
           console.log(`Found student with ID ${studentIdToLink}`);
           
+          // Check if a parent with the same relationship already exists for this student
+          if (parentRelationship === 'Father' || parentRelationship === 'Mother') {
+            const existingParentWithSameRelationship = existingStudent.parentStudents.find(
+              ps => ps.relationship === parentRelationship
+            );
+            
+            if (existingParentWithSameRelationship) {
+              console.error(`Student already has a ${parentRelationship} registered`);
+              return NextResponse.json(
+                { message: `This student is already linked to a ${parentRelationship}. Only one ${parentRelationship} can be registered per student.` },
+                { status: 409 }
+              );
+            }
+          }
+          
           // Create parent profile
           const parent = await prisma.parent.create({
             data: {
               userId: user.id,
               parentId: `PA${Date.now().toString().slice(-6)}`,
-              relationship: body.relationship || undefined,
+              relationship: parentRelationship,
               occupation: body.occupation || undefined,
               alternatePhone: body.alternatePhone || undefined,
             },
@@ -194,12 +217,12 @@ export async function POST(req: NextRequest) {
             data: {
               parentId: parent.id,
               studentId: existingStudent.id,
-              relationship: body.relationship || 'Guardian',
+              relationship: parentRelationship,
               isPrimary: true,
             },
           });
           
-          console.log(`Created parent-student relationship for student ${studentIdToLink}`);
+          console.log(`Created parent-student relationship (${parentRelationship}) for student ${studentIdToLink}`);
         } catch (error) {
           console.error('Error linking parent to student:', error);
           throw error; // Let the outer catch block handle this
