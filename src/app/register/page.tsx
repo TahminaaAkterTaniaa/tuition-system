@@ -150,7 +150,7 @@ export default function RegisterPage() {
           break;
       }
       
-      const response = await axios.post('/api/register', registrationData);
+      const response = await axios.post('/api/auth/register', registrationData);
       
       if (response.status === 201) {
         // Registration successful, redirect to login
