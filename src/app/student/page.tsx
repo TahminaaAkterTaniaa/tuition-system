@@ -83,6 +83,19 @@ interface Resource {
   };
 }
 
+interface Assessment {
+  id: string;
+  title: string;
+  description?: string;
+  type: string;
+  dueDate: string;
+  maxScore: number;
+  class: {
+    name: string;
+    subject: string;
+  };
+}
+
 export default function StudentDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -90,16 +103,18 @@ export default function StudentDashboard() {
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   
-  // New state variables for attendance, grades, and resources
+  // New state variables for attendance, grades, resources, and assessments
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [attendanceSummary, setAttendanceSummary] = useState<AttendanceSummary | null>(null);
   const [grades, setGrades] = useState<ClassGradeSummary[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
   
   // Loading states for each data type
   const [attendanceLoading, setAttendanceLoading] = useState(true);
   const [gradesLoading, setGradesLoading] = useState(true);
   const [resourcesLoading, setResourcesLoading] = useState(true);
+  const [assessmentsLoading, setAssessmentsLoading] = useState(true);
 
   // Fetch student's classes function definition
   const fetchClasses = async () => {
@@ -262,6 +277,7 @@ export default function StudentDashboard() {
         return;
       }
       
+      // Fetch resources from the API
       const response = await fetch('/api/student/resources');
       
       if (!response.ok) {
@@ -277,12 +293,76 @@ export default function StudentDashboard() {
           new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime()
         );
         setResources(sortedResources);
+      } else {
+        // If data is not an array, set empty array
+        console.warn('Resources data is not an array:', data);
+        setResources([]);
       }
     } catch (err) {
       console.error('Error fetching resources:', err);
       toast.error('Failed to load resources');
+      setResources([]); // Set empty array on error
     } finally {
       setResourcesLoading(false);
+    }
+  };
+  
+  // Fetch student's assessments
+  const fetchAssessments = async () => {
+    try {
+      setAssessmentsLoading(true);
+      console.log('Fetching assessments');
+      
+      if (!session?.user?.id) {
+        console.log('No user ID available, cannot fetch assessments');
+        return;
+      }
+      
+      // Get the student's enrolled classes
+      const enrolledClassesResponse = await fetch(`/api/enrollment/direct-check?userId=${session.user.id}`);
+      const enrolledClassesData = await enrolledClassesResponse.json();
+      
+      if (!enrolledClassesData.success || !enrolledClassesData.enrollments) {
+        throw new Error('Failed to fetch enrolled classes');
+      }
+      
+      // Extract class IDs from enrollments
+      const classIds = enrolledClassesData.enrollments
+        .filter((enrollment: any) => enrollment.status === 'enrolled')
+        .map((enrollment: any) => enrollment.classId);
+      
+      if (classIds.length === 0) {
+        console.log('No enrolled classes found');
+        setAssessments([]);
+        return;
+      }
+      
+      // Fetch assessments for enrolled classes
+      const assessmentsPromises = classIds.map((classId: string) => 
+        fetch(`/api/student/assessments?classId=${classId}`).then(res => res.json())
+      );
+      
+      const assessmentsResults = await Promise.all(assessmentsPromises);
+      
+      // Flatten and combine all assessments
+      const allAssessments = assessmentsResults
+        .flat()
+        .filter(assessment => assessment && assessment.id);
+      
+      console.log('Assessments data:', allAssessments);
+      
+      // Sort by due date (upcoming first)
+      const sortedAssessments = [...allAssessments].sort((a, b) => 
+        new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+      );
+      
+      setAssessments(sortedAssessments);
+    } catch (err) {
+      console.error('Error fetching assessments:', err);
+      toast.error('Failed to load assessments');
+      setAssessments([]);
+    } finally {
+      setAssessmentsLoading(false);
     }
   };
 
@@ -306,10 +386,11 @@ export default function StudentDashboard() {
     fetchAttendance();
     fetchGrades();
     fetchResources();
+    fetchAssessments();
   }, [session, status, router]);
 
   // Show loading spinner if all data is still loading
-  const allDataLoading = isLoading && attendanceLoading && gradesLoading && resourcesLoading;
+  const allDataLoading = isLoading && attendanceLoading && gradesLoading && resourcesLoading && assessmentsLoading;
   
   if (allDataLoading) {
     return (
@@ -627,11 +708,11 @@ export default function StudentDashboard() {
                     <div className="flex-shrink-0 mr-3">
                       {getResourceIcon(resource.type)}
                     </div>
-                    <div className="flex-grow min-w-0">
+                     <div className="flex-grow min-w-0">
                       <h3 className="text-sm font-medium truncate">{resource.title}</h3>
                       <p className="text-xs text-gray-500 truncate">{resource.class.name}</p>
                       <p className="text-xs text-gray-500">
-                        {formatDate(resource.publishDate)} • {resource.teacher.user.name}
+                        {formatDate(resource.createdAt || resource.publishDate || new Date())}
                       </p>
                     </div>
                     <div className="flex-shrink-0 ml-2">
@@ -639,9 +720,10 @@ export default function StudentDashboard() {
                         href={resource.url || '#'} 
                         className="text-indigo-600 hover:text-indigo-800"
                         target={resource.url ? "_blank" : undefined}
+                        download={resource.title}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                       </Link>
                     </div>
@@ -655,26 +737,56 @@ export default function StudentDashboard() {
             )}
           </div>
           
-          {/* Upcoming Deadlines */}
+          {/* Assessments Section */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Upcoming Deadlines</h2>
-            <div className="space-y-3">
-              <div className="border-l-4 border-red-500 pl-4 py-2">
-                <p className="text-sm text-gray-600 mb-1">Tomorrow</p>
-                <h3 className="font-medium text-gray-900">Physics Assignment Due</h3>
-                <p className="text-sm text-gray-600">Wave Mechanics Problem Set</p>
-              </div>
-              <div className="border-l-4 border-yellow-500 pl-4 py-2">
-                <p className="text-sm text-gray-600 mb-1">May 15, 2025</p>
-                <h3 className="font-medium text-gray-900">Math Quiz</h3>
-                <p className="text-sm text-gray-600">Calculus II - Integration Techniques</p>
-              </div>
-              <div className="border-l-4 border-blue-500 pl-4 py-2">
-                <p className="text-sm text-gray-600 mb-1">May 20, 2025</p>
-                <h3 className="font-medium text-gray-900">Literature Essay</h3>
-                <p className="text-sm text-gray-600">Modern American Literature</p>
-              </div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Upcoming Assessments</h2>
+              <Link href="/student/assessments" className="text-sm text-indigo-600 hover:text-indigo-800">
+                View All Assessments
+              </Link>
             </div>
+            
+            {assessmentsLoading ? (
+              <div className="py-4 text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+              </div>
+            ) : assessments.length > 0 ? (
+              <div className="space-y-3">
+                {assessments.slice(0, 5).map((assessment) => {
+                  // Calculate days remaining
+                  const dueDate = new Date(assessment.dueDate);
+                  const today = new Date();
+                  const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                  
+                  // Determine border color based on urgency
+                  let borderColor = 'border-blue-500';
+                  if (daysRemaining <= 1) {
+                    borderColor = 'border-red-500';
+                  } else if (daysRemaining <= 3) {
+                    borderColor = 'border-yellow-500';
+                  }
+                  
+                  return (
+                    <div key={assessment.id} className={`border-l-4 ${borderColor} pl-4 py-2`}>
+                      <p className="text-sm text-gray-600 mb-1">
+                        {daysRemaining === 0 ? 'Due Today' : 
+                         daysRemaining === 1 ? 'Due Tomorrow' : 
+                         `Due in ${daysRemaining} days (${formatDate(assessment.dueDate)})`}
+                      </p>
+                      <h3 className="font-medium text-gray-900">{assessment.title}</h3>
+                      <p className="text-sm text-gray-600">{assessment.class.name} - {assessment.class.subject}</p>
+                      {assessment.description && (
+                        <p className="text-xs text-gray-500 mt-1 truncate">{assessment.description}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-8 text-center text-gray-500">
+                No upcoming assessments.
+              </div>
+            )}
           </div>
         </div>
       </div>

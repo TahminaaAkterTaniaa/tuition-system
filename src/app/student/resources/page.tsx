@@ -50,190 +50,61 @@ export default function StudentResources() {
       return;
     }
 
-    // Fetch student's resources
-    const fetchResources = async () => {
-      try {
-        // In a real app, this would be an API call
-        // const response = await fetch('/api/student/resources');
-        // if (!response.ok) throw new Error('Failed to fetch resources');
-        // const data = await response.json();
-        
-        // For demo purposes, using sample data
-        const sampleResources: Resource[] = [
-          {
-            id: '1',
-            title: 'Algebra Fundamentals',
-            description: 'A comprehensive guide to basic algebraic concepts',
-            type: 'material',
-            url: 'https://example.com/algebra-fundamentals.pdf',
-            filePath: null,
-            publishDate: '2025-02-01T00:00:00.000Z',
-            class: {
-              name: 'Mathematics 101',
-              subject: 'Mathematics'
-            },
-            teacher: {
-              user: {
-                name: 'Dr. Smith'
-              }
-            }
-          },
-          {
-            id: '2',
-            title: 'Calculus Worksheet',
-            description: 'Practice problems for derivatives and integrals',
-            type: 'assignment',
-            url: null,
-            filePath: '/uploads/calculus-worksheet.pdf',
-            publishDate: '2025-02-15T00:00:00.000Z',
-            class: {
-              name: 'Mathematics 101',
-              subject: 'Mathematics'
-            },
-            teacher: {
-              user: {
-                name: 'Dr. Smith'
-              }
-            }
-          },
-          {
-            id: '3',
-            title: 'Mathematics 101 Syllabus',
-            description: 'Course outline, objectives, and grading policy',
-            type: 'syllabus',
-            url: null,
-            filePath: '/uploads/math-syllabus.pdf',
-            publishDate: '2025-01-15T00:00:00.000Z',
-            class: {
-              name: 'Mathematics 101',
-              subject: 'Mathematics'
-            },
-            teacher: {
-              user: {
-                name: 'Dr. Smith'
-              }
-            }
-          },
-          {
-            id: '4',
-            title: 'Physics Lab Manual',
-            description: 'Instructions and procedures for all lab experiments',
-            type: 'material',
-            url: 'https://example.com/physics-lab-manual.pdf',
-            filePath: null,
-            publishDate: '2025-01-20T00:00:00.000Z',
-            class: {
-              name: 'Physics Fundamentals',
-              subject: 'Physics'
-            },
-            teacher: {
-              user: {
-                name: 'Prof. Johnson'
-              }
-            }
-          },
-          {
-            id: '5',
-            title: 'Lab Report Template',
-            description: 'Standard format for submitting lab reports',
-            type: 'template',
-            url: null,
-            filePath: '/uploads/lab-report-template.docx',
-            publishDate: '2025-01-25T00:00:00.000Z',
-            class: {
-              name: 'Physics Fundamentals',
-              subject: 'Physics'
-            },
-            teacher: {
-              user: {
-                name: 'Prof. Johnson'
-              }
-            }
-          },
-          {
-            id: '6',
-            title: 'Mechanics Problem Set',
-            description: 'Homework problems on Newton\'s laws and kinematics',
-            type: 'assignment',
-            url: null,
-            filePath: '/uploads/mechanics-problems.pdf',
-            publishDate: '2025-02-10T00:00:00.000Z',
-            class: {
-              name: 'Physics Fundamentals',
-              subject: 'Physics'
-            },
-            teacher: {
-              user: {
-                name: 'Prof. Johnson'
-              }
-            }
-          },
-          {
-            id: '7',
-            title: 'Ancient Civilizations Timeline',
-            description: 'Interactive timeline of major ancient civilizations',
-            type: 'material',
-            url: 'https://example.com/ancient-civilizations',
-            filePath: null,
-            publishDate: '2025-02-05T00:00:00.000Z',
-            class: {
-              name: 'World History',
-              subject: 'History'
-            },
-            teacher: {
-              user: {
-                name: 'Ms. Garcia'
-              }
-            }
-          },
-          {
-            id: '8',
-            title: 'Historical Analysis Essay Guidelines',
-            description: 'Requirements and rubric for the historical analysis essay',
-            type: 'assignment',
-            url: null,
-            filePath: '/uploads/essay-guidelines.pdf',
-            publishDate: '2025-02-20T00:00:00.000Z',
-            class: {
-              name: 'World History',
-              subject: 'History'
-            },
-            teacher: {
-              user: {
-                name: 'Ms. Garcia'
-              }
-            }
-          }
-        ];
-        
-        // Extract unique classes and resource types
-        const uniqueClasses = Array.from(
-          new Set(sampleResources.map(r => r.class.name))
-        ).map(className => {
-          const resource = sampleResources.find(r => r.class.name === className);
+    fetchResources();
+  }, [session, status, router]);
+
+  // Fetch student's resources
+  const fetchResources = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Make API call to fetch resources
+      const response = await fetch('/api/student/resources');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch resources: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Resources data:', data);
+      
+      // If no resources are returned or data is not an array
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        setResources([]);
+        setClasses([]);
+        setResourceTypes([]);
+        return;
+      }
+      
+      // Process the returned resources
+      setResources(data);
+      
+      // Extract unique classes and resource types for filters
+      const uniqueClasses = Array.from(new Set(data.map((r: Resource) => r.class.name)))
+        .map(name => {
+          const resource = data.find((r: Resource) => r.class.name === name);
           return {
-            name: className,
+            name,
             subject: resource?.class.subject || ''
           };
         });
-        
-        const uniqueTypes = Array.from(
-          new Set(sampleResources.map(r => r.type))
-        );
-        
-        setResources(sampleResources);
-        setClasses(uniqueClasses);
-        setResourceTypes(uniqueTypes);
-        setIsLoading(false);
-      } catch (err) {
-        console.error('Error fetching resources:', err);
-        setError('Failed to load resources. Please try again later.');
-        setIsLoading(false);
-      }
-    };
-
-    fetchResources();
-  }, [session, status, router]);
+      
+      const uniqueTypes = Array.from(new Set(data.map((r: Resource) => r.type)));
+      
+      setClasses(uniqueClasses);
+      setResourceTypes(uniqueTypes);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching resources:', err);
+      setError('Failed to load resources. Please try again later.');
+      setResources([]);
+      setClasses([]);
+      setResourceTypes([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filter resources based on selected type and class
   const filteredResources = resources.filter(resource => {

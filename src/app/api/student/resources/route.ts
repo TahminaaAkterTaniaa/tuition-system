@@ -47,9 +47,19 @@ export async function GET(req: NextRequest) {
       where: { 
         classId: { in: classIds },
         isPublished: true,
-        publishDate: {
-          lte: new Date()
-        },
+        OR: [
+          // Resources with publishDate in the past or present
+          {
+            publishDate: {
+              lte: new Date()
+            }
+          },
+          // Resources without a publishDate (legacy or default behavior)
+          {
+            publishDate: null
+          }
+        ],
+        // Check expiry date if it exists
         OR: [
           { expiryDate: null },
           { expiryDate: { gt: new Date() } }
