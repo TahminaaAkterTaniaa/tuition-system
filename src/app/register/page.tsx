@@ -68,12 +68,12 @@ export default function RegisterPage() {
     watch,
     reset,
     formState: { errors },
-  } = useForm({
-    resolver: zodResolver(registerSchema) as any,
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       role: 'STUDENT',
       academicLevel: '',
-    },
+    } as any,
   });
   
   // Watch for role changes to update the form
@@ -88,7 +88,7 @@ export default function RegisterPage() {
       reset({
         ...currentData,
         role: role,
-      });
+      } as any);
     }
   }, [role, selectedRole, reset, watch]);
 
@@ -131,8 +131,8 @@ export default function RegisterPage() {
             email: data.email,
             password: data.password,
             role: data.role,
-            studentId: data.studentId,
             relationship: data.relationship,
+            studentId: data.studentId,
             occupation: data.occupation,
             alternatePhone: data.alternatePhone,
           };
@@ -149,164 +149,169 @@ export default function RegisterPage() {
           };
           break;
       }
-
-      // Register the user
-      const response = await axios.post('/api/auth/register', registrationData);
       
-      console.log('Registration response:', response.data);
+      const response = await axios.post('/api/register', registrationData);
       
-      // Set a success message
-      setError(null);
-      
-      // Show success message
-      alert('Registration successful! Please log in with your new account.');
-      
-      // Use window.location for a hard redirect instead of Next.js router
-      window.location.href = '/login?registered=true';
+      if (response.status === 201) {
+        // Registration successful, redirect to login
+        router.push('/login?registered=true');
+      }
     } catch (err: any) {
       console.error('Registration error:', err);
-      setError(err.response?.data?.message || 'An error occurred during registration');
+      setError(err.response?.data?.error || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create a new account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link
-              href="/login"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              sign in to your existing account
-            </Link>
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          <div className="rounded-md shadow-sm space-y-4">
-            {/* Basic Information Section */}
-            <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-2xl">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Create your account</h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Already have an account?{' '}
+          <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+            Sign in here
+          </Link>
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-2xl">
+        <div className="bg-white py-8 px-6 shadow-lg sm:rounded-xl border border-gray-100">
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6 shadow-sm">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 pb-2 border-b">Basic Information</h3>
               
-              <div className="mb-4">
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  autoComplete="name"
-                  {...register('name')}
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Full Name"
-                />
-                {errors.name && (
-                  <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="col-span-2 md:col-span-1">
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    autoComplete="name"
+                    {...register('name')}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="John Doe"
+                  />
+                  {errors.name && (
+                    <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
+                  )}
+                </div>
+                
+                <div className="col-span-2 md:col-span-1">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    {...register('email')}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="john.doe@example.com"
+                  />
+                  {errors.email && (
+                    <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+                  )}
+                </div>
+                
+                <div className="col-span-2 md:col-span-1">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    autoComplete="new-password"
+                    {...register('password')}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="••••••••"
+                  />
+                  {errors.password && (
+                    <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+                  )}
+                </div>
+                
+                <div className="col-span-2 md:col-span-1">
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                    Confirm Password
+                  </label>
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    {...register('confirmPassword')}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="••••••••"
+                  />
+                  {errors.confirmPassword && (
+                    <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>
+                  )}
+                </div>
               </div>
               
-              <div className="mb-4">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email address
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Register as
                 </label>
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  {...register('email')}
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Email address"
-                />
-                {errors.email && (
-                  <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
-                )}
-              </div>
-              
-              <div className="mb-4">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  autoComplete="new-password"
-                  {...register('password')}
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Password"
-                />
-                {errors.password && (
-                  <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
-                )}
-              </div>
-              
-              <div className="mb-4">
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  {...register('confirmPassword')}
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Confirm Password"
-                />
-                {errors.confirmPassword && (
-                  <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>
-                )}
-              </div>
-              
-              <div className="mb-4">
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                  I am a
-                </label>
-                <select
-                  id="role"
-                  {...register('role')}
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                >
-                  <option value="STUDENT">Student</option>
-                  <option value="PARENT">Parent</option>
-                  <option value="TEACHER">Teacher</option>
-                  <option value="ADMIN">Administrator</option>
-                </select>
-                {errors.role && (
-                  <p className="text-red-500 text-xs mt-1">{errors.role.message}</p>
-                )}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {['STUDENT', 'TEACHER', 'PARENT', 'ADMIN'].map((roleOption) => (
+                    <div key={roleOption} className="relative">
+                      <input
+                        type="radio"
+                        id={`role-${roleOption}`}
+                        value={roleOption}
+                        {...register('role')}
+                        className="sr-only"
+                        checked={watch('role') === roleOption}
+                      />
+                      <label
+                        htmlFor={`role-${roleOption}`}
+                        className={`
+                          flex items-center justify-center px-3 py-2 border rounded-md cursor-pointer text-sm font-medium
+                          ${watch('role') === roleOption 
+                            ? 'bg-indigo-50 border-indigo-500 text-indigo-700' 
+                            : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}
+                        `}
+                      >
+                        {roleOption === 'STUDENT' && 'Student'}
+                        {roleOption === 'TEACHER' && 'Teacher'}
+                        {roleOption === 'PARENT' && 'Parent'}
+                        {roleOption === 'ADMIN' && 'Administrator'}
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
             
-            {/* Role-specific Information Section */}
-            <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                {selectedRole === 'STUDENT' ? 'Student Information' :
-                 selectedRole === 'TEACHER' ? 'Teacher Information' :
-                 selectedRole === 'PARENT' ? 'Parent Information' :
-                 'Administrator Information'}
+            {/* Role-specific fields */}
+            <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6 shadow-sm">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 pb-2 border-b">
+                {selectedRole === 'STUDENT' && 'Student Information'}
+                {selectedRole === 'TEACHER' && 'Teacher Information'}
+                {selectedRole === 'PARENT' && 'Parent Information'}
+                {selectedRole === 'ADMIN' && 'Administrator Information'}
               </h3>
               
               {/* Student-specific fields */}
               {selectedRole === 'STUDENT' && (
-                <>
-                  <div className="mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                  <div className="col-span-2">
                     <label htmlFor="academicLevel" className="block text-sm font-medium text-gray-700 mb-1">
-                      Academic Level
+                      Academic Level <span className="text-red-500">*</span>
                     </label>
                     <select
                       id="academicLevel"
                       {...register('academicLevel')}
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     >
                       <option value="">Select Academic Level</option>
-                      <option value="Elementary">Elementary</option>
-                      <option value="Middle School">Middle School</option>
-                      <option value="High School">High School</option>
+                      <option value="Primary">Primary</option>
+                      <option value="Secondary">Secondary</option>
+                      <option value="Higher Secondary">Higher Secondary</option>
                       <option value="Undergraduate">Undergraduate</option>
                       <option value="Graduate">Graduate</option>
                     </select>
@@ -315,7 +320,7 @@ export default function RegisterPage() {
                     )}
                   </div>
                   
-                  <div className="mb-4">
+                  <div className="col-span-2 md:col-span-1">
                     <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-1">
                       Date of Birth
                     </label>
@@ -323,11 +328,11 @@ export default function RegisterPage() {
                       id="dateOfBirth"
                       type="date"
                       {...register('dateOfBirth')}
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
                   </div>
                   
-                  <div className="mb-4">
+                  <div className="col-span-2 md:col-span-1">
                     <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
                       Phone Number
                     </label>
@@ -335,76 +340,78 @@ export default function RegisterPage() {
                       id="phoneNumber"
                       type="tel"
                       {...register('phoneNumber')}
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       placeholder="Phone Number"
                     />
                   </div>
-                </>
+                </div>
               )}
               
               {/* Teacher-specific fields */}
               {selectedRole === 'TEACHER' && (
-                <>
-                  <div className="mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                  <div className="col-span-2 md:col-span-1">
                     <label htmlFor="qualification" className="block text-sm font-medium text-gray-700 mb-1">
-                      Qualification
+                      Qualification <span className="text-red-500">*</span>
                     </label>
                     <input
                       id="qualification"
                       type="text"
                       {...register('qualification')}
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                      placeholder="e.g., PhD in Mathematics"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      placeholder="e.g., M.Sc. in Mathematics"
                     />
                     {errors.qualification && (
                       <p className="text-red-500 text-xs mt-1">{errors.qualification.message}</p>
                     )}
                   </div>
                   
-                  <div className="mb-4">
+                  <div className="col-span-2 md:col-span-1">
                     <label htmlFor="specialization" className="block text-sm font-medium text-gray-700 mb-1">
-                      Specialization
+                      Specialization <span className="text-red-500">*</span>
                     </label>
                     <input
                       id="specialization"
                       type="text"
                       {...register('specialization')}
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                      placeholder="e.g., Applied Mathematics"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      placeholder="e.g., Calculus, Algebra"
                     />
                     {errors.specialization && (
                       <p className="text-red-500 text-xs mt-1">{errors.specialization.message}</p>
                     )}
                   </div>
                   
-                  <div className="mb-4">
+                  <div className="col-span-2">
                     <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-1">
-                      Years of Experience
+                      Experience <span className="text-red-500">*</span>
                     </label>
                     <input
                       id="experience"
-                      type="number"
-                      min="0"
+                      type="text"
                       {...register('experience')}
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                      placeholder="e.g., 5"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      placeholder="e.g., 5 years teaching high school mathematics"
                     />
+                    {errors.experience && (
+                      <p className="text-red-500 text-xs mt-1">{errors.experience.message}</p>
+                    )}
                   </div>
-                </>
+                </div>
               )}
               
               {/* Parent-specific fields */}
               {selectedRole === 'PARENT' && (
-                <>
-                  <div className="mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                  <div className="col-span-2">
                     <label htmlFor="studentId" className="block text-sm font-medium text-gray-700 mb-1">
-                      Your Child's Student ID <span className="text-red-500">*</span>
+                      Student ID <span className="text-red-500">*</span>
                     </label>
                     <input
                       id="studentId"
                       type="text"
                       {...register('studentId')}
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       placeholder="e.g., ST123456"
                     />
                     {errors.studentId && (
@@ -415,14 +422,14 @@ export default function RegisterPage() {
                     </p>
                   </div>
 
-                  <div className="mb-4">
+                  <div className="col-span-2 md:col-span-1">
                     <label htmlFor="relationship" className="block text-sm font-medium text-gray-700 mb-1">
                       Relationship to Student <span className="text-red-500">*</span>
                     </label>
                     <select
                       id="relationship"
                       {...register('relationship')}
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     >
                       <option value="">Select Relationship</option>
                       <option value="Father">Father</option>
@@ -435,7 +442,7 @@ export default function RegisterPage() {
                     )}
                   </div>
                   
-                  <div className="mb-4">
+                  <div className="col-span-2 md:col-span-1">
                     <label htmlFor="occupation" className="block text-sm font-medium text-gray-700 mb-1">
                       Occupation
                     </label>
@@ -443,12 +450,12 @@ export default function RegisterPage() {
                       id="occupation"
                       type="text"
                       {...register('occupation')}
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       placeholder="Occupation"
                     />
                   </div>
                   
-                  <div className="mb-4">
+                  <div className="col-span-2 md:col-span-1">
                     <label htmlFor="alternatePhone" className="block text-sm font-medium text-gray-700 mb-1">
                       Alternate Phone Number
                     </label>
@@ -456,24 +463,24 @@ export default function RegisterPage() {
                       id="alternatePhone"
                       type="tel"
                       {...register('alternatePhone')}
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       placeholder="Alternate Phone Number"
                     />
                   </div>
-                </>
+                </div>
               )}
               
               {/* Admin-specific fields */}
               {selectedRole === 'ADMIN' && (
-                <>
-                  <div className="mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                  <div className="col-span-2 md:col-span-1">
                     <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">
                       Department
                     </label>
                     <select
                       id="department"
                       {...register('department')}
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     >
                       <option value="">Select Department</option>
                       <option value="Administration">Administration</option>
@@ -487,83 +494,76 @@ export default function RegisterPage() {
                     )}
                   </div>
                   
-                  <div className="mb-4">
+                  <div className="col-span-2 md:col-span-1">
                     <label htmlFor="accessLevel" className="block text-sm font-medium text-gray-700 mb-1">
                       Access Level
                     </label>
                     <select
                       id="accessLevel"
                       {...register('accessLevel')}
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     >
                       <option value="standard">Standard</option>
                       <option value="elevated">Elevated</option>
                       <option value="super">Super Admin</option>
                     </select>
                   </div>
-                </>
+                </div>
               )}
             </div>
-          </div>
 
-          {error && (
-            <div className="bg-red-50 p-4 rounded-md">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-5 w-5 text-red-400"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
                 </div>
               </div>
+            )}
+            
+            <div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm"
+              >
+                {isLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  'Create Account'
+                )}
+              </button>
             </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              {isLoading ? (
-                <svg
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              ) : (
-                'Create Account'
-              )}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
