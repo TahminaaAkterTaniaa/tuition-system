@@ -1,3 +1,5 @@
+// This is a new schema file with Room and TimeSlot models added
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -18,9 +20,9 @@ model User {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   accounts         Account[]
-  activityLogs     ActivityLog[]
   admin            Admin?
   announcements    Announcement[]
+  activityLogs     ActivityLog[]
   receivedMessages Message[]      @relation("MessageReceiver")
   sentMessages     Message[]      @relation("MessageSender")
   parent           Parent?
@@ -136,57 +138,58 @@ model Class {
   description String?
   startDate   DateTime
   endDate     DateTime?
-  schedule    String?
+  schedule    String?         // Legacy field - kept for backward compatibility
   capacity    Int
-  room        String?
+  room        String?         // Legacy field - kept for backward compatibility
   teacherId   String?
   status      String          @default("active")
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   fee         Float           @default(99.99)
-  assessments Assessment[]
   attendances Attendance[]
-  teacher     Teacher?        @relation(fields: [teacherId], references: [id])
-  schedules   ClassSchedule[]
+  assessments Assessment[]
   enrollments Enrollment[]
   grades      Grade[]
   resources   Resource[]
+  schedules   ClassSchedule[] // Relation for multiple schedules
+  teacher     Teacher?        @relation(fields: [teacherId], references: [id])
 }
 
 model ClassSchedule {
   id         String    @id @default(cuid())
   classId    String
-  day        String
-  roomId     String?
-  time       String
+  day        String    // e.g., "Monday", "Tuesday", etc.
+  time       String    // Legacy field - kept for backward compatibility
+  room       String?   // Legacy field - kept for backward compatibility
   timeSlotId String?
+  roomId     String?
   class      Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
-  room       Room?     @relation(fields: [roomId], references: [id])
   timeSlot   TimeSlot? @relation(fields: [timeSlotId], references: [id])
-
-  @@unique([classId, day, time])
+  roomModel  Room?     @relation(fields: [roomId], references: [id])
+  
+  @@unique([classId, day, time]) // Prevent duplicate schedules for the same class
 }
 
 model Room {
-  id        String          @id @default(cuid())
-  name      String
-  capacity  Int?
-  building  String?
-  floor     String?
-  features  String?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  schedules ClassSchedule[]
+  id           String          @id @default(cuid())
+  name         String
+  capacity     Int?
+  building     String?
+  floor        String?
+  features     String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  schedules    ClassSchedule[]
 }
 
 model TimeSlot {
-  id        String          @id @default(cuid())
-  startTime String
-  endTime   String
-  label     String
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  schedules ClassSchedule[]
+  id           String          @id @default(cuid())
+  startTime    String          // Format: "HH:MM" (24-hour)
+  endTime      String          // Format: "HH:MM" (24-hour)
+  label        String          // e.g., "8:00 AM - 9:30 AM"
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  schedules    ClassSchedule[]
 }
 
 model Enrollment {
@@ -196,9 +199,8 @@ model Enrollment {
   enrollmentDate DateTime  @default(now())
   status         String    @default("enrolled")
   notes          String?
-  paymentDate    DateTime?
-  paymentId      String?
-  paymentStatus  String    @default("pending")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   class          Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
   student        Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
@@ -315,17 +317,17 @@ model ActivityLog {
 }
 
 model Assessment {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
   description String?
-  type        String   @default("ASSIGNMENT")
-  maxScore    Float    @default(100)
-  weight      Float    @default(1.0)
+  type        String    @default("ASSIGNMENT")
+  maxScore    Float     @default(100)
+  weight      Float     @default(1.0)
   dueDate     DateTime
   classId     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
 }
 
 enum Role {

@@ -10,7 +10,9 @@
     "vercel-build": "bash ./vercel-build.sh",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
+    "prisma:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
+    "migrate:reset-classes": "node scripts/run-migration.js reset-classes-for-scheduling",
+    "migrate:run": "node scripts/run-migration.js"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.9.0",
@@ -25,8 +27,11 @@
     "dotenv": "^16.5.0",
     "next": "15.3.2",
     "next-auth": "^4.24.11",
+    "pg": "^8.16.0",
     "prisma": "^6.7.0",
     "react": "^19.0.0",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.56.2",
     "react-hot-toast": "^2.5.2",
@@ -40,6 +45,7 @@
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^20",
+    "@types/pg": "^8.15.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

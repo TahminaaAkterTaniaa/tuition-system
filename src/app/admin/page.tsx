@@ -40,7 +40,7 @@ export default function AdminDashboard() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">User Management</h2>
@@ -65,9 +65,24 @@ export default function AdminDashboard() {
               </svg>
             </div>
           </div>
-          <p className="text-gray-600 mb-4">Create and manage classes and schedules</p>
+          <p className="text-gray-600 mb-4">Create and manage classes and enrollments</p>
           <Link href="/admin/classes" className="text-indigo-600 hover:text-indigo-800 font-medium">
             Manage Classes →
+          </Link>
+        </div>
+        
+        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Timetable Generator</h2>
+            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+          <p className="text-gray-600 mb-4">Create and manage class schedules with drag-and-drop</p>
+          <Link href="/admin/timetable" className="text-indigo-600 hover:text-indigo-800 font-medium">
+            Open Timetable Generator →
           </Link>
         </div>
         
@@ -80,9 +95,12 @@ export default function AdminDashboard() {
               </svg>
             </div>
           </div>
-          <p className="text-gray-600 mb-4">Manage fees, invoices, and payments</p>
+          <p className="text-gray-600 mb-4">Manage fees, invoices, and payment tracking</p>
           <Link href="/admin/finance" className="text-indigo-600 hover:text-indigo-800 font-medium">
             Financial Dashboard →
+          </Link>
+          <Link href="/admin/payments" className="text-indigo-600 hover:text-indigo-800 font-medium">
+            Manage Payments →
           </Link>
         </div>
         
@@ -98,6 +116,21 @@ export default function AdminDashboard() {
           <p className="text-gray-600 mb-4">Access performance and financial reports</p>
           <Link href="/admin/reports" className="text-indigo-600 hover:text-indigo-800 font-medium">
             View Reports →
+          </Link>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Class Scheduling</h2>
+            <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+          </div>
+          <p className="text-gray-600 mb-4">Create and manage class schedules, rooms, and time slots</p>
+          <Link href="/admin/class-scheduling" className="text-indigo-600 hover:text-indigo-800 font-medium">
+            Open Class Scheduling →
           </Link>
         </div>
       </div>
