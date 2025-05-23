@@ -3,9 +3,10 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
 import { toast } from 'react-hot-toast';
+import TimetableGrid from './TimetableGrid';
 
+// Type definitions
 interface Teacher {
   id: string;
   teacherId: string;
@@ -158,62 +159,104 @@ export default function TimetableGenerator() {
   // Fetch teachers with their workload information
   const fetchTeachers = async () => {
     try {
-      const teachersResponse = await fetch('/api/admin/teachers');
-      if (!teachersResponse.ok) {
+      const response = await fetch('/api/admin/teachers?includeWorkload=true');
+      if (!response.ok) {
         throw new Error('Failed to fetch teachers');
       }
-      const teachersData = await teachersResponse.json();
-      setTeachers(teachersData);
+      const data = await response.json();
+      setTeachers(data);
       
       // Check for teacher workload warnings
-      checkTeacherWorkloads(teachersData);
+      checkTeacherWorkloads(data);
       
-      return teachersData;
+      return data;
     } catch (error) {
       console.error('Error fetching teachers:', error);
       toast.error('Failed to load teachers');
       return [];
     }
   };
-  
+
   // Fetch classes and their schedules
   const fetchClassesAndSchedules = async () => {
     try {
-      // Fetch classes
+      // First fetch all classes
       const classesResponse = await fetch('/api/admin/classes');
       if (!classesResponse.ok) {
         throw new Error('Failed to fetch classes');
       }
-      const classesData = await classesResponse.json();
+      let classesData = await classesResponse.json();
+      console.log('Fetched classes:', classesData.length);
       
-      // Fetch all schedules
+      // Then fetch all schedules to ensure we have complete data
       const schedulesResponse = await fetch('/api/admin/schedules');
       if (!schedulesResponse.ok) {
         throw new Error('Failed to fetch schedules');
       }
       const schedulesData = await schedulesResponse.json();
+      console.log('Fetched schedules:', schedulesData.length);
       
       // Map schedules to their respective classes
-      const classesWithSchedules = classesData.map((cls: Class) => {
-        const classSchedules = schedulesData.filter(
-          (schedule: ClassSchedule) => schedule.classId === cls.id
+      classesData = classesData.map((cls: Class) => {
+        // Find all schedules for this class
+        const classSchedules = schedulesData.filter((schedule: ClassSchedule) => 
+          schedule.classId === cls.id
         );
         
+        // Ensure each schedule has the linked timeSlot and room info
+        const schedulesWithDetails = classSchedules.map((schedule: ClassSchedule) => {
+          // Find the matching timeSlot for this schedule
+          if (schedule.timeSlotId && !schedule.timeSlot) {
+            const matchingTimeSlot = timeSlots.find(ts => ts.id === schedule.timeSlotId);
+            if (matchingTimeSlot) {
+              schedule.timeSlot = matchingTimeSlot;
+            }
+          }
+          
+          // Find the matching room for this schedule
+          if (schedule.roomId && !schedule.room) {
+            const matchingRoom = rooms.find(r => r.id === schedule.roomId);
+            if (matchingRoom) {
+              schedule.room = matchingRoom;
+            }
+          }
+          
+          return schedule;
+        });
+        
+        // Add the schedules to the class
         return {
           ...cls,
-          schedules: classSchedules
+          schedules: schedulesWithDetails
         };
       });
       
-      setClasses(classesWithSchedules);
+      // Log schedule information for debugging
+      classesData.forEach((cls: Class) => {
+        if (cls.schedules && cls.schedules.length > 0) {
+          console.log(`Class ${cls.name} has ${cls.schedules.length} schedules:`);
+          cls.schedules.forEach((schedule: ClassSchedule) => {
+            console.log(`- Day: ${schedule.day}, Time: ${schedule.timeSlot?.label || schedule.time}, Room: ${schedule.room?.name || schedule.roomId || 'None'}`);
+          });
+        }
+      });
       
-      // Identify unassigned classes (classes without schedules)
-      const unassigned = classesWithSchedules.filter((cls: Class) => 
-        !cls.schedules || cls.schedules.length === 0
-      );
+      // Find any unassigned classes (those with no schedules)
+      const unassigned = classesData.filter((cls: Class) => !cls.schedules || cls.schedules.length === 0);
       setUnassignedClasses(unassigned);
+      console.log('Unassigned classes:', unassigned.length);
       
-      return classesWithSchedules;
+      // Set scheduled classes
+      const scheduledClasses = classesData.filter((cls: Class) => cls.schedules && cls.schedules.length > 0);
+      setClasses(scheduledClasses);
+      console.log('Scheduled classes:', scheduledClasses.length);
+      
+      // Check for conflicts
+      setTimeout(() => {
+        checkForConflicts();
+      }, 500);
+      
+      return classesData;
     } catch (error) {
       console.error('Error fetching classes and schedules:', error);
       toast.error('Failed to load classes and schedules');
@@ -221,61 +264,55 @@ export default function TimetableGenerator() {
     }
   };
 
+  // Get classes scheduled for a specific day and time slot
+  const getClassesForSlot = (day: string, timeSlotLabel: string) => {
+    return classes.filter((cls: Class) => {
+      if (!cls.schedules) return false;
+      
+      return cls.schedules.some((schedule: ClassSchedule) => {
+        const timeMatches = schedule.timeSlot?.label === timeSlotLabel || schedule.time === timeSlotLabel;
+        return schedule.day === day && timeMatches;
+      });
+    });
+  };
+
   // Check for conflicts in the timetable (same teacher or room at the same time)
   const checkForConflicts = () => {
-    const conflictSlots: string[] = [];
+    const newConflicts: string[] = [];
     
-    // For each day and time slot
     days.forEach(day => {
       timeSlots.forEach(timeSlot => {
-        // Find classes scheduled at this day and time
-        const classesAtSlot = classes.filter(cls => 
-          cls.schedules?.some(schedule => 
-            schedule.day === day && schedule.timeSlot?.id === timeSlot.id
-          )
-        );
+        const slotClasses = getClassesForSlot(day, timeSlot.label);
         
         // Check for teacher conflicts
-        const teacherIds = new Set<string>();
-        const teacherConflicts = new Set<string>();
+        const teacherIds = slotClasses.map(cls => cls.teacherId).filter(Boolean);
+        const uniqueTeacherIds = new Set(teacherIds);
         
-        classesAtSlot.forEach(cls => {
-          if (cls.teacherId) {
-            if (teacherIds.has(cls.teacherId)) {
-              teacherConflicts.add(cls.teacherId);
-            } else {
-              teacherIds.add(cls.teacherId);
-            }
-          }
-        });
+        if (teacherIds.length > uniqueTeacherIds.size) {
+          newConflicts.push(`Teacher conflict on ${day} at ${timeSlot.label}`);
+        }
         
         // Check for room conflicts
-        const roomIds = new Set<string>();
-        const roomConflicts = new Set<string>();
+        const classSchedules = slotClasses.flatMap((cls: Class) => 
+          cls.schedules?.filter((s: ClassSchedule) => {
+            const timeMatches = s.timeSlot?.label === timeSlot.label || s.time === timeSlot.label;
+            return s.day === day && timeMatches;
+          }) || []
+        );
         
-        classesAtSlot.forEach(cls => {
-          const schedule = cls.schedules?.find(s => 
-            s.day === day && s.timeSlot?.id === timeSlot.id
-          );
-          
-          if (schedule?.roomId) {
-            if (roomIds.has(schedule.roomId)) {
-              roomConflicts.add(schedule.roomId);
-            } else {
-              roomIds.add(schedule.roomId);
-            }
-          }
-        });
+        const roomIds = classSchedules.map(s => s.roomId).filter(Boolean);
+        const uniqueRoomIds = new Set(roomIds);
         
-        // If there are any conflicts, add the slot ID to the conflicts list
-        if (teacherConflicts.size > 0 || roomConflicts.size > 0) {
-          conflictSlots.push(`${day}-${timeSlot.label}`);
+        if (roomIds.length > uniqueRoomIds.size) {
+          newConflicts.push(`Room conflict on ${day} at ${timeSlot.label}`);
         }
       });
     });
     
-    setConflicts(conflictSlots);
-    return conflictSlots.length > 0;
+    setConflicts(newConflicts);
+    if (newConflicts.length > 0) {
+      toast.error(`Found ${newConflicts.length} conflicts in the timetable`);
+    }
   };
 
   // Check teacher workloads and set warnings
@@ -284,173 +321,55 @@ export default function TimetableGenerator() {
     
     teachersList.forEach(teacher => {
       if (teacher.workload?.isOverloaded) {
-        warnings[teacher.id] = `High workload: ${teacher.workload.weeklyHours} hours/week, ${teacher.workload.classCount} classes, ${teacher.workload.totalStudents} students`;
+        warnings[teacher.id] = `${teacher.user.name} has a high workload (${teacher.workload.weeklyHours} hours/week)`;
       }
     });
     
     setWorkloadWarnings(warnings);
   };
 
-  // Handle drag start event
-  const handleDragStart = (e: React.DragEvent, classObj: Class, source: string) => {
-    // Store the class and source in state
-    setDraggedClass(classObj);
-    setDragSource(source);
+  // Handle unassignment of classes
+  const handleUnassignClass = (classObj: Class, scheduleIds: string[]) => {
+    // Create a copy of the class without schedules
+    const unassignedClass = { ...classObj, schedules: [] };
     
-    // Set the drag data
-    e.dataTransfer.setData('application/json', JSON.stringify({
-      classId: classObj.id,
-      source
-    }));
-    
-    // Set the drag effect
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  // Handle drag over event
-  const handleDragOver = (e: React.DragEvent, day: string, time: string) => {
-    e.preventDefault();
-    
-    // Check if we have a dragged class
-    if (!draggedClass) return;
-    
-    // Allow the drop
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  // Handle drop event
-  const handleDrop = (e: React.DragEvent, day: string, time: string) => {
-    e.preventDefault();
-    
-    // Check if we have a dragged class
-    if (!draggedClass) return;
-    
-    // Find the corresponding time slot ID
-    const timeSlot = timeSlots.find(ts => ts.label === time);
-    if (!timeSlot) {
-      toast.error(`Time slot ${time} not found`);
-      return;
+    // Add to unassigned classes if not already there
+    if (!unassignedClasses.some((c: Class) => c.id === classObj.id)) {
+      setUnassignedClasses(prev => [...prev, unassignedClass]);
     }
     
-    // If dragging from unassigned classes
-    if (dragSource === 'unassigned') {
-      // Create a pending change for a new schedule
-      const newChange = {
-        type: 'CREATE',
-        classId: draggedClass.id,
-        className: draggedClass.name,
-        day,
-        timeSlotId: timeSlot.id,
-        timeSlotLabel: timeSlot.label,
-        roomId: null,
-        scheduleId: null
-      };
-      
-      // Add to pending changes
-      setPendingChanges(prev => [...prev, newChange]);
-      setHasChanges(true);
-      
-      // Update UI to show the class in the new position
-      const updatedClass = {
-        ...draggedClass,
-        schedules: [
-          ...(draggedClass.schedules || []),
-          {
-            id: `temp-${Date.now()}`,
-            classId: draggedClass.id,
-            day,
-            timeSlotId: timeSlot.id,
-            timeSlot,
-            roomId: null,
-            time: timeSlot.startTime
-          }
-        ]
-      };
-      
-      // Update classes array
-      setClasses(prev => prev.map(c => c.id === draggedClass.id ? updatedClass : c));
-      
-      // Remove from unassigned if it was there
-      setUnassignedClasses(prev => prev.filter(c => c.id !== draggedClass.id));
-      
-      // Refresh the data
-      fetchClassesAndSchedules();
-      toast.success(`${draggedClass.name} scheduled on ${day} at ${time} (not saved yet)`);
-    }
-    // If dragging from another slot in the timetable
-    else if (dragSource && dragSource.includes('-')) {
-      const [sourceDay, sourceTime] = dragSource.split('-');
-      
-      // Find the schedule that needs to be updated
-      const sourceTimeSlot = timeSlots.find(ts => ts.label === sourceTime);
-      if (!sourceTimeSlot) {
-        toast.error(`Source time slot ${sourceTime} not found`);
-        return;
-      }
-      
-      // Find the schedule to update
-      const scheduleToUpdate = draggedClass.schedules?.find(s => {
-        const timeMatches = s.timeSlot?.label === sourceTime || s.time === sourceTime;
-        return s.day === sourceDay && timeMatches;
-      });
-      
-      if (!scheduleToUpdate) {
-        toast.error('Schedule not found');
-        return;
-      }
-      
-      // Create a pending change for updating a schedule
-      const updateChange = {
-        type: 'UPDATE',
-        classId: draggedClass.id,
-        className: draggedClass.name,
-        day,
-        timeSlotId: timeSlot.id,
-        timeSlotLabel: timeSlot.label,
-        roomId: scheduleToUpdate.roomId,
-        scheduleId: scheduleToUpdate.id,
-        originalDay: sourceDay,
-        originalTimeSlotId: sourceTimeSlot.id,
-        originalTimeSlotLabel: sourceTime
-      };
-      
-      // Add to pending changes
-      setPendingChanges(prev => [...prev, updateChange]);
-      setHasChanges(true);
-      
-      // Update UI to show the class in the new position
-      const updatedSchedules = draggedClass.schedules?.map(s => {
-        if (s.id === scheduleToUpdate.id) {
-          return {
-            ...s,
-            day,
-            timeSlotId: timeSlot.id,
-            timeSlot,
-            time: timeSlot.startTime
-          };
+    // Remove schedules from the class in the classes array
+    setClasses(prevClasses => {
+      return prevClasses.map((cls: Class) => {
+        if (cls.id === classObj.id) {
+          return unassignedClass;
         }
-        return s;
-      });
-      
-      const updatedClass = {
-        ...draggedClass,
-        schedules: updatedSchedules
-      };
-      
-      // Update classes array
-      setClasses(prev => prev.map(c => c.id === draggedClass.id ? updatedClass : c));
-      
-      // Refresh the data
-      fetchClassesAndSchedules();
-      toast.success(`${draggedClass.name} moved to ${day} at ${time} (not saved yet)`);
+        return cls;
+      }).filter((cls: Class) => cls.schedules && cls.schedules.length > 0);
+    });
+    
+    // Add pending changes to remove the schedules
+    for (const scheduleId of scheduleIds) {
+      setPendingChanges(prev => [
+        ...prev, 
+        { 
+          type: 'DELETE', 
+          scheduleId,
+          classId: classObj.id 
+        }
+      ]);
     }
     
-    // Reset drag state
-    setDraggedClass(null);
-    setDragSource(null);
+    setHasChanges(true);
+    toast.success(`${classObj.name} has been unassigned`);
   };
 
-  // Save all pending changes to the backend
+  // Handle updates to unassigned classes
+  const handleUnassignedClassesUpdated = (updatedUnassignedClasses: Class[]) => {
+    setUnassignedClasses(updatedUnassignedClasses);
+  };
+
+  // Save all pending changes
   const saveChanges = async () => {
     if (pendingChanges.length === 0) {
       toast.success('No changes to save');
@@ -461,63 +380,154 @@ export default function TimetableGenerator() {
     const loadingToast = toast.loading('Saving changes...');
     
     try {
-      // Process each pending change
+      // Process each change
       for (const change of pendingChanges) {
+        // Skip temporary schedules for UPDATE and DELETE operations
+        // Temporary schedules have IDs that start with 'temp-'
+        if ((change.type === 'UPDATE' || change.type === 'DELETE') && 
+            change.scheduleId && 
+            typeof change.scheduleId === 'string' && 
+            change.scheduleId.startsWith('temp-')) {
+          console.log(`Skipping ${change.type} operation for temporary schedule: ${change.scheduleId}`);
+          continue;
+        }
+
         if (change.type === 'CREATE') {
           // Create a new schedule
-          const response = await fetch(`/api/admin/classes/${change.classId}/schedule`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              day: change.day,
-              timeSlotId: change.timeSlotId,
-              roomId: change.roomId
-            })
-          });
+          console.log(`Creating schedule for class ${change.classId}:`, change);
           
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'Failed to create schedule' }));
-            throw new Error(errorData.error || 'Failed to create schedule');
+          // Validate required fields
+          if (!change.day) {
+            console.error('Missing day in change:', change);
+            throw new Error('Cannot create schedule: day is missing');
+          }
+          
+          if (!change.timeSlotId) {
+            console.error('Missing timeSlotId in change:', change);
+            throw new Error('Cannot create schedule: timeSlotId is missing');
+          }
+          
+          // Prepare a simple, clean request body
+          const requestBody = {
+            day: change.day,
+            timeSlotId: change.timeSlotId,
+            roomId: change.roomId || null
+          };
+          
+          console.log('Creating schedule with data:', JSON.stringify(requestBody));
+          
+          try {
+            const response = await fetch(`/api/admin/classes/${change.classId}/schedule`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(requestBody)
+            });
+            
+            console.log('API response status:', response.status, response.statusText);
+            
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error('Raw error response:', errorText);
+              throw new Error(`Failed to create schedule: ${response.status} ${response.statusText}`);
+            }
+            
+            // Success - log the result
+            const result = await response.json();
+            console.log('Successfully created schedule:', result);
+          } catch (err) {
+            console.error('Error creating schedule:', err);
+            throw err;
           }
         } else if (change.type === 'UPDATE') {
           // Update an existing schedule
-          const response = await fetch(`/api/admin/schedules/${change.scheduleId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              day: change.day,
-              timeSlotId: change.timeSlotId,
-              roomId: change.roomId
-            })
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'Failed to update schedule' }));
-            throw new Error(errorData.error || 'Failed to update schedule');
+          console.log(`Updating schedule ${change.scheduleId}:`, change);
+          try {
+            const response = await fetch(`/api/admin/schedules/${change.scheduleId}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                day: change.day,
+                timeSlotId: change.timeSlotId,
+                roomId: change.roomId || null,
+              }),
+            });
+            
+            if (!response.ok) {
+              const errorText = await response.text();
+              let errorMessage = 'Failed to update schedule';
+              try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.error || errorMessage;
+              } catch (e) {
+                console.error('Error parsing error response:', e);
+              }
+              
+              // If schedule not found, log it but don't throw an error
+              if (errorMessage.includes('not found')) {
+                console.warn(`Schedule ${change.scheduleId} not found, skipping update.`);
+              } else {
+                throw new Error(errorMessage);
+              }
+            }
+          } catch (err) {
+            if (err instanceof Error && err.message.includes('not found')) {
+              console.warn(`Schedule ${change.scheduleId} not found, skipping update.`);
+            } else {
+              throw err;
+            }
+          }
+        } else if (change.type === 'DELETE') {
+          // Delete a schedule
+          console.log(`Deleting schedule ${change.scheduleId}:`, change);
+          try {
+            const response = await fetch(`/api/admin/schedules/${change.scheduleId}`, {
+              method: 'DELETE',
+            });
+            
+            if (!response.ok) {
+              const errorText = await response.text();
+              let errorMessage = 'Failed to delete schedule';
+              try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.error || errorMessage;
+              } catch (e) {
+                console.error('Error parsing error response:', e);
+              }
+              
+              // If schedule not found, log it but don't throw an error
+              if (errorMessage.includes('not found')) {
+                console.warn(`Schedule ${change.scheduleId} not found, skipping deletion.`);
+              } else {
+                throw new Error(errorMessage);
+              }
+            }
+          } catch (err) {
+            if (err instanceof Error && err.message.includes('not found')) {
+              console.warn(`Schedule ${change.scheduleId} not found, skipping deletion.`);
+            } else {
+              throw err;
+            }
           }
         }
       }
-      
-      // Refresh data after all changes are saved
-      await fetchClassesAndSchedules();
       
       // Clear pending changes
       setPendingChanges([]);
       setHasChanges(false);
       
+      // Refresh all data after changes are saved
+      await fetchAllData();
+      
       toast.dismiss(loadingToast);
       toast.success('All changes saved successfully');
-      
-      // Check for conflicts after saving
-      checkForConflicts();
     } catch (error) {
       console.error('Error saving changes:', error);
       toast.dismiss(loadingToast);
-      toast.error(error instanceof Error ? error.message : 'Failed to save changes');
+      toast.error(`Failed to save changes: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }
@@ -593,265 +603,117 @@ export default function TimetableGenerator() {
     return style;
   };
 
-  // Main rendering logic for the TimetableGenerator component
-  if (isLoading === true) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
-
-  // Filter classes based on selected teacher or room
-  const filteredClasses = classes.filter(cls => {
-    // If no filters are applied, show all classes
-    if (!selectedTeacher && !selectedRoom) return true;
-    
-    // Filter by teacher
-    if (selectedTeacher && cls.teacherId !== selectedTeacher) return false;
-    
-    // Filter by room
-    if (selectedRoom && !cls.schedules?.some(schedule => schedule.roomId === selectedRoom)) return false;
-    
-    return true;
-  });
-
-  // Get classes for a specific day and time slot
-  const getClassesForSlot = (day: string, timeSlotLabel: string) => {
-    // Find the time slot to get its startTime
-    const timeSlot = timeSlots.find(ts => ts.label === timeSlotLabel);
-    if (!timeSlot) return [];
-    
-    // This function now relies primarily on the schedule data
-    return filteredClasses.filter(cls => {
-      // Check if this class has any schedules for this day and time
-      return cls.schedules?.some(schedule => {
-        // Primary match by timeSlotId which is most reliable
-        const timeSlotIdMatch = schedule.timeSlotId === timeSlot.id;
-        
-        // Fallback matches if timeSlotId doesn't match
-        const timeStringMatch = schedule.time === timeSlot.startTime;
-        const labelMatch = schedule.timeSlot?.label === timeSlotLabel;
-        
-        return schedule.day === day && (timeSlotIdMatch || timeStringMatch || labelMatch);
-      });
-    });
-  };
-
-  // Check if a slot has conflicts
-  const hasConflict = (day: string, time: string) => {
-    return conflicts.includes(`${day}-${time}`);
-  };
-
+  // Main rendering logic
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Timetable Generator</h1>
-        
-        {/* Save and Cancel buttons */}
-        {hasChanges && (
-          <div className="flex space-x-2">
-            <button
-              onClick={cancelChanges}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded transition-colors duration-200"
-              disabled={isSaving || pendingChanges.length === 0}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={saveChanges}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition-colors duration-200 flex items-center"
-              disabled={isSaving || pendingChanges.length === 0}
-            >
-              {isSaving ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Saving...
-                </>
-              ) : (
-                `Save Changes (${pendingChanges.length})`
-              )}
-            </button>
-          </div>
-        )}
-      </div>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6">Timetable Generator</h1>
       
-      {/* Teacher Workload Filter */}
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-2">Teacher Workload Filter</h2>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => handleTeacherFilter('')}
-            className={`px-3 py-1 rounded-full text-sm ${
-              !selectedTeacher
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-            } transition-colors duration-200`}
-          >
-            All Teachers
-          </button>
-          {teachers.map(teacher => (
-            <button
-              key={teacher.id}
-              onClick={() => handleTeacherFilter(teacher.id)}
-              className={`px-3 py-1 rounded-full text-sm flex items-center ${
-                selectedTeacher === teacher.id
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-              } transition-colors duration-200`}
-            >
-              {teacher.user.name} 
-              <span className="ml-1 text-xs bg-gray-200 text-gray-800 px-1 rounded-full">
-                {classes.filter(cls => cls.teacherId === teacher.id).length}
-              </span>
-              {workloadWarnings[teacher.id] && (
-                <span title={workloadWarnings[teacher.id]} className="ml-1 cursor-help">⚠️</span>
-              )}
-            </button>
-          ))}
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Unassigned Classes */}
-        <div className="md:col-span-1">
-          <h2 className="text-lg font-semibold mb-4">Unassigned Classes</h2>
-          <div className="border border-dashed border-gray-300 p-4 rounded-lg bg-gray-50 min-h-[400px] max-h-[600px] overflow-y-auto">
-            {unassignedClasses.length === 0 ? (
-              <p className="text-gray-500 text-sm italic">No teacher assigned</p>
-            ) : (
-              unassignedClasses.map(cls => (
-                <div
-                  key={cls.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, cls, 'unassigned')}
-                  className={`p-2 mb-2 rounded text-sm cursor-move ${getClassStyle(cls)} shadow hover:shadow-md transition-all duration-200`}
+      ) : (
+        <div className="space-y-6">
+          {/* Control Panel */}
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-300 flex flex-wrap justify-between items-center gap-4">
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold">Filters</h2>
+              <div className="flex flex-wrap gap-2">
+                <label className="sr-only" htmlFor="teacher-filter">Filter by Teacher</label>
+                <select 
+                  id="teacher-filter"
+                  aria-label="Filter by Teacher"
+                  className="border border-gray-300 rounded py-1 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedTeacher || ''}
+                  onChange={(e) => handleTeacherFilter(e.target.value)}
                 >
-                  <div className="font-semibold">{cls.name}</div>
-                  <div className="text-xs">{cls.subject}</div>
-                  <div className="text-xs text-gray-600">
-                    {teachers.find(t => t.id === cls.teacherId)?.user.name || 'No teacher'}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-        
-        {/* Timetable */}
-        <div className="md:col-span-3">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Timetable</h2>
-            <div className="flex items-center">
-              <span className="mr-2 text-sm">Room Filter:</span>
-              <select 
-                className="border rounded p-1 text-sm"
-                value={selectedRoom}
-                onChange={(e) => handleRoomFilter(e.target.value)}
-              >
-                {rooms.map(room => (
-                  <option key={room.id} value={room.id}>{room.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-300px)] mt-4">
-            <table className="min-w-full border-collapse border border-gray-300 table-fixed">
-              <thead>
-                <tr>
-                  <th className="border border-gray-300 p-2 bg-gray-100 text-left w-64">Time</th>
-                  {days.map(day => (
-                    <th key={day} className="border border-gray-300 p-2 bg-gray-100 text-left w-1/6">{day}</th>
+                  <option value="">All Teachers</option>
+                  {teachers.map((teacher) => (
+                    <option key={teacher.id} value={teacher.id}>
+                      {teacher.user.name}
+                    </option>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {timeSlots.map(timeSlot => (
-                  <tr key={timeSlot.id}>
-                    <td className="border border-gray-300 p-2 bg-gray-50 font-medium text-sm w-64">
-                      {timeSlot.label}
-                    </td>
-                    {days.map(day => {
-                      const slotClasses = getClassesForSlot(day, timeSlot.label);
-                      const slotId = `${day}-${timeSlot.label}`;
-                      const conflict = hasConflict(day, timeSlot.label);
-                      
-                      return (
-                        <td 
-                          key={day} 
-                          className={`border border-gray-300 p-2 align-top h-24 min-h-24 ${conflict ? 'bg-red-50' : 'bg-white'}`}
-                          onDragOver={(e) => handleDragOver(e, day, timeSlot.label)}
-                          onDrop={(e) => handleDrop(e, day, timeSlot.label)}
-                        >
-                          {slotClasses.length === 0 ? (
-                            <div className="text-xs text-gray-400 italic h-full flex items-center justify-center">Drop class here</div>
-                          ) : (
-                            slotClasses.map(cls => {
-                              const teacher = teachers.find(t => t.id === cls.teacherId);
-                              // Find the schedule for this class on this day and time
-                              const schedule = cls.schedules?.find(s => {
-                                const timeMatches = s.timeSlot?.label === timeSlot.label || s.time === timeSlot.label;
-                                return s.day === day && timeMatches;
-                              });
-                              const room = rooms.find(r => r.id === schedule?.roomId);
-                              
-                              return (
-                                <div
-                                  key={cls.id}
-                                  draggable
-                                  onDragStart={(e) => handleDragStart(e, cls, slotId)}
-                                  className={`p-2 mb-2 rounded text-sm cursor-move ${getClassStyle(cls)} shadow hover:shadow-md transition-all duration-200`}
-                                >
-                                  <div className="font-semibold">{cls.name}</div>
-                                  <div className="text-xs">{cls.subject}</div>
-                                  <div className="text-xs text-gray-600">
-                                    {teacher?.user.name || 'No teacher'}
-                                  </div>
-                                  {room && (
-                                    <div className="text-xs text-gray-600">
-                                      Room: {room.name}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* Color Legend */}
-          <div className="mt-6 p-4 bg-white border border-gray-300 rounded-lg shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Color Legend</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {/* Get unique subjects */}
-              {Array.from(new Set(classes.map(cls => cls.subject))).map(subject => (
-                <div key={subject} className="flex items-center">
-                  <div className={`w-6 h-6 rounded mr-2 ${getSubjectColor(subject)}`}></div>
-                  <span className="text-sm">{subject}</span>
-                </div>
-              ))}
-              <div className="flex items-center">
-                <div className="w-6 h-6 rounded mr-2 border-2 border-orange-500 bg-blue-200"></div>
-                <span className="text-sm">Teacher High Workload</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-6 h-6 rounded mr-2 ring-2 ring-indigo-500 bg-green-200"></div>
-                <span className="text-sm">Selected Teacher's Classes</span>
+                </select>
+                
+                <label className="sr-only" htmlFor="room-filter">Filter by Room</label>
+                <select
+                  id="room-filter"
+                  aria-label="Filter by Room"
+                  className="border border-gray-300 rounded py-1 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedRoom || ''}
+                  onChange={(e) => handleRoomFilter(e.target.value)}
+                >
+                  <option value="">All Rooms</option>
+                  {rooms.map((room) => (
+                    <option key={room.id} value={room.id}>
+                      {room.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
+            
+            <div className="flex gap-2">
+              {hasChanges && (
+                <>
+                  <button
+                    onClick={saveChanges}
+                    disabled={isSaving || pendingChanges.length === 0}
+                    className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  
+                  <button
+                    onClick={cancelChanges}
+                    disabled={isSaving || pendingChanges.length === 0}
+                    className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+              
+              <button
+                onClick={fetchAllData}
+                className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-sm font-medium"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
+          
+          {conflicts.length > 0 && (
+            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg">
+              <h3 className="font-bold">Conflicts Detected:</h3>
+              <ul className="list-disc pl-5 mt-2">
+                {conflicts.map((conflict, index) => (
+                  <li key={index}>{conflict}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {/* Timetable Grid Component */}
+          <TimetableGrid
+            classes={classes}
+            unassignedClasses={unassignedClasses}
+            timeSlots={timeSlots}
+            rooms={rooms}
+            days={days}
+            selectedRoom={selectedRoom}
+            selectedTeacher={selectedTeacher}
+            onClassesUpdated={setClasses}
+            onUnassignedClassesUpdated={handleUnassignedClassesUpdated}
+            onUnassignClass={handleUnassignClass}
+            pendingChanges={pendingChanges}
+            setPendingChanges={setPendingChanges}
+            setHasChanges={setHasChanges}
+            getClassStyle={getClassStyle}
+            teachers={teachers}
+          />
         </div>
-      </div>
+      )}
     </div>
   );
 }
