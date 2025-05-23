@@ -27,9 +27,9 @@ if [ -n "$VERCEL" ]; then
   fi
 fi
 
-# Generate Prisma client
+# Generate Prisma client with explicit output path to avoid conflicts
 echo "Generating Prisma client..."
-npx prisma generate
+npx prisma generate --schema=./prisma/schema.prisma
 
 # Create routes-manifest.json if it doesn't exist
 echo "Checking for routes-manifest.json..."
@@ -39,9 +39,13 @@ if [ ! -f ".next/routes-manifest.json" ]; then
   echo '{"version":3,"pages404":false,"basePath":"","redirects":[],"headers":[],"dynamicRoutes":[],"staticRoutes":[],"dataRoutes":[],"rsc":{}}' > .next/routes-manifest.json
 fi
 
-# Run the build command with force flag to ignore all errors
-echo "Running Next.js build with errors ignored..."
-npx next build --no-lint || true
+# Clean cache to prevent stale build artifacts
+echo "Cleaning Next.js cache..."
+rm -rf .next/cache || true
+
+# Run the build command with specific flags to improve compatibility
+echo "Running Next.js build..."
+NODE_OPTIONS="--max-old-space-size=4096" npx next build --no-lint
 
 # Create a .nojekyll file to prevent GitHub Pages from ignoring files that begin with an underscore
 touch .next/.nojekyll
