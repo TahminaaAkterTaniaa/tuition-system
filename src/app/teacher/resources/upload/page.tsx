@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 
 interface ClassData {
@@ -11,7 +11,7 @@ interface ClassData {
   subject: string;
 }
 
-export default function UploadResource() {
+function ResourceUploadContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -290,5 +290,15 @@ export default function UploadResource() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function UploadResource() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+    </div>}>
+      <ResourceUploadContent />
+    </Suspense>
   );
 }
