@@ -150,7 +150,7 @@ export default function ClassDetail() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Days</p>
-                <p className="font-medium">{classData.days.join(', ')}</p>
+                <p className="font-medium">{classData.days && Array.isArray(classData.days) ? classData.days.join(', ') : 'Not specified'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Students</p>
@@ -321,7 +321,11 @@ export default function ClassDetail() {
                     </svg>
                   </button>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center text-sm text-gray-500">
+                  No materials available
+                </div>
+              )}
             </div>
             <div className="mt-4 text-right">
               <Link 
