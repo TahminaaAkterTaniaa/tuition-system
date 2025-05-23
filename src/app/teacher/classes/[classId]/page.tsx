@@ -9,7 +9,7 @@ export default function ClassDetail() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
-  const classId = params.id;
+  const classId = params.classId;
   const [isLoading, setIsLoading] = useState(true);
   const [classData, setClassData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);

@@ -3,10 +3,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/app/lib/prisma';
 
-// POST /api/admin/classes/[classId]/schedule - Create a new schedule for a class
-export async function POST(
+// PUT /api/admin/schedules/[id] - Update a schedule
+export async function PUT(
   request: NextRequest,
-  { params }: { params: { classId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     // Check authentication
@@ -15,10 +15,10 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get the class ID from the URL params
-    const classId = params.classId;
+    // Get the schedule ID from the URL params
+    const scheduleId = params.id;
 
-    // Get the schedule data from the request body
+    // Get the updated schedule data from the request body
     const data = await request.json();
     const { day, timeSlotId, roomId } = data;
 
@@ -30,14 +30,14 @@ export async function POST(
       );
     }
 
-    // Check if the class exists
-    const classExists = await prisma.class.findUnique({
-      where: { id: classId },
+    // Check if the schedule exists
+    const scheduleExists = await prisma.classSchedule.findUnique({
+      where: { id: scheduleId },
     });
 
-    if (!classExists) {
+    if (!scheduleExists) {
       return NextResponse.json(
-        { error: 'Class not found' },
+        { error: 'Schedule not found' },
         { status: 404 }
       );
     }
@@ -59,11 +59,11 @@ export async function POST(
       where: { id: timeSlotId }
     });
 
-    // Create the schedule with both time and timeSlotId
+    // Update the schedule with both time and timeSlotId
     try {
-      const schedule = await prisma.classSchedule.create({
+      const updatedSchedule = await prisma.classSchedule.update({
+        where: { id: scheduleId },
         data: {
-          classId,
           day,
           time: timeSlot?.startTime || '08:00', // Use startTime in HH:MM format to match the database
           timeSlotId,
@@ -75,27 +75,27 @@ export async function POST(
         },
       });
 
-      return NextResponse.json(schedule, { status: 201 });
+      return NextResponse.json(updatedSchedule);
     } catch (error) {
-      console.error('Error creating schedule:', error);
+      console.error('Error updating schedule:', error);
       return NextResponse.json(
-        { error: 'Failed to create schedule', details: error instanceof Error ? error.message : String(error) },
+        { error: 'Failed to update schedule', details: error instanceof Error ? error.message : String(error) },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error('Error creating schedule:', error);
+    console.error('Error updating schedule:', error);
     return NextResponse.json(
-      { error: 'Failed to create schedule' },
+      { error: 'Failed to update schedule' },
       { status: 500 }
     );
   }
 }
 
-// GET /api/admin/classes/[classId]/schedule - Get all schedules for a class
-export async function GET(
+// DELETE /api/admin/schedules/[id] - Delete a schedule
+export async function DELETE(
   request: NextRequest,
-  { params }: { params: { classId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     // Check authentication
@@ -104,23 +104,31 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get the class ID from the URL params
-    const classId = params.classId;
+    // Get the schedule ID from the URL params
+    const scheduleId = params.id;
 
-    // Get all schedules for the class
-    const schedules = await prisma.classSchedule.findMany({
-      where: { classId },
-      include: {
-        timeSlot: true,
-        room: true,
-      },
+    // Check if the schedule exists
+    const scheduleExists = await prisma.classSchedule.findUnique({
+      where: { id: scheduleId },
     });
 
-    return NextResponse.json(schedules);
+    if (!scheduleExists) {
+      return NextResponse.json(
+        { error: 'Schedule not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete the schedule
+    await prisma.classSchedule.delete({
+      where: { id: scheduleId },
+    });
+
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error fetching schedules:', error);
+    console.error('Error deleting schedule:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch schedules' },
+      { error: 'Failed to delete schedule' },
       { status: 500 }
     );
   }
