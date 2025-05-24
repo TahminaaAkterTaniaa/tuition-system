@@ -127,11 +127,11 @@ export async function DELETE(
       await prisma.activityLog.create({
         data: {
           action: 'DELETE',
-          entity: 'Class',
+          entityType: 'CLASS',
           entityId: classId,
           description: `Class ${classExists.name} was deleted`,
-          performedById: session.user.id,
-          performedByRole: session.user.role,
+          userId: session.user.id,
+          metadata: JSON.stringify({ role: session.user.role }),
         },
       });
     } catch (logError) {
@@ -178,11 +178,64 @@ export async function PATCH(
       return NextResponse.json({ error: 'Class not found' }, { status: 404 });
     }
     
-    // Update the class
+    // Extract and validate the update data
+    const { 
+      name, 
+      subject, 
+      description, 
+      startDate, 
+      endDate, 
+      capacity, 
+      teacherId, 
+      status 
+    } = body;
+    
+    // Prepare the validated update data
+    const updateData: any = {};
+    
+    if (name !== undefined) updateData.name = name;
+    if (subject !== undefined) updateData.subject = subject;
+    if (description !== undefined) updateData.description = description;
+    if (startDate !== undefined) updateData.startDate = new Date(startDate);
+    if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
+    if (capacity !== undefined) updateData.capacity = Number(capacity);
+    if (teacherId !== undefined) updateData.teacherId = teacherId || null;
+    if (status !== undefined) updateData.status = status;
+    
+    // Update the class with validated data
     const updatedClass = await prisma.class.update({
       where: { id: classId },
-      data: body,
+      data: updateData,
+      include: {
+        teacher: {
+          include: {
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
     });
+    
+    // Log the activity
+    try {
+      await prisma.activityLog.create({
+        data: {
+          action: 'UPDATE',
+          entityType: 'CLASS',
+          entityId: classId,
+          description: `Class ${updatedClass.name} was updated`,
+          userId: session.user.id,
+          metadata: JSON.stringify({ role: session.user.role }),
+        },
+      });
+    } catch (logError) {
+      console.error('Error logging activity:', logError);
+      // Continue even if logging fails
+    }
     
     return NextResponse.json(updatedClass);
   } catch (error) {

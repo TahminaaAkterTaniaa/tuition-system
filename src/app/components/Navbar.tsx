@@ -24,25 +24,28 @@ export default function Navbar() {
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link
-                href="/"
-                className="border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-              >
-                Home
-              </Link>
-              <Link
-                href="/classes"
-                className="border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-              >
-                Classes
-              </Link>
-              {session?.user.role === 'ADMIN' && (
+              {session?.user.role === 'ADMIN' ? (
                 <Link
                   href="/admin"
-                  className="border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className="border-indigo-500 text-indigo-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
                   Admin Dashboard
                 </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/"
+                    className="border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  >
+                    Home
+                  </Link>
+                  <Link
+                    href="/classes"
+                    className="border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  >
+                    Classes
+                  </Link>
+                </>
               )}
               {session?.user.role === 'TEACHER' && (
                 <Link
@@ -153,25 +156,28 @@ export default function Navbar() {
       {isMenuOpen && (
         <div className="sm:hidden">
           <div className="pt-2 pb-3 space-y-1">
-            <Link
-              href="/"
-              className="bg-indigo-50 border-indigo-500 text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
-            >
-              Home
-            </Link>
-            <Link
-              href="/classes"
-              className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
-            >
-              Classes
-            </Link>
-            {session?.user.role === 'ADMIN' && (
+            {session?.user.role === 'ADMIN' ? (
               <Link
                 href="/admin"
-                className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+                className="bg-indigo-50 border-indigo-500 text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
               >
                 Admin Dashboard
               </Link>
+            ) : (
+              <>
+                <Link
+                  href="/"
+                  className="bg-indigo-50 border-indigo-500 text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/classes"
+                  className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+                >
+                  Classes
+                </Link>
+              </>
             )}
             {session?.user.role === 'TEACHER' && (
               <Link

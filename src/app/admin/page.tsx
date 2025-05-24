@@ -66,7 +66,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <p className="text-gray-600 mb-4">Create and manage classes and enrollments</p>
-          <Link href="/admin/classes" className="text-indigo-600 hover:text-indigo-800 font-medium">
+          <Link href="/classes" className="text-indigo-600 hover:text-indigo-800 font-medium">
             Manage Classes →
           </Link>
         </div>
