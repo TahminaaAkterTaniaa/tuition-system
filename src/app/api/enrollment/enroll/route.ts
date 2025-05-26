@@ -57,6 +57,20 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    // Also check if there's an existing enrollment request
+    const existingEnrollmentRequest = await prisma.enrollmentRequest.findFirst({
+      where: {
+        studentId: student.id,
+        classId,
+        status: 'pending'
+      },
+      select: {
+        id: true,
+        status: true,
+        requestDate: true
+      }
+    });
+
     if (existingEnrollment) {
       console.log(`Found existing enrollment with status: ${existingEnrollment.status}`);
       
@@ -82,6 +96,20 @@ export async function POST(req: NextRequest) {
           }
         });
       }
+    }
+    
+    // If there's an existing enrollment request, return that instead of creating a new one
+    if (existingEnrollmentRequest) {
+      console.log(`Found existing enrollment request with ID: ${existingEnrollmentRequest.id}`);
+      return NextResponse.json({
+        success: true,
+        message: 'Your enrollment request is already pending approval.',
+        enrollmentRequest: {
+          id: existingEnrollmentRequest.id,
+          status: existingEnrollmentRequest.status,
+          requestDate: existingEnrollmentRequest.requestDate
+        }
+      });
     }
 
     // Check if the class exists and has available seats
@@ -119,30 +147,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create a new enrollment with pending payment status
-    // ONLY include fields that exist in the actual database schema
-    console.log('Creating enrollment with exact fields from database schema');
+    // Create an enrollment request that requires admin approval
+    console.log('Creating enrollment request for admin approval');
     try {
-      // Direct database query with only the fields that exist in the schema
-      const enrollment = await prisma.$queryRaw`
-        INSERT INTO "Enrollment" ("id", "studentId", "classId", "status", "paymentStatus", "notes")
-        VALUES (${`enr_${Date.now()}`}, ${student.id}, ${classId}, 'pending', 'pending', 'Enrollment initiated through online application')
-        RETURNING "id", "status", "enrollmentDate"
-      ` as any[];
+      // Create an EnrollmentRequest first - this requires admin approval
+      const enrollmentRequest = await prisma.enrollmentRequest.create({
+        data: {
+          studentId: student.id,
+          classId: classId,
+          status: 'pending',
+          notes: 'Enrollment request initiated by student through online application',
+          requestDate: new Date(),
+        }
+      });
       
-      // Extract the first result from the raw query
-      const enrollmentResult = enrollment[0];
-      
-      console.log('Enrollment created successfully with ID:', enrollmentResult.id);
+      console.log('Enrollment request created successfully with ID:', enrollmentRequest.id);
 
-      // Return the enrollment details
+      // Return the enrollment request details
       return NextResponse.json({
         success: true,
-        message: 'Enrollment request submitted successfully. Please complete payment to confirm your enrollment.',
-        enrollment: {
-          id: enrollmentResult.id,
-          status: enrollmentResult.status,
-          enrollmentDate: enrollmentResult.enrollmentDate
+        message: 'Your enrollment request has been submitted and is pending admin approval.',
+        enrollmentRequest: {
+          id: enrollmentRequest.id,
+          status: enrollmentRequest.status,
+          requestDate: enrollmentRequest.requestDate
         }
       });
     } catch (error) {

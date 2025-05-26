@@ -9,8 +9,11 @@ export async function GET(req: NextRequest) {
     const session = await getServerSession(authOptions);
     console.log('Session in classes API:', session ? 'Session exists' : 'No session');
     
-    // Get all classes regardless of status or availability
+    // Get all active classes (filter out rejected ones)
     const allClasses = await prisma.class.findMany({
+      where: {
+        status: { not: 'rejected' } // Only show active and pending classes
+      },
       include: {
         teacher: {
           include: {
@@ -75,27 +78,40 @@ export async function GET(req: NextRequest) {
               status: true
             }
           });
+          
+          // Also check for pending enrollment requests
+          const enrollmentRequests = await prisma.enrollmentRequest.findMany({
+            where: {
+              studentId: student.id,
+              status: 'pending'
+            },
+            select: {
+              classId: true
+            }
+          });
 
           console.log('Student enrollments found:', studentEnrollments.length);
+          console.log('Student enrollment requests found:', enrollmentRequests.length);
           
-          if (studentEnrollments.length > 0) {
-            console.log('Enrollment details:', JSON.stringify(studentEnrollments));
+          // Create a map of class IDs to enrollment status
+          const enrollmentStatusMap: Record<string, string> = {};
+          
+          // Add regular enrollments to the map
+          studentEnrollments.forEach(enrollment => {
+            enrollmentStatusMap[enrollment.classId] = enrollment.status;
+          });
+          
+          // Add enrollment requests to the map (overriding regular enrollments if they exist)
+          enrollmentRequests.forEach(request => {
+            enrollmentStatusMap[request.classId] = 'enrollment_pending';
+          });
 
-            // Create a map of class IDs to enrollment status
-            const enrollmentStatusMap = studentEnrollments.reduce((map, enrollment) => {
-              map[enrollment.classId] = enrollment.status;
-              return map;
-            }, {} as Record<string, string>);
+          console.log('Enrollment status map:', JSON.stringify(enrollmentStatusMap));
 
-            console.log('Enrollment status map:', JSON.stringify(enrollmentStatusMap));
-
-            // Update classes with enrollment status
-            for (const classItem of classesWithAvailability) {
-              classItem.enrollmentStatus = enrollmentStatusMap[classItem.id] || null;
-              console.log(`Class ${classItem.id} enrollment status: ${classItem.enrollmentStatus}`);
-            }
-          } else {
-            console.log('No enrollments found for student');
+          // Update classes with enrollment status
+          for (const classItem of classesWithAvailability) {
+            classItem.enrollmentStatus = enrollmentStatusMap[classItem.id] || null;
+            console.log(`Class ${classItem.id} enrollment status: ${classItem.enrollmentStatus}`);
           }
         } else {
           console.log('No student profile found for user');

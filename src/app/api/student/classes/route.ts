@@ -52,13 +52,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json([]);
     }
 
-    // Get all enrollments for the student
+    // Get all active enrollments for the student
     console.log('Fetching enrollments for studentId:', student.id);
     try {
+      // 1. Fetch regular enrollments with active classes only
       const enrollments = await prisma.enrollment.findMany({
         where: { 
           studentId: student.id,
-          status: { in: ['enrolled', 'completed', 'pending'] } // Include pending enrollments too
+          status: { in: ['enrolled', 'completed', 'pending'] },
+          class: {
+            status: 'active'  // Only include active classes
+          }
         },
         include: {
           class: {
@@ -77,25 +81,122 @@ export async function GET(req: NextRequest) {
         }
       });
 
-      console.log(`Found ${enrollments.length} enrollments`);
+      console.log(`Found ${enrollments.length} regular enrollments`);
+
+      // 2. Fetch pending enrollment requests for active classes only
+      const enrollmentRequests = await prisma.enrollmentRequest.findMany({
+        where: {
+          studentId: student.id,
+          status: 'pending',
+          class: {
+            status: 'active'  // Only include active classes
+          }
+        },
+        include: {
+          class: {
+            include: {
+              teacher: {
+                include: {
+                  user: {
+                    select: {
+                      name: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      console.log(`Found ${enrollmentRequests.length} pending enrollment requests`);
+
+      // 3. Fetch pending withdrawal requests for active classes only
+      const withdrawalRequests = await prisma.withdrawalRequest.findMany({
+        where: {
+          studentId: student.id,
+          status: 'pending',
+          class: {
+            status: 'active'  // Only include active classes
+          }
+        },
+        include: {
+          class: {
+            include: {
+              teacher: {
+                include: {
+                  user: {
+                    select: {
+                      name: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      console.log(`Found ${withdrawalRequests.length} pending withdrawal requests`);
       
+      // Define a type for our class object with enrollment status
+      type ClassWithEnrollmentStatus = typeof enrollments[0]['class'] & {
+        enrollmentStatus: string;
+        enrollmentId?: string;
+        enrollmentRequestId?: string;
+        withdrawalRequestId?: string;
+        requestStatus?: string | null;
+      };
+
       // Extract the classes from enrollments and add enrollment status
-      const classes = enrollments.map(enrollment => {
-        // Make sure we're properly extracting all class data
+      let classes: ClassWithEnrollmentStatus[] = enrollments.map(enrollment => {
         const classData = enrollment.class;
+        
+        // Check if there's a pending withdrawal request for this enrollment
+        const pendingWithdrawal = withdrawalRequests.find(wr => 
+          wr.classId === enrollment.classId && wr.status === 'pending'
+        );
         
         // Add enrollment status information
         return {
           ...classData,
-          enrollmentStatus: enrollment.status,
-          enrollmentId: enrollment.id
+          enrollmentStatus: pendingWithdrawal ? 'withdrawal_pending' : enrollment.status,
+          enrollmentId: enrollment.id,
+          withdrawalRequestId: pendingWithdrawal?.id,
+          requestStatus: pendingWithdrawal ? 'withdrawal_pending' : null
         };
       });
       
-      console.log(`Returning ${classes.length} classes with enrollment status`);
-      console.log('Classes data:', JSON.stringify(classes, null, 2));
+      // Process pending enrollment requests without creating duplicates
+      const classIdMap = new Map<string, ClassWithEnrollmentStatus>();
       
-      // Return the classes (will be an empty array if no enrollments)
+      // First, add all classes from enrollments to the map with their IDs as keys
+      classes.forEach(classItem => {
+        classIdMap.set(classItem.id, classItem);
+      });
+      
+      // Then, add classes from pending enrollment requests if they don't already exist
+      enrollmentRequests.forEach(request => {
+        const classData = request.class;
+        
+        // If class doesn't exist in map yet, add it as a pending enrollment
+        if (!classIdMap.has(classData.id)) {
+          classIdMap.set(classData.id, {
+            ...classData,
+            enrollmentStatus: 'enrollment_pending',
+            enrollmentRequestId: request.id,
+            requestStatus: 'enrollment_pending'
+          } as ClassWithEnrollmentStatus);
+        }
+        // If it does exist, don't create a duplicate
+      });
+      
+      // Convert map back to array
+      classes = Array.from(classIdMap.values());
+      
+      console.log(`Returning ${classes.length} unique classes with enrollment status`);
+      
+      // Return the classes (will be an empty array if no enrollments or requests)
       return NextResponse.json(classes);
     } catch (enrollmentError) {
       console.error('Error in enrollment query:', enrollmentError);

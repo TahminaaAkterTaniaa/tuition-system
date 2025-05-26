@@ -11,10 +11,12 @@ export async function GET(req: NextRequest) {
     // We'll allow all users to view available classes, even if not logged in
     // But we'll still get the session to check enrollment status for logged-in students
 
-    // Get all classes regardless of status
+    // Get all active classes (exclude rejected ones)
     const allClasses = await prisma.class.findMany({
       where: {
-        // No status filter - show all classes
+        // Only show classes that are active (approved by admin)
+        // This ensures that pending and rejected classes don't show up in the available list
+        status: 'active'
       },
       include: {
         teacher: {

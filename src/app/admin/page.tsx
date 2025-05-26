@@ -40,6 +40,8 @@ export default function AdminDashboard() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
       
+      {/* Removed separate card for pending class requests - now handled through notifications */}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between mb-4">
@@ -221,92 +223,56 @@ export default function AdminDashboard() {
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Recent Applications</h2>
+          <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
           <div className="space-y-4">
-            <div className="border-l-4 border-yellow-500 pl-4 py-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-medium text-gray-900">John Smith</h3>
-                  <p className="text-sm text-gray-600">Applied for: Mathematics</p>
-                </div>
-                <div className="flex space-x-2">
-                  <button className="p-1 bg-green-100 text-green-600 rounded hover:bg-green-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </button>
-                  <button className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
+            <div className="flex items-start">
+              <div className="flex-shrink-0 bg-green-100 rounded-full p-2 mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium">New class created: <span className="text-indigo-600">Advanced Mathematics</span></p>
+                <p className="text-xs text-gray-500">2 hours ago</p>
               </div>
             </div>
-            <div className="border-l-4 border-yellow-500 pl-4 py-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-medium text-gray-900">Emily Johnson</h3>
-                  <p className="text-sm text-gray-600">Applied for: Science</p>
-                </div>
-                <div className="flex space-x-2">
-                  <button className="p-1 bg-green-100 text-green-600 rounded hover:bg-green-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </button>
-                  <button className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
+            <div className="flex items-start">
+              <div className="flex-shrink-0 bg-blue-100 rounded-full p-2 mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium">New student enrolled: <span className="text-indigo-600">John Doe</span></p>
+                <p className="text-xs text-gray-500">3 hours ago</p>
               </div>
             </div>
-            <div className="border-l-4 border-yellow-500 pl-4 py-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-medium text-gray-900">Michael Brown</h3>
-                  <p className="text-sm text-gray-600">Applied for: History</p>
-                </div>
-                <div className="flex space-x-2">
-                  <button className="p-1 bg-green-100 text-green-600 rounded hover:bg-green-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </button>
-                  <button className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
+            <div className="flex items-start">
+              <div className="flex-shrink-0 bg-yellow-100 rounded-full p-2 mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Class schedule updated: <span className="text-indigo-600">Biology 101</span></p>
+                <p className="text-xs text-gray-500">5 hours ago</p>
               </div>
             </div>
-            <div className="border-l-4 border-yellow-500 pl-4 py-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-medium text-gray-900">Sarah Wilson</h3>
-                  <p className="text-sm text-gray-600">Applied for: English</p>
-                </div>
-                <div className="flex space-x-2">
-                  <button className="p-1 bg-green-100 text-green-600 rounded hover:bg-green-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </button>
-                  <button className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
+            <div className="flex items-start">
+              <div className="flex-shrink-0 bg-red-100 rounded-full p-2 mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Class canceled: <span className="text-indigo-600">French Literature</span></p>
+                <p className="text-xs text-gray-500">1 day ago</p>
               </div>
             </div>
           </div>
           <div className="mt-4">
-            <Link href="/admin/applications" className="text-indigo-600 hover:text-indigo-800 font-medium">
-              View All Applications →
+            <Link href="/admin/activity" className="text-indigo-600 hover:text-indigo-800 font-medium">
+              View All Activity →
             </Link>
           </div>
         </div>

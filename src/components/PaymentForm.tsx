@@ -20,6 +20,7 @@ interface PaymentResponse {
   receipt: PaymentReceipt;
   enrollmentId: string;
   paymentId: string;
+  status?: string; // Add status field to handle pending_approval status
 }
 
 interface PaymentFormProps {
@@ -86,7 +87,13 @@ export default function PaymentForm({ enrollmentId, classId, className, amount, 
         throw new Error(responseData.error || 'Failed to process payment');
       }
 
-      toast.success('Payment processed successfully!');
+      // Check the status of the payment/enrollment
+      if (responseData.status === 'pending_approval') {
+        toast.success('Payment processed successfully! Your enrollment is pending admin approval.');
+      } else {
+        toast.success('Payment processed successfully!');
+      }
+      
       onSuccess(responseData);
     } catch (error) {
       console.error('Payment error:', error);

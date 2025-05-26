@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
-import EnrollmentButton from '../components/EnrollmentButton';
+import EnrollmentStatusBadge from '@/app/components/EnrollmentStatusBadge';
 
 interface ClassItem {
   id: string;
@@ -216,115 +216,128 @@ export default function Classes() {
             enrollmentStatusClass = 'bg-yellow-100 text-yellow-800';
           }
           
-          // Determine the badge color based on availability
-          const badgeColor = classItem.isFull
-            ? 'bg-red-100 text-red-800'
-            : classItem.availableSeats <= classItem.capacity * 0.2
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-green-100 text-green-800';
-          
           return (
-            <div key={classItem.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="h-48 bg-gray-200 relative">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            <div key={classItem.id} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 transform hover:-translate-y-1">
+              <div className="relative">
+                {/* Default image for class */}
+                <div className="h-40 bg-gradient-to-r from-indigo-50 to-blue-50 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                   </svg>
                 </div>
                 {/* Subject badge */}
-                <div className="absolute top-2 left-2 bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs font-medium">
+                <div className="absolute top-2 left-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-3 py-1 rounded-md text-xs font-medium shadow-sm">
                   {classItem.subject}
                 </div>
-              </div>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-2">
-                  <h2 className="text-xl font-semibold text-gray-900">{classItem.name}</h2>
-                  <div className="flex space-x-2">
-                    {/* Enrolled badge */}
-                    {classItem.enrollmentStatus && (
-                      <span className={`px-2 py-1 rounded-md text-xs font-medium ${enrollmentStatusClass}`}>
-                        {enrollmentStatusText}
-                      </span>
-                    )}
-                    {/* Availability badge */}
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${badgeColor}`}>
-                      {classItem.isFull 
-                        ? 'Full' 
-                        : `${classItem.availableSeats} spots left`}
-                    </span>
-                  </div>
+                
+                {/* Availability badge */}
+                <div className="absolute top-2 right-2">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium shadow-sm ${classItem.isFull ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-green-100 text-green-800 border border-green-200'}`}>
+                    {classItem.isFull 
+                      ? 'Full' 
+                      : `${classItem.availableSeats} spots left`}
+                  </span>
                 </div>
-                <p className="text-gray-600 mb-4">{classItem.description}</p>
-                <div className="space-y-2 mb-4">
+              </div>
+              
+              <div className="p-5">
+                {/* Class title and enrollment status */}
+                <div className="flex flex-col mb-3">
+                  <h2 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">{classItem.name}</h2>
+                  
+                  {/* Enrollment status badge */}
+                  {session?.user?.role === 'STUDENT' && classItem.enrollmentStatus && (
+                    <div className="mt-1">
+                      <EnrollmentStatusBadge status={classItem.enrollmentStatus} />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Class details */}
+                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{classItem.description}</p>
+                
+                <div className="space-y-2 mb-4 text-sm">
                   <div className="flex items-start">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                     <span className="text-gray-700">{classItem.teacher?.user?.name || 'No teacher assigned'}</span>
                   </div>
                   <div className="flex items-start">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span className="text-gray-700">{classItem.schedule || 'Schedule not available'}</span>
                   </div>
                   <div className="flex items-start">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                     <span className="text-gray-700">{classItem.room || 'Room not assigned'}</span>
                   </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="text-sm text-gray-500">Enrollment: </span>
-                    <span className="text-sm font-medium">{classItem.enrolledCount}/{classItem.capacity}</span>
+                
+                {/* Enrollment count and action button */}
+                <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-1">
+                  <div className="text-xs font-medium text-gray-500">
+                    <span className="text-indigo-600 font-semibold">{classItem.enrolledCount}</span>/{classItem.capacity} enrolled
                   </div>
                   
-                  {/* Action buttons based on user role */}
-                  <div className="flex space-x-2">
-                    {/* STUDENT ROLE ACTIONS */}
-                    {session?.user?.role === 'STUDENT' && (
-                      <div className="mt-4">
-                        {session?.user?.id && (
-                          <EnrollmentButton 
-                            classId={classItem.id} 
-                            userId={session.user.id} 
-                          />
-                        )}
-                      </div>
+                  {/* Action button based on user role */}
+                  <div>
+                    {/* STUDENT ROLE ACTIONS - Only show Enroll button, no View Details button */}
+                    {session?.user?.role === 'STUDENT' && !classItem.enrollmentStatus && !classItem.isFull && (
+                      <Link
+                        href={`/classes/enroll/${classItem.id}`}
+                        className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-sm font-medium rounded-md shadow-sm hover:from-indigo-700 hover:to-blue-700 transition-all duration-300"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Enroll
+                      </Link>
                     )}
                     
                     {/* TEACHER ROLE ACTIONS */}
                     {session?.user?.role === 'TEACHER' && (
-                      <>
-                        {/* View Details button for all classes */}
-                        <Link
-                          href={`/classes/${classItem.id}`}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                        >
-                          View Details
-                        </Link>
-                        
+                      <div className="flex space-x-2">
                         {/* Edit Class button - only if this teacher is assigned to this class */}
-                        {classItem.teacher?.user?.id === session?.user?.id && (
+                        {classItem.teacher?.user?.id === session?.user?.id ? (
                           <Link
                             href={`/teacher/classes/${classItem.id}/edit`}
-                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                            className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:from-purple-700 hover:to-indigo-700 transition-all duration-300"
                           >
-                            Edit Class
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                            Edit
+                          </Link>
+                        ) : (
+                          <Link
+                            href={`/classes/${classItem.id}`}
+                            className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
+                          >
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            View
                           </Link>
                         )}
-                      </>
+                      </div>
                     )}
                     
                     {/* ADMIN ROLE ACTIONS */}
                     {session?.user?.role === 'ADMIN' && (
                       <Link
                         href={`/admin/classes/${classItem.id}`}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                        className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-sm font-medium rounded-md shadow-sm hover:from-indigo-700 hover:to-blue-700 transition-all duration-300"
                       >
-                        Manage Class
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Manage
                       </Link>
                     )}
                     
@@ -332,8 +345,12 @@ export default function Classes() {
                     {session?.user?.role === 'PARENT' && (
                       <Link
                         href={`/classes/${classItem.id}`}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                        className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
                       >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
                         View Details
                       </Link>
                     )}
@@ -342,8 +359,11 @@ export default function Classes() {
                     {!session && isAvailable && (
                       <Link
                         href={`/login?callbackUrl=/classes/enroll/${classItem.id}`}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                        className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-sm font-medium rounded-md shadow-sm hover:from-indigo-700 hover:to-blue-700 transition-all duration-300"
                       >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+                        </svg>
                         Login to Enroll
                       </Link>
                     )}

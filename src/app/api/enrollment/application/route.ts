@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find the enrollment record
-    const enrollment = await prisma.enrollment.findFirst({
+    // Find the enrollment request record (for the new admin approval workflow)
+    const enrollmentRequest = await prisma.enrollmentRequest.findFirst({
       where: {
         studentId: student.id,
         classId,
@@ -61,14 +61,62 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    if (!enrollment) {
+    // If no enrollment request found, try finding a traditional enrollment record for backward compatibility
+    const enrollment = !enrollmentRequest ? await prisma.enrollment.findFirst({
+      where: {
+        studentId: student.id,
+        classId,
+        status: 'pending'
+      }
+    }) : null;
+
+    console.log(`Enrollment request found: ${enrollmentRequest ? 'yes' : 'no'}`);
+    console.log(`Regular enrollment found: ${enrollment ? 'yes' : 'no'}`);
+    
+    // If neither record exists, we need to create a new enrollment request
+    if (!enrollmentRequest && !enrollment) {
+      console.log('No enrollment or request found, creating a new enrollment request');
+      try {
+        const newEnrollmentRequest = await prisma.enrollmentRequest.create({
+          data: {
+            studentId: student.id,
+            classId: classId,
+            status: 'pending',
+            requestDate: new Date(),
+          }
+        });
+        console.log('New enrollment request created:', newEnrollmentRequest.id);
+        const recordId = newEnrollmentRequest.id;
+        const recordType = 'enrollment request';
+      } catch (error) {
+        console.error('Error creating enrollment request:', error);
+        return NextResponse.json(
+          { error: 'Failed to create enrollment request' },
+          { status: 500 }
+        );
+      }
+    }
+    
+    // Refresh enrollment request after potential creation
+    const finalEnrollmentRequest = !enrollmentRequest ? await prisma.enrollmentRequest.findFirst({
+      where: {
+        studentId: student.id,
+        classId,
+        status: 'pending'
+      }
+    }) : enrollmentRequest;
+    
+    if (!finalEnrollmentRequest && !enrollment) {
       return NextResponse.json(
-        { error: 'Enrollment record not found. Please enroll in the class first.' },
+        { error: 'No pending enrollment request found and failed to create one.' },
         { status: 404 }
       );
     }
 
-    console.log('Creating enrollment application for student ID:', student.id, 'enrollment ID:', enrollment.id);
+    const recordId = finalEnrollmentRequest ? finalEnrollmentRequest.id : enrollment!.id;
+    const recordType = finalEnrollmentRequest ? 'enrollment request' : 'enrollment';
+    
+    console.log(`Creating enrollment application for student ID: ${student.id}, ${recordType} ID: ${recordId}`);
     
     // Instead of saving files to disk, store file info in the database
     // This avoids file system permission issues in development environments
@@ -102,27 +150,46 @@ export async function POST(req: NextRequest) {
       console.log('Using virtual path for transcript:', transcriptPath);
     }
 
-    // Update the enrollment with application details
-    const updatedEnrollment = await prisma.enrollment.update({
-      where: { id: enrollment.id },
-      data: {
-        // Add a custom field to the notes to track application submission
-        notes: JSON.stringify({
-          applicationSubmitted: true, // Mark that the application has been submitted
-          fullName,
-          email,
-          phone,
-          idNumber,
-          emergencyContact,
-          additionalNotes,
-          idDocumentPath: idDocumentPath.replace(process.cwd(), ''),
-          transcriptPath: transcriptPath ? transcriptPath.replace(process.cwd(), '') : null,
-          submittedAt: new Date().toISOString()
-        })
-      }
+    // Prepare application details JSON
+    const applicationDetails = JSON.stringify({
+      applicationSubmitted: true, // Mark that the application has been submitted
+      fullName,
+      email,
+      phone,
+      idNumber,
+      emergencyContact,
+      additionalNotes,
+      idDocumentPath: idDocumentPath.replace(process.cwd(), ''),
+      transcriptPath: transcriptPath ? transcriptPath.replace(process.cwd(), '') : null,
+      submittedAt: new Date().toISOString()
     });
     
-    console.log('Enrollment updated with application details:', updatedEnrollment.id);
+    // Update either the enrollment request or enrollment record
+    if (finalEnrollmentRequest) {
+      // For the new admin approval workflow
+      const updatedRequest = await prisma.enrollmentRequest.update({
+        where: { id: finalEnrollmentRequest.id },
+        data: {
+          notes: applicationDetails
+        }
+      });
+      console.log('Enrollment request updated with application details:', updatedRequest.id);
+    } else if (enrollment) {
+      // For backward compatibility
+      const updatedEnrollment = await prisma.enrollment.update({
+        where: { id: enrollment.id },
+        data: {
+          notes: applicationDetails
+        }
+      });
+      console.log('Enrollment updated with application details:', updatedEnrollment.id);
+    } else {
+      console.error('No record found to update with application details');
+      return NextResponse.json(
+        { error: 'Failed to update enrollment record with application details' },
+        { status: 500 }
+      );
+    }
 
     // Create a notification for admin review
     await prisma.announcement.create({
@@ -138,7 +205,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Application submitted successfully. An administrator will review your application.',
-      enrollmentId: enrollment.id
+      recordId: recordId,  // Use a generic recordId property instead
+      recordType: recordType,  // Include the record type for the client to know which kind of record it is
+      requestId: finalEnrollmentRequest ? finalEnrollmentRequest.id : null,
+      enrollmentId: enrollment ? enrollment.id : null
     });
   } catch (error) {
     console.error('Error processing enrollment application:', error);

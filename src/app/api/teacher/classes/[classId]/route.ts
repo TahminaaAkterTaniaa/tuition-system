@@ -39,7 +39,7 @@ export async function GET(
       );
     }
     
-    // Get class details
+    // Get class details with room information
     const classData = await prisma.class.findUnique({
       where: {
         id: classId,
@@ -47,6 +47,12 @@ export async function GET(
       },
       include: {
         teacher: true,
+        schedules: {
+          include: {
+            room: true
+          },
+          take: 1 // Just get the first schedule with room info
+        }
       },
     });
     
@@ -57,6 +63,9 @@ export async function GET(
       );
     }
     
+    // Get room information from the first schedule if available
+    const roomInfo = classData.schedules[0]?.room;
+    
     // Format the response
     const formattedClass = {
       id: classData.id,
@@ -66,7 +75,8 @@ export async function GET(
       startDate: classData.startDate,
       endDate: classData.endDate,
       schedule: classData.schedule,
-      room: classData.room,
+      room: roomInfo ? `${roomInfo.name}${roomInfo.building ? ` (${roomInfo.building})` : ''}` : 'No room assigned',
+      roomId: classData.room,
       capacity: classData.capacity,
       teacherId: classData.teacherId,
       // Get teacher name from user relation if available

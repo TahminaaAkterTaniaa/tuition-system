@@ -18,7 +18,7 @@ export default function EnrollmentButton({ classId, userId }: EnrollmentButtonPr
       try {
         setIsLoading(true);
         
-        // Use the direct-check endpoint to check enrollment status
+        // First check for regular enrollments
         const response = await fetch(`/api/enrollment/direct-check?userId=${userId}&classId=${classId}`);
         const data = await response.json();
         
@@ -28,8 +28,24 @@ export default function EnrollmentButton({ classId, userId }: EnrollmentButtonPr
           // Student is enrolled in this class
           setEnrollmentStatus(data.enrollments[0].status);
         } else {
-          // Student is not enrolled
-          setEnrollmentStatus(null);
+          // Check for pending enrollment requests
+          try {
+            const requestsResponse = await fetch(`/api/student/enrollment-requests?userId=${userId}&classId=${classId}`);
+            const requestsData = await requestsResponse.json();
+            
+            console.log(`Enrollment request check for class ${classId}:`, requestsData);
+            
+            if (requestsData.success && requestsData.requests && requestsData.requests.length > 0) {
+              // Student has a pending request for this class
+              setEnrollmentStatus('enrollment_pending');
+            } else {
+              // Student is not enrolled and has no pending requests
+              setEnrollmentStatus(null);
+            }
+          } catch (requestErr) {
+            console.error('Error checking enrollment requests:', requestErr);
+            setEnrollmentStatus(null);
+          }
         }
         
         setError(null);
@@ -57,24 +73,55 @@ export default function EnrollmentButton({ classId, userId }: EnrollmentButtonPr
 
   if (enrollmentStatus === 'enrolled') {
     return (
-      <div className="text-green-600 font-semibold">
-        ✓ You are enrolled in this class
+      <div className="inline-flex items-center text-white px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 rounded-md text-sm font-medium shadow-sm">
+        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path>
+        </svg>
+        You are enrolled in this class
       </div>
     );
   }
 
   if (enrollmentStatus === 'completed') {
     return (
-      <div className="text-blue-600 font-semibold">
-        ✓ You have completed this class
+      <div className="inline-flex items-center text-white px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-md text-sm font-medium shadow-sm">
+        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path>
+        </svg>
+        You have completed this class
       </div>
     );
   }
 
   if (enrollmentStatus === 'pending') {
     return (
-      <div className="text-yellow-600 font-semibold">
+      <div className="inline-flex items-center text-white px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-md text-sm font-medium shadow-sm">
+        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
         Your enrollment is pending
+      </div>
+    );
+  }
+
+  if (enrollmentStatus === 'enrollment_pending') {
+    return (
+      <div className="inline-flex items-center text-white px-3 py-1.5 bg-gradient-to-r from-orange-400 to-orange-500 rounded-md text-sm font-medium shadow-sm">
+        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        Enrollment Pending Approval
+      </div>
+    );
+  }
+
+  if (enrollmentStatus === 'withdrawal_pending') {
+    return (
+      <div className="inline-flex items-center text-white px-3 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 rounded-md text-sm font-medium shadow-sm">
+        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        Withdrawal Pending Approval
       </div>
     );
   }
@@ -83,9 +130,12 @@ export default function EnrollmentButton({ classId, userId }: EnrollmentButtonPr
   return (
     <Link
       href={`/classes/enroll/${classId}`}
-      className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition duration-300"
+      className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-sm font-medium rounded-md shadow-sm hover:from-indigo-700 hover:to-blue-700 transition-all duration-300"
     >
-      Start Enrollment
+      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+      </svg>
+      Enroll
     </Link>
   );
 }

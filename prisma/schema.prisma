@@ -8,25 +8,29 @@ datasource db {
 }
 
 model User {
-  id               String         @id @default(cuid())
-  name             String?
-  email            String         @unique
-  emailVerified    DateTime?
-  password         String?
-  image            String?
-  role             Role           @default(STUDENT)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  accounts         Account[]
-  activityLogs     ActivityLog[]
-  admin            Admin?
-  announcements    Announcement[]
-  receivedMessages Message[]      @relation("MessageReceiver")
-  sentMessages     Message[]      @relation("MessageSender")
-  parent           Parent?
-  sessions         Session[]
-  student          Student?
-  teacher          Teacher?
+  id                   String                 @id @default(cuid())
+  name                 String?
+  email                String                 @unique
+  emailVerified        DateTime?
+  password             String?
+  image                String?
+  role                 Role                   @default(STUDENT)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  accounts             Account[]
+  activityLogs         ActivityLog[]
+  admin                Admin?
+  announcements        Announcement[]
+  ClassCreationRequest ClassCreationRequest[]
+  EnrollmentRequest    EnrollmentRequest[]
+  receivedMessages     Message[]              @relation("MessageReceiver")
+  sentMessages         Message[]              @relation("MessageSender")
+  Notification         Notification[]
+  parent               Parent?
+  sessions             Session[]
+  student              Student?
+  teacher              Teacher?
+  WithdrawalRequest    WithdrawalRequest[]
 }
 
 model Account {
@@ -64,35 +68,38 @@ model VerificationToken {
 }
 
 model Student {
-  id               String          @id @default(cuid())
-  userId           String          @unique
-  studentId        String          @unique
-  dateOfBirth      DateTime?
-  address          String?
-  phoneNumber      String?
-  emergencyContact String?
-  academicLevel    String?
-  enrollmentDate   DateTime        @default(now())
-  status           String          @default("active")
-  attendances      Attendance[]
-  enrollments      Enrollment[]
-  grades           Grade[]
-  parentStudents   ParentStudent[]
-  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String              @id @default(cuid())
+  userId             String              @unique
+  studentId          String              @unique
+  dateOfBirth        DateTime?
+  address            String?
+  phoneNumber        String?
+  emergencyContact   String?
+  academicLevel      String?
+  enrollmentDate     DateTime            @default(now())
+  status             String              @default("active")
+  attendances        Attendance[]
+  enrollments        Enrollment[]
+  enrollmentRequests EnrollmentRequest[]
+  grades             Grade[]
+  parentStudents     ParentStudent[]
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  withdrawalRequests WithdrawalRequest[]
 }
 
 model Teacher {
-  id             String     @id @default(cuid())
-  userId         String     @unique
-  teacherId      String     @unique
-  qualification  String?
-  specialization String?
-  experience     Int?
-  dateOfJoining  DateTime   @default(now())
-  status         String     @default("active")
-  classes        Class[]
-  resources      Resource[]
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    String                 @id @default(cuid())
+  userId                String                 @unique
+  teacherId             String                 @unique
+  qualification         String?
+  specialization        String?
+  experience            Int?
+  dateOfJoining         DateTime               @default(now())
+  status                String                 @default("active")
+  classes               Class[]
+  classCreationRequests ClassCreationRequest[]
+  resources             Resource[]
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Admin {
@@ -130,27 +137,29 @@ model ParentStudent {
 }
 
 model Class {
-  id          String          @id @default(cuid())
-  name        String
-  subject     String
-  description String?
-  startDate   DateTime
-  endDate     DateTime?
-  schedule    String?
-  capacity    Int
-  room        String?
-  teacherId   String?
-  status      String          @default("active")
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  fee         Float           @default(99.99)
-  assessments Assessment[]
-  attendances Attendance[]
-  teacher     Teacher?        @relation(fields: [teacherId], references: [id])
-  schedules   ClassSchedule[]
-  enrollments Enrollment[]
-  grades      Grade[]
-  resources   Resource[]
+  id                 String              @id @default(cuid())
+  name               String
+  subject            String
+  description        String?
+  startDate          DateTime
+  endDate            DateTime?
+  schedule           String?
+  capacity           Int
+  room               String?
+  teacherId          String?
+  status             String              @default("pending")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  fee                Float               @default(99.99)
+  assessments        Assessment[]
+  attendances        Attendance[]
+  teacher            Teacher?            @relation(fields: [teacherId], references: [id])
+  schedules          ClassSchedule[]
+  enrollments        Enrollment[]
+  enrollmentRequests EnrollmentRequest[]
+  grades             Grade[]
+  resources          Resource[]
+  withdrawalRequests WithdrawalRequest[]
 }
 
 model ClassSchedule {
@@ -314,6 +323,65 @@ model ActivityLog {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model EnrollmentRequest {
+  id          String    @id @default(cuid())
+  studentId   String
+  classId     String
+  requestDate DateTime  @default(now())
+  status      String    @default("pending")
+  notes       String?
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reviewNotes String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  User        User?     @relation(fields: [reviewedBy], references: [id])
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model WithdrawalRequest {
+  id           String    @id @default(cuid())
+  enrollmentId String
+  studentId    String
+  classId      String
+  reason       String?
+  requestDate  DateTime  @default(now())
+  status       String    @default("pending")
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  reviewNotes  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  class        Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  User         User?     @relation(fields: [reviewedBy], references: [id])
+  student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model ClassCreationRequest {
+  id              String    @id @default(cuid())
+  teacherId       String
+  name            String
+  subject         String
+  description     String?
+  startDate       DateTime
+  endDate         DateTime?
+  capacity        Int
+  fee             Float
+  gradeLevel      String?
+  scheduleData    String?
+  status          String    @default("pending")
+  requestDate     DateTime  @default(now())
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewNotes     String?
+  approvedClassId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  User            User?     @relation(fields: [reviewedBy], references: [id])
+  teacher         Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+}
+
 model Assessment {
   id          String   @id @default(cuid())
   name        String
@@ -328,9 +396,29 @@ model Assessment {
   class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
 }
 
+model Notification {
+  id        String    @id
+  userId    String
+  title     String
+  message   String
+  type      String
+  relatedId String?
+  read      Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 enum Role {
   STUDENT
   TEACHER
   ADMIN
   PARENT
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

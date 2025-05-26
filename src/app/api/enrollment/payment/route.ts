@@ -38,8 +38,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find the enrollment
-    const enrollment = await prisma.enrollment.findFirst({
+    // Check if this is an enrollment request (admin approval workflow) or a regular enrollment
+    let enrollment;
+    let enrollmentRequest;
+    let recordType = '';
+    
+    // First, try to find a regular enrollment
+    enrollment = await prisma.enrollment.findFirst({
       where: {
         id: enrollmentId,
         classId
@@ -52,16 +57,40 @@ export async function POST(req: NextRequest) {
         }
       }
     });
-
-    if (!enrollment) {
-      console.log('Enrollment not found:', enrollmentId);
-      return NextResponse.json(
-        { error: 'Enrollment record not found.' },
-        { status: 404 }
-      );
+    
+    if (enrollment) {
+      console.log('Regular enrollment found:', enrollment.id);
+      recordType = 'enrollment';
+    } else {
+      // If no regular enrollment found, check for an enrollment request
+      enrollmentRequest = await prisma.enrollmentRequest.findFirst({
+        where: {
+          id: enrollmentId,
+          classId
+        },
+        include: {
+          class: {
+            select: {
+              name: true
+            }
+          }
+        }
+      });
+      
+      if (enrollmentRequest) {
+        console.log('Enrollment request found:', enrollmentRequest.id);
+        recordType = 'enrollmentRequest';
+      } else {
+        console.log('Neither enrollment nor enrollment request found for ID:', enrollmentId);
+        return NextResponse.json(
+          { error: 'No enrollment record found.' },
+          { status: 404 }
+        );
+      }
     }
-
-    console.log('Enrollment found:', enrollment.id);
+    
+    // Get the class name (works for both enrollment and enrollment request)
+    const className = enrollment?.class?.name || enrollmentRequest?.class?.name;
 
     // In development mode, we'll skip payment verification
     // Generate a mock transaction ID
@@ -98,34 +127,68 @@ export async function POST(req: NextRequest) {
     
     console.log('Mock payment created:', mockPayment.id);
 
-    // Update the enrollment status to 'enrolled' and add payment information
-    console.log('Updating enrollment status to enrolled for enrollment ID:', enrollment.id);
+    // The payment details to save
+    const paymentDetails = JSON.stringify({
+      transactionId,
+      paymentMethod: paymentMethod || 'Development Mode',
+      amount: mockPayment.amount,
+      developmentMode: true,
+      paymentDate: new Date().toISOString()
+    });
     
-    let updatedEnrollment;
+    // Record the payment information regardless of record type
+    let finalEnrollmentId = enrollmentId;
+    let paymentStatus = 'pending_approval';
+    
     try {
-      updatedEnrollment = await prisma.enrollment.update({
-        where: { id: enrollment.id },
-        data: {
-          status: 'enrolled',
-          paymentId: mockPayment.id,
-          paymentStatus: 'paid',
-          paymentDate: new Date(),
-          notes: JSON.stringify({
-            transactionId,
-            paymentMethod: paymentMethod || 'Development Mode',
-            amount: mockPayment.amount,
-            developmentMode: true
-          })
-        }
-      });
-      
-      console.log('Successfully updated enrollment status to enrolled with payment information:', updatedEnrollment);
+      if (recordType === 'enrollment' && enrollment) {
+        // For regular enrollment, update with payment info but don't change status yet
+        console.log('Recording payment for enrollment ID:', enrollment.id);
+        
+        const updatedEnrollment = await prisma.enrollment.update({
+          where: { id: enrollment.id },
+          data: {
+            paymentId: mockPayment.id,
+            paymentStatus: paymentStatus,
+            paymentDate: new Date(),
+            notes: paymentDetails
+          }
+        });
+        
+        console.log('Successfully recorded payment for enrollment:', updatedEnrollment.id);
+        finalEnrollmentId = updatedEnrollment.id;
+      } 
+      else if (recordType === 'enrollmentRequest' && enrollmentRequest) {
+        // For enrollment request, record payment info but don't approve it yet
+        console.log('Recording payment for enrollment request ID:', enrollmentRequest.id);
+        
+        // Update the enrollment request with payment details
+        const updatedRequest = await prisma.enrollmentRequest.update({
+          where: { id: enrollmentRequest.id },
+          data: {
+            // Don't change status - admin will approve it
+            notes: JSON.stringify({
+              ...JSON.parse(enrollmentRequest.notes || '{}'),
+              paymentId: mockPayment.id,
+              paymentStatus: paymentStatus,
+              paymentDate: new Date(),
+              transactionId,
+              paymentMethod: paymentMethod || 'Development Mode',
+              amount: mockPayment.amount
+            })
+          }
+        });
+        
+        console.log('Payment recorded for enrollment request:', updatedRequest.id);
+        finalEnrollmentId = updatedRequest.id;
+      } else {
+        console.error('Invalid record type or missing enrollment data');
+        throw new Error('Unable to record payment - invalid enrollment record');
+      }
     } catch (error) {
-      console.error('Error updating enrollment status:', error);
+      console.error('Error recording payment:', error);
       throw error;
     }
-
-    console.log('Enrollment updated to enrolled:', updatedEnrollment.id);
 
     // Get student name from the database instead of session
     const studentUser = await prisma.user.findUnique({
@@ -139,24 +202,103 @@ export async function POST(req: NextRequest) {
       transactionId,
       date: new Date().toISOString(),
       studentName: studentUser?.name || 'Student',
-      className: enrollment.class.name,
+      className: className || classDetails.name, // Use className from earlier or fallback to classDetails
       amount,
       paymentMethod: paymentMethod === 'credit_card' ? 'Credit Card' : 'PayPal',
       status: 'Paid'
     };
+    
+    // Create a notification for the admin
+    try {
+      // Include payment details in the notification content
+      const paymentInfo = `Payment Amount: ${amount}, Transaction ID: ${transactionId}`;
+      
+      // Create an announcement for admin notification
+      await prisma.announcement.create({
+        data: {
+          title: 'New Enrollment Payment',
+          content: `A payment has been processed for ${receipt.studentName}'s enrollment in ${receipt.className}. ${paymentInfo}`,
+          authorId: userId,
+          targetAudience: 'admin', // Only visible to admins
+          isPublished: true
+        }
+      });
+      
+      console.log('Admin notification created for payment');
+      
+      // Create an admin notification for enrollment payment approval
+      try {
+        // Create a detailed information string with all payment details
+        const detailedInfo = `
+Payment details:
+- Amount: $${amount}
+- Transaction ID: ${transactionId}
+- Class: ${receipt.className}
+- Student: ${receipt.studentName}
+- Payment processed on: ${new Date().toLocaleString()}`;
+        
+        const recordTypeText = recordType === 'enrollmentRequest' ? 'enrollment request' : 'enrollment';
+        
+        // Create an announcement for all admins with approval instructions
+        await prisma.announcement.create({
+          data: {
+            title: '💰 Payment Pending Approval',
+            content: `A payment has been received for a student ${recordTypeText} and requires admin approval. Please review and approve this enrollment to complete the process.${detailedInfo}`,
+            authorId: userId,
+            targetAudience: 'admin',
+            isPublished: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        });
+        
+        console.log('Payment approval notification created for admins');
+      } catch (err) {
+        console.error('Error creating payment notification:', err);
+        // Continue even if notification creation fails
+      }
+    } catch (notificationError) {
+      console.error('Failed to create notification:', notificationError);
+      // Continue even if notification creation fails
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Payment processed successfully. You are now enrolled in the class.',
+      message: 'Payment processed successfully. Your enrollment is now pending admin approval.',
       receipt,
-      enrollmentId,
-      paymentId: mockPayment.id
+      enrollmentId: finalEnrollmentId || enrollmentId,
+      paymentId: mockPayment.id,
+      status: 'pending_approval'
     });
   } catch (error) {
     console.error('Error processing payment:', error);
+    
+    // Provide more specific error messages based on the error type
+    let errorMessage = 'Failed to process payment';
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      // Check for specific error conditions
+      if (error.message.includes('not found') || error.message.includes('invalid')) {
+        statusCode = 404;
+      } else if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+        statusCode = 403;
+      } else if (error.message.includes('Invalid record type')) {
+        statusCode = 400;
+      }
+    }
+    
+    console.log(`Returning error response: ${errorMessage} (${statusCode})`);
+    
     return NextResponse.json(
-      { error: 'Failed to process payment' },
-      { status: 500 }
+      { 
+        error: errorMessage, 
+        details: String(error),
+        success: false
+      },
+      { status: statusCode }
     );
   }
 }

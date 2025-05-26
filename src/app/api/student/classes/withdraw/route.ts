@@ -75,23 +75,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update the enrollment status to 'withdrawn'
-    console.log('Updating enrollment status for ID:', enrollmentId);
+    // Create a withdrawal request that requires admin approval
+    console.log('Creating withdrawal request for admin approval for enrollment ID:', enrollmentId);
     
-    let updatedEnrollment;
+    let withdrawalRequest;
     try {
-      updatedEnrollment = await prisma.enrollment.update({
-        where: { id: enrollmentId },
-        data: { 
-          status: 'withdrawn'
+      // Check if there's already a pending withdrawal request
+      const existingRequest = await prisma.withdrawalRequest.findFirst({
+        where: {
+          enrollmentId: enrollmentId,
+          studentId: student.id,
+          status: 'pending'
         }
       });
-      
-      console.log('Successfully updated enrollment:', updatedEnrollment);
+
+      if (existingRequest) {
+        console.log('Found existing withdrawal request:', existingRequest.id);
+        withdrawalRequest = existingRequest;
+      } else {
+        // Create a new withdrawal request
+        withdrawalRequest = await prisma.withdrawalRequest.create({
+          data: {
+            enrollmentId: enrollmentId,
+            studentId: student.id,
+            classId: enrollment.classId,
+            reason: body.reason || 'Student requested withdrawal',
+            status: 'pending',
+            requestDate: new Date()
+          }
+        });
+        
+        console.log('Successfully created withdrawal request:', withdrawalRequest.id);
+      }
     } catch (updateError) {
-      console.error('Error updating enrollment status:', updateError);
+      console.error('Error creating withdrawal request:', updateError);
       return NextResponse.json(
-        { error: 'Failed to update enrollment status', details: updateError instanceof Error ? updateError.message : 'Unknown error' },
+        { error: 'Failed to create withdrawal request', details: updateError instanceof Error ? updateError.message : 'Unknown error' },
         { status: 500 }
       );
     }
@@ -101,13 +120,14 @@ export async function POST(req: NextRequest) {
       await prisma.activityLog.create({
         data: {
           userId: session.user.id,
-          action: 'WITHDRAW_CLASS',
-          description: `Withdrew from class: ${enrollment.class.name} (${enrollment.class.subject})`,
-          entityType: 'ENROLLMENT',
-          entityId: enrollmentId,
+          action: 'REQUEST_WITHDRAWAL',
+          description: `Requested withdrawal from class: ${enrollment.class.name} (${enrollment.class.subject})`,
+          entityType: 'WITHDRAWAL_REQUEST',
+          entityId: withdrawalRequest.id,
           metadata: JSON.stringify({
             className: enrollment.class.name,
-            classSubject: enrollment.class.subject
+            classSubject: enrollment.class.subject,
+            enrollmentId: enrollmentId
           })
         }
       });
@@ -118,10 +138,15 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Successfully withdrawn from ${enrollment.class.name}`,
+      message: `Your withdrawal request for ${enrollment.class.name} has been submitted and is pending admin approval.`,
+      withdrawalRequest: {
+        id: withdrawalRequest.id,
+        status: 'pending',
+        requestDate: withdrawalRequest.requestDate
+      },
       enrollment: {
         id: enrollmentId,
-        status: 'withdrawn'
+        status: enrollment.status // The enrollment status doesn't change until approved
       }
     });
   } catch (error) {

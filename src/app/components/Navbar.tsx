@@ -4,6 +4,19 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 import LogoutButton from './LogoutButton';
+import NotificationsDropdown from './NotificationsDropdown';
+import dynamic from 'next/dynamic';
+
+// Dynamically import the notification components to avoid issues with server/client rendering
+const StudentNotificationsDropdown = dynamic(
+  () => import('../student/components/StudentNotificationsDropdown'),
+  { ssr: false }
+);
+
+const TeacherNotificationsDropdown = dynamic(
+  () => import('../teacher/components/TeacherNotificationsDropdown'),
+  { ssr: false }
+);
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -76,6 +89,15 @@ export default function Navbar() {
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
             {session ? (
               <div className="flex items-center space-x-4">
+                {session.user.role === 'ADMIN' && (
+                  <NotificationsDropdown />
+                )}
+                {session.user.role === 'STUDENT' && (
+                  <StudentNotificationsDropdown />
+                )}
+                {session.user.role === 'TEACHER' && (
+                  <TeacherNotificationsDropdown />
+                )}
                 <Link
                   href="/profile"
                   className="flex items-center text-gray-700 hover:text-indigo-700"

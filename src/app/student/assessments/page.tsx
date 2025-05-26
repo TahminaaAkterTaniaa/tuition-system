@@ -137,9 +137,9 @@ export default function StudentAssessmentsPage() {
   const applyFilters = () => {
     let filtered = [...assessments];
     
-    // Filter by class
+    // Filter by class - safely handle potential undefined class property
     if (selectedClass !== 'all') {
-      filtered = filtered.filter(assessment => assessment.class.id === selectedClass);
+      filtered = filtered.filter(assessment => assessment.class && assessment.class.id === selectedClass);
     }
     
     // Filter by type
@@ -154,7 +154,10 @@ export default function StudentAssessmentsPage() {
       } else if (sortBy === 'title') {
         return a.title.localeCompare(b.title);
       } else if (sortBy === 'class') {
-        return a.class.name.localeCompare(b.class.name);
+        // Safely handle potential undefined class property
+        const aClassName = a.class?.name || '';
+        const bClassName = b.class?.name || '';
+        return aClassName.localeCompare(bClassName);
       }
       return 0;
     });

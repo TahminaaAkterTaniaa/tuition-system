@@ -138,40 +138,42 @@ export default function RecentActivities() {
   return (
     <>
       <h2 className="text-xl font-semibold mb-4">Recent Activities</h2>
-      {activities.length > 0 ? (
-        <div className="space-y-4">
-          {activities.map((activity) => (
-            <div key={activity.id} className={`border-l-4 ${getBorderColor(activity.action)} pl-4 py-2`}>
-              <p className="text-sm text-gray-600 mb-1">{formatTimestamp(activity.timestamp)}</p>
-              <h3 className="font-medium text-gray-900">
-                {activity.action.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ')}
-              </h3>
-              <p className="text-sm text-gray-600">{activity.description}</p>
-              
-              {/* Additional info for assessment activities */}
-              {activity.action === 'CREATE_ASSESSMENT' && activity.metadata && (
-                <div className="mt-2 bg-gray-50 p-2 rounded text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className={`px-2 py-0.5 rounded-full ${getAssessmentTypeBadgeColor(activity.metadata.assessmentType)}`}>
-                      {activity.metadata.assessmentType.charAt(0) + activity.metadata.assessmentType.slice(1).toLowerCase()}
-                    </span>
-                    <span className="text-xs font-medium">
-                      {formatDueDate(activity.metadata.dueDate)}
-                    </span>
+      <div className="max-h-80 overflow-y-auto pr-2">
+        {activities.length > 0 ? (
+          <div className="space-y-4">
+            {activities.map((activity) => (
+              <div key={activity.id} className={`border-l-4 ${getBorderColor(activity.action)} pl-4 py-2`}>
+                <p className="text-sm text-gray-600 mb-1">{formatTimestamp(activity.timestamp)}</p>
+                <h3 className="font-medium text-gray-900">
+                  {activity.action.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ')}
+                </h3>
+                <p className="text-sm text-gray-600">{activity.description}</p>
+                
+                {/* Additional info for assessment activities */}
+                {activity.action === 'CREATE_ASSESSMENT' && activity.metadata && (
+                  <div className="mt-2 bg-gray-50 p-2 rounded text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className={`px-2 py-0.5 rounded-full ${getAssessmentTypeBadgeColor(activity.metadata.assessmentType)}`}>
+                        {activity.metadata.assessmentType.charAt(0) + activity.metadata.assessmentType.slice(1).toLowerCase()}
+                      </span>
+                      <span className="text-xs font-medium">
+                        {formatDueDate(activity.metadata.dueDate)}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-gray-500">
+                      Max Score: {activity.metadata.maxScore} points
+                    </div>
                   </div>
-                  <div className="mt-1 text-xs text-gray-500">
-                    Max Score: {activity.metadata.maxScore} points
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-6 bg-gray-50 rounded-lg">
-          <p className="text-gray-500">No recent activities found</p>
-        </div>
-      )}
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-6 bg-gray-50 rounded-lg">
+            <p className="text-gray-500">No recent activities found</p>
+          </div>
+        )}
+      </div>
       <div className="mt-4">
         <Link href="/teacher/activities" className="text-indigo-600 hover:text-indigo-800 font-medium">
           View All Activities →

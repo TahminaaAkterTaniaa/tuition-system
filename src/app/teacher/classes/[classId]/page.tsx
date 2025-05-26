@@ -119,20 +119,12 @@ export default function ClassDetail() {
           <h1 className="text-3xl font-bold">{classData.name}</h1>
           <p className="text-gray-600 mt-1">{classData.description}</p>
         </div>
-        <div className="flex space-x-3">
-          <Link 
-            href={`/teacher/classes/edit/${classId}`}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-          >
-            Edit Class
-          </Link>
-          <Link 
-            href={`/teacher/attendance/mark/${classId}`}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-          >
-            Mark Attendance
-          </Link>
-        </div>
+        <Link 
+          href={`/teacher/attendance/mark/${classId}`}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+        >
+          Mark Attendance
+        </Link>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -185,9 +177,6 @@ export default function ClassDetail() {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Attendance
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -215,20 +204,6 @@ export default function ClassDetail() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">{student.attendance}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <Link 
-                          href={`/teacher/students/${student.id}`} 
-                          className="text-indigo-600 hover:text-indigo-900 mr-3"
-                        >
-                          View
-                        </Link>
-                        <Link 
-                          href={`/teacher/gradebook/student/${student.id}`} 
-                          className="text-green-600 hover:text-green-900"
-                        >
-                          Grades
-                        </Link>
-                      </td>
                     </tr>
                   )) : (
                     <tr>
@@ -240,26 +215,19 @@ export default function ClassDetail() {
                 </tbody>
               </table>
             </div>
-            <div className="mt-4 text-right">
-              <Link 
-                href={`/teacher/classes/${classId}/students`}
-                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-              >
-                View All Students →
-              </Link>
-            </div>
+
           </div>
         </div>
         
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white p-6 rounded-lg shadow-md h-[400px] flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Announcements</h2>
               <button className="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
                 New Announcement
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto flex-1 pr-2">
               {classData.announcements && classData.announcements.length > 0 ? classData.announcements.map((announcement: any) => (
                 <div key={announcement.id} className="border-l-4 border-indigo-500 pl-4 py-2">
                   <div className="flex justify-between">
@@ -269,29 +237,21 @@ export default function ClassDetail() {
                   <p className="text-sm text-gray-600 mt-1">{announcement.content}</p>
                 </div>
               )) : (
-                <div className="text-center text-sm text-gray-500">
-                  No announcements yet
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm text-gray-500">No announcements yet</p>
                 </div>
               )}
             </div>
-            <div className="mt-4 text-right">
-              <Link 
-                href={`/teacher/classes/${classId}/announcements`}
-                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-              >
-                View All →
-              </Link>
-            </div>
           </div>
           
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white p-6 rounded-lg shadow-md h-[400px] flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Class Materials</h2>
               <button className="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
                 Upload Material
               </button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-3 overflow-y-auto flex-1 pr-2">
               {classData.materials && classData.materials.length > 0 ? classData.materials.map((material: any) => (
                 <div key={material.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-md">
                   <div className="flex items-center">
@@ -322,18 +282,10 @@ export default function ClassDetail() {
                   </button>
                 </div>
               )) : (
-                <div className="text-center text-sm text-gray-500">
-                  No materials available
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm text-gray-500">No materials available</p>
                 </div>
               )}
-            </div>
-            <div className="mt-4 text-right">
-              <Link 
-                href={`/teacher/classes/${classId}/materials`}
-                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-              >
-                View All →
-              </Link>
             </div>
           </div>
           

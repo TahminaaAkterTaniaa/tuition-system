@@ -4,6 +4,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Dialog, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
 
 interface Class {
   id: string;
@@ -19,8 +21,11 @@ interface Class {
   } | null;
   startDate: string;
   endDate: string | null;
-  enrollmentStatus: 'enrolled' | 'pending' | 'completed' | 'withdrawn';
-  enrollmentId: string;
+  enrollmentStatus: 'enrolled' | 'pending' | 'completed' | 'withdrawn' | 'enrollment_pending' | 'withdrawal_pending';
+  enrollmentId?: string;
+  enrollmentRequestId?: string;
+  withdrawalRequestId?: string;
+  requestStatus?: string | null;
 }
 
 export default function StudentClasses() {
@@ -31,9 +36,16 @@ export default function StudentClasses() {
   const [error, setError] = useState<string | null>(null);
   const [withdrawingClassId, setWithdrawingClassId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
 
   // Function to handle class withdrawal
-  const handleWithdraw = async (enrollmentId: string, className: string) => {
+  const handleWithdraw = async (enrollmentId: string | undefined, className: string) => {
+    if (!enrollmentId) {
+      setError("Cannot withdraw: Missing enrollment information");
+      return;
+    }
+    
     if (!confirm(`Are you sure you want to withdraw from ${className}? This action cannot be undone.`)) {
       return;
     }
@@ -60,12 +72,12 @@ export default function StudentClasses() {
       setClasses(prevClasses => 
         prevClasses.map(c => 
           c.enrollmentId === enrollmentId 
-            ? { ...c, enrollmentStatus: 'withdrawn' as const } 
+            ? { ...c, enrollmentStatus: 'withdrawal_pending' as const } 
             : c
         )
       );
 
-      setSuccessMessage(`Successfully withdrawn from ${className}`);
+      setSuccessMessage(`Your withdrawal request for ${className} has been submitted and is pending admin approval.`);
       
       // Clear success message after 5 seconds
       setTimeout(() => {
@@ -174,7 +186,17 @@ export default function StudentClasses() {
                 )}
                 {classItem.enrollmentStatus === 'pending' && (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                    ⏳ Enrollment pending
+                    ⏳ Pending
+                  </span>
+                )}
+                {classItem.enrollmentStatus === 'enrollment_pending' && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                    ⏳ Enrollment Pending Approval
+                  </span>
+                )}
+                {classItem.enrollmentStatus === 'withdrawal_pending' && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    ⏳ Withdrawal Pending Approval
                   </span>
                 )}
                 {classItem.enrollmentStatus === 'completed' && (
@@ -221,12 +243,43 @@ export default function StudentClasses() {
                     disabled={withdrawingClassId === classItem.enrollmentId}
                     className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {withdrawingClassId === classItem.enrollmentId ? 'Withdrawing...' : 'Withdraw'}
+                    {withdrawingClassId === classItem.enrollmentId ? 'Processing...' : 'Request Withdrawal'}
                   </button>
                 )}
-                <button className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded hover:bg-indigo-200 transition-colors">
-                  View Details
-                </button>
+                {classItem.enrollmentStatus === 'withdrawal_pending' && (
+                  <span className="bg-orange-50 text-orange-700 px-4 py-2 rounded inline-flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Withdrawal Pending Approval
+                  </span>
+                )}
+                {classItem.enrollmentStatus === 'enrollment_pending' && (
+                  <span className="bg-yellow-50 text-yellow-700 px-4 py-2 rounded inline-flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Enrollment Pending Approval
+                  </span>
+                )}
+                {['enrolled', 'completed', 'withdrawal_pending', 'enrollment_pending'].includes(classItem.enrollmentStatus) ? (
+                  <button 
+                    className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded hover:bg-indigo-200 transition-colors"
+                    onClick={() => {
+                      setSelectedClass(classItem);
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    View Details
+                  </button>
+                ) : (
+                  <Link 
+                    href={`/classes/enroll/${classItem.id}`}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+                  >
+                    Enroll
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -239,6 +292,95 @@ export default function StudentClasses() {
           <p className="text-gray-500">You haven't enrolled in any classes yet.</p>
         </div>
       )}
+
+      {/* Class Details Modal */}
+      <Transition appear show={isModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-10" onClose={() => setIsModalOpen(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                  {selectedClass && (
+                    <>
+                      <Dialog.Title
+                        as="h3"
+                        className="text-2xl font-bold leading-6 text-gray-900 mb-4"
+                      >
+                        {selectedClass.name} - {selectedClass.subject}
+                      </Dialog.Title>
+                      
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <h4 className="font-semibold text-gray-700">Description</h4>
+                          <p className="text-gray-600">{selectedClass.description || 'No description available'}</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="font-semibold text-gray-700">Schedule</h4>
+                            <p className="text-gray-600">{selectedClass.schedule || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-700">Room</h4>
+                            <p className="text-gray-600">{selectedClass.room || 'Not assigned'}</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-700">Teacher</h4>
+                            <p className="text-gray-600">{selectedClass.teacher?.user.name || 'Not assigned'}</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-700">Class Period</h4>
+                            <p className="text-gray-600">
+                              {new Date(selectedClass.startDate).toLocaleDateString()} - 
+                              {selectedClass.endDate ? new Date(selectedClass.endDate).toLocaleDateString() : 'Ongoing'}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-700">Status</h4>
+                            <p className="text-gray-600 capitalize">
+                              {selectedClass.enrollmentStatus.replace('_', ' ')}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex justify-end space-x-3">
+                        <button
+                          type="button"
+                          className="inline-flex justify-center rounded-md border border-transparent bg-indigo-100 px-4 py-2 text-sm font-medium text-indigo-900 hover:bg-indigo-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                          onClick={() => setIsModalOpen(false)}
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 }

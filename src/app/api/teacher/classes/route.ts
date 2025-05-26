@@ -35,6 +35,8 @@ export async function GET(req: NextRequest) {
     // Get all classes for the teacher
     console.log('Fetching classes for teacherId:', teacher.id);
     try {
+      // For teachers, we want to show all their classes including rejected ones,
+      // but with clear status information so they can be displayed differently in the UI
       const classes = await prisma.class.findMany({
         where: { 
           teacherId: teacher.id

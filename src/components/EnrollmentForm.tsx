@@ -148,7 +148,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
     try {
       setIsSubmitting(true);
       
-      // First check if the user already has an enrollment for this class
+      // First check if the user already has an enrollment or enrollment request for this class
       console.log('Checking existing enrollments for classId:', classId);
       const checkResponse = await fetch(`/api/student/enrollments?classId=${classId}&userId=${userId}`, {
         method: 'GET',
@@ -157,27 +157,45 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
       
       if (checkResponse.ok) {
         const enrollments = await checkResponse.json();
-        console.log('Existing enrollments:', enrollments);
+        console.log('Existing enrollments/requests:', enrollments);
         
         if (enrollments && enrollments.length > 0) {
-          // User already has an enrollment for this class
-          const existingEnrollment = enrollments[0];
-          console.log('Found existing enrollment:', existingEnrollment);
+          // User already has an enrollment or request for this class
+          const existingRecord = enrollments[0];
+          console.log('Found existing record:', existingRecord);
           
-          if (existingEnrollment.status === 'enrolled' || existingEnrollment.status === 'completed') {
-            throw new Error('You are already enrolled in this class.');
-          }
-          
-          if (existingEnrollment.status === 'pending') {
-            // If application is already submitted, go to payment step
-            if (existingEnrollment.applicationSubmitted) {
-              console.log('Application already submitted, going to payment step');
-              toast.success('Continuing your existing enrollment process.');
-              onSuccess(existingEnrollment.id);
-              return;
-            } else {
-              // Continue with the application submission for the existing enrollment
-              console.log('Continuing with application for existing enrollment');
+          // Check if it's a regular enrollment
+          if (existingRecord.recordType === 'enrollment') {
+            if (existingRecord.status === 'enrolled' || existingRecord.status === 'completed') {
+              throw new Error('You are already enrolled in this class.');
+            }
+            
+            if (existingRecord.status === 'pending') {
+              // If application is already submitted, go to payment step
+              if (existingRecord.applicationSubmitted) {
+                console.log('Application already submitted, going to payment step');
+                toast.success('Continuing your existing enrollment process.');
+                onSuccess(existingRecord.id);
+                return;
+              } else {
+                // Continue with the application submission for the existing enrollment
+                console.log('Continuing with application for existing enrollment');
+              }
+            }
+          } 
+          // Check if it's an enrollment request
+          else if (existingRecord.recordType === 'enrollmentRequest') {
+            if (existingRecord.status === 'pending') {
+              // If application is already submitted, go to payment step
+              if (existingRecord.applicationSubmitted) {
+                console.log('Application already submitted for enrollment request');
+                toast.success('Your enrollment request is already submitted and pending admin approval.');
+                onSuccess(existingRecord.id);
+                return;
+              } else {
+                // Continue with the application submission for the existing request
+                console.log('Continuing with application for existing enrollment request');
+              }
             }
           }
         }
@@ -249,14 +267,53 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
           console.error('Application error response:', errorData);
           throw new Error(errorData.error || 'Failed to submit application details');
         }
+        
+        // Process the successful application response
+        const applicationData = await applicationResponse.json();
+        console.log('Application submitted successfully:', applicationData);
+        toast.success('Your enrollment request has been submitted and is pending admin approval.');
+        
+        // Determine which ID to use for the success callback
+        if (applicationData.recordId) {
+          // Use the record ID from the application API
+          console.log('Using recordId from application response:', applicationData.recordId);
+          onSuccess(applicationData.recordId);
+          return;
+        } else if (applicationData.requestId) {
+          // Use the request ID if available
+          console.log('Using requestId from application response:', applicationData.requestId);
+          onSuccess(applicationData.requestId);
+          return;
+        } else if (applicationData.enrollmentId) {
+          // Use the enrollment ID if available
+          console.log('Using enrollmentId from application response:', applicationData.enrollmentId);
+          onSuccess(applicationData.enrollmentId);
+          return;
+        }
       } catch (error) {
         console.error('Error during application submission:', error);
         throw error;
       }
 
-      console.log('Application submitted successfully');
-      toast.success('Application submitted successfully!');
-      onSuccess(enrollData.enrollment.id);
+      // If we get here, the application was submitted but we didn't get a valid ID from the response
+      // Fall back to using the enrollment data from the initial enrollment request
+      console.log('Falling back to enrollment data for ID');
+      
+      if (enrollData.enrollmentRequest) {
+        // For enrollment requests (new admin approval flow)
+        console.log('Using ID from enrollment request:', enrollData.enrollmentRequest.id);
+        onSuccess(enrollData.enrollmentRequest.id);
+      } else if (enrollData.enrollment) {
+        // For backward compatibility with old format
+        console.log('Using ID from enrollment:', enrollData.enrollment.id);
+        onSuccess(enrollData.enrollment.id);
+      } else {
+        // Fallback case if we have no valid ID anywhere
+        console.log('No valid record ID found in any response:', enrollData);
+        toast.success('Application submitted, you will be notified once approved.');
+        // Navigate to the next step without passing an ID
+        onSuccess('pending');
+      }
       
     } catch (error) {
       console.error('Error submitting enrollment:', error);

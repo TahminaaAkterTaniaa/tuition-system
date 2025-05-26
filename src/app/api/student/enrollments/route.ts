@@ -91,10 +91,69 @@ export async function GET(req: NextRequest) {
       }
     });
     
-    console.log(`Found ${enrollments.length} enrollments for student`);
+    console.log(`Found ${enrollments.length} regular enrollments for student`);
     
-    // Transform the data to include class information
+    // Also get the student's enrollment requests (for the admin approval workflow)
+    let enrollmentRequestWhere: any = {
+      studentId: student.id
+    };
+    
+    // Add classId filter if provided
+    if (classId) {
+      enrollmentRequestWhere.classId = classId;
+    }
+    
+    // Add status filter if provided
+    if (status) {
+      enrollmentRequestWhere.status = status;
+    }
+    
+    const enrollmentRequests = await prisma.enrollmentRequest.findMany({
+      where: enrollmentRequestWhere,
+      select: {
+        id: true,
+        classId: true,
+        status: true,
+        requestDate: true,
+        notes: true,
+        class: {
+          select: {
+            id: true,
+            name: true,
+            subject: true,
+            schedule: true,
+            teacher: {
+              select: {
+                user: {
+                  select: {
+                    name: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        requestDate: 'desc'
+      }
+    });
+    
+    console.log(`Found ${enrollmentRequests.length} enrollment requests for student`);
+    
+    // Transform the regular enrollments data to include class information
     const transformedEnrollments = enrollments.map(enrollment => {
+      // Parse the notes field to check if application is submitted
+      let applicationSubmitted = false;
+      try {
+        if (enrollment.notes) {
+          const notesObj = JSON.parse(enrollment.notes);
+          applicationSubmitted = notesObj.applicationSubmitted || false;
+        }
+      } catch (e) {
+        console.error('Error parsing enrollment notes:', e);
+      }
+      
       return {
         id: enrollment.id,
         classId: enrollment.classId,
@@ -104,10 +163,47 @@ export async function GET(req: NextRequest) {
         subject: enrollment.class?.subject || 'Unknown Subject',
         schedule: enrollment.class?.schedule || 'No Schedule',
         teacherName: enrollment.class?.teacher?.user?.name || 'Not Assigned',
+        applicationSubmitted: applicationSubmitted,
+        recordType: 'enrollment'
       };
     });
     
-    return NextResponse.json(transformedEnrollments);
+    // Transform the enrollment requests to the same format
+    const transformedRequests = enrollmentRequests.map(request => {
+      // Parse the notes field to check if application is submitted
+      let applicationSubmitted = false;
+      try {
+        if (request.notes) {
+          const notesObj = JSON.parse(request.notes);
+          applicationSubmitted = notesObj.applicationSubmitted || false;
+        }
+      } catch (e) {
+        console.error('Error parsing enrollment request notes:', e);
+      }
+      
+      return {
+        id: request.id,
+        classId: request.classId,
+        status: request.status,
+        enrollmentDate: request.requestDate, // Use requestDate as enrollmentDate
+        className: request.class?.name || 'Unknown Class',
+        subject: request.class?.subject || 'Unknown Subject',
+        schedule: request.class?.schedule || 'No Schedule',
+        teacherName: request.class?.teacher?.user?.name || 'Not Assigned',
+        applicationSubmitted: applicationSubmitted,
+        recordType: 'enrollmentRequest'
+      };
+    });
+    
+    // Combine both regular enrollments and enrollment requests
+    const allEnrollments = [...transformedEnrollments, ...transformedRequests];
+    
+    // Sort the combined list by date (most recent first)
+    allEnrollments.sort((a, b) => {
+      return new Date(b.enrollmentDate).getTime() - new Date(a.enrollmentDate).getTime();
+    });
+    
+    return NextResponse.json(allEnrollments);
   } catch (error) {
     console.error('Error fetching student enrollments:', error);
     // Return empty array instead of error to avoid breaking the UI

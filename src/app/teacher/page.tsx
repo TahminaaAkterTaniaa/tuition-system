@@ -8,6 +8,7 @@ import TodaysClasses from '../components/TodaysClasses';
 import TeacherAttendance from '../components/TeacherAttendance';
 import TeacherMessages from '../components/TeacherMessages';
 import RecentActivities from '../components/RecentActivities';
+import PendingRequests from '../components/PendingRequests';
 import CreateGradeModal from '../components/CreateGradeModal';
 
 export default function TeacherDashboard() {
@@ -44,10 +45,9 @@ export default function TeacherDashboard() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Teacher Dashboard</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow h-64 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">My Classes</h2>
             <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
@@ -56,8 +56,10 @@ export default function TeacherDashboard() {
               </svg>
             </div>
           </div>
-          <p className="text-gray-600 mb-4">Manage your assigned classes and schedules</p>
-          <div className="flex justify-between">
+          <div className="flex-grow overflow-y-auto">
+            <p className="text-gray-600 mb-4">Manage your assigned classes and schedules</p>
+          </div>
+          <div className="flex justify-between mt-auto pt-4">
             <Link href="/teacher/classes" className="text-indigo-600 hover:text-indigo-800 font-medium">
               View Classes →
             </Link>
@@ -67,7 +69,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow h-64 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Attendance</h2>
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
@@ -76,8 +78,10 @@ export default function TeacherDashboard() {
               </svg>
             </div>
           </div>
-          <p className="text-gray-600 mb-4">Mark and track student attendance</p>
-          <div className="flex flex-col space-y-2">
+          <div className="flex-grow overflow-y-auto">
+            <p className="text-gray-600 mb-4">Mark and track student attendance</p>
+          </div>
+          <div className="flex flex-col space-y-2 mt-auto pt-4">
             <Link href="/teacher/attendance" className="text-indigo-600 hover:text-indigo-800 font-medium">
               Manage Attendance →
             </Link>
@@ -85,7 +89,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow h-64 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Gradebook</h2>
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -94,8 +98,10 @@ export default function TeacherDashboard() {
               </svg>
             </div>
           </div>
-          <p className="text-gray-600 mb-4">Record and manage student grades</p>
-          <div className="flex justify-between">
+          <div className="flex-grow overflow-y-auto">
+            <p className="text-gray-600 mb-4">Record and manage student grades</p>
+          </div>
+          <div className="flex justify-between mt-auto pt-4">
             <Link href="/teacher/gradebook" className="text-indigo-600 hover:text-indigo-800 font-medium">
               Open Gradebook →
             </Link>
@@ -108,7 +114,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+        <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow h-64 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Resources</h2>
             <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
@@ -117,29 +123,45 @@ export default function TeacherDashboard() {
               </svg>
             </div>
           </div>
-          <p className="text-gray-600 mb-4">Upload and manage learning materials</p>
-          <Link href="/teacher/resources" className="text-indigo-600 hover:text-indigo-800 font-medium">
-            Manage Resources →
-          </Link>
+          <div className="flex-grow overflow-y-auto">
+            <p className="text-gray-600 mb-4">Upload and manage learning materials</p>
+          </div>
+          <div className="mt-auto pt-4">
+            <Link href="/teacher/resources" className="text-indigo-600 hover:text-indigo-800 font-medium">
+              Manage Resources →
+            </Link>
+          </div>
         </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 h-96">
           <TodaysClasses />
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-6 rounded-lg shadow-md h-96 flex flex-col">
           <RecentActivities />
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <TeacherAttendance />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-lg shadow-md h-96 flex flex-col">
+          <PendingRequests />
+        </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Messages</h2>
-          <TeacherMessages />
+        <div className="lg:col-span-2">
+          <div className="bg-white p-6 rounded-lg shadow-md h-96 flex flex-col">
+            <h2 className="text-xl font-semibold mb-4">Messages</h2>
+            <div className="flex-grow overflow-y-auto">
+              <TeacherMessages />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="mb-8">
+        <div className="h-96">
+          <TeacherAttendance />
         </div>
       </div>
       
