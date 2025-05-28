@@ -255,7 +255,7 @@ export default function NotificationsDropdown() {
                             <p className="text-xs text-gray-500">{formatDate(pendingClass.createdAt)}</p>
                           </div>
                           <p className="text-sm text-gray-600 mt-1">
-                            Teacher {pendingClass.teacher.user.name} wants to create a class for {pendingClass.name} ({pendingClass.subject})
+                            Teacher {pendingClass.teacher && pendingClass.teacher.user ? pendingClass.teacher.user.name : 'Unknown'} wants to create a class for {pendingClass.name} ({pendingClass.subject})
                           </p>
                         </div>
                       </Link>

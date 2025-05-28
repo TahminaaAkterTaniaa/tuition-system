@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 import LogoutButton from './LogoutButton';
@@ -21,6 +22,11 @@ const TeacherNotificationsDropdown = dynamic(
 export default function Navbar() {
   const { data: session } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isActive = (path: string) => {
+    return pathname === path;
+  };
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -37,33 +43,31 @@ export default function Navbar() {
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <Link
+                href="/"
+                className={`${isActive('/') ? 'border-indigo-500 text-indigo-700' : 'border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+              >
+                Home
+              </Link>
               {session?.user.role === 'ADMIN' ? (
                 <Link
                   href="/admin"
-                  className="border-indigo-500 text-indigo-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className={`${isActive('/admin') ? 'border-indigo-500 text-indigo-700' : 'border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   Admin Dashboard
                 </Link>
               ) : (
-                <>
-                  <Link
-                    href="/"
-                    className="border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                  >
-                    Home
-                  </Link>
-                  <Link
-                    href="/classes"
-                    className="border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                  >
-                    Classes
-                  </Link>
-                </>
+                <Link
+                  href="/classes"
+                  className={`${isActive('/classes') ? 'border-indigo-500 text-indigo-700' : 'border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+                >
+                  Classes
+                </Link>
               )}
               {session?.user.role === 'TEACHER' && (
                 <Link
                   href="/teacher"
-                  className="border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className={`${isActive('/teacher') ? 'border-indigo-500 text-indigo-700' : 'border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   Teacher Dashboard
                 </Link>
@@ -71,7 +75,7 @@ export default function Navbar() {
               {session?.user.role === 'STUDENT' && (
                 <Link
                   href="/student"
-                  className="border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className={`${isActive('/student') ? 'border-indigo-500 text-indigo-700' : 'border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   Student Dashboard
                 </Link>
@@ -79,7 +83,7 @@ export default function Navbar() {
               {session?.user.role === 'PARENT' && (
                 <Link
                   href="/parent"
-                  className="border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className={`${isActive('/parent') ? 'border-indigo-500 text-indigo-700' : 'border-transparent text-gray-500 hover:border-indigo-500 hover:text-indigo-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   Parent Dashboard
                 </Link>
@@ -178,33 +182,31 @@ export default function Navbar() {
       {isMenuOpen && (
         <div className="sm:hidden">
           <div className="pt-2 pb-3 space-y-1">
+            <Link
+              href="/"
+              className={`${isActive('/') ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700'} block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
+            >
+              Home
+            </Link>
             {session?.user.role === 'ADMIN' ? (
               <Link
                 href="/admin"
-                className="bg-indigo-50 border-indigo-500 text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+                className={`${isActive('/admin') ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700'} block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
               >
                 Admin Dashboard
               </Link>
             ) : (
-              <>
-                <Link
-                  href="/"
-                  className="bg-indigo-50 border-indigo-500 text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
-                >
-                  Home
-                </Link>
-                <Link
-                  href="/classes"
-                  className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
-                >
-                  Classes
-                </Link>
-              </>
+              <Link
+                href="/classes"
+                className={`${isActive('/classes') ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700'} block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
+              >
+                Classes
+              </Link>
             )}
             {session?.user.role === 'TEACHER' && (
               <Link
                 href="/teacher"
-                className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+                className={`${isActive('/teacher') ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700'} block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
               >
                 Teacher Dashboard
               </Link>
@@ -212,7 +214,7 @@ export default function Navbar() {
             {session?.user.role === 'STUDENT' && (
               <Link
                 href="/student"
-                className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+                className={`${isActive('/student') ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700'} block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
               >
                 Student Dashboard
               </Link>
@@ -220,7 +222,7 @@ export default function Navbar() {
             {session?.user.role === 'PARENT' && (
               <Link
                 href="/parent"
-                className="border-transparent text-gray-500 hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
+                className={`${isActive('/parent') ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-indigo-500 hover:text-indigo-700'} block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
               >
                 Parent Dashboard
               </Link>

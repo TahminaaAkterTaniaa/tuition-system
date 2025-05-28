@@ -267,7 +267,7 @@ const UnifiedClassCreationCard = () => {
       // Step 2: Create schedules for each selected day
       const schedules = formData.selectedDays.map(day => ({
         day,
-        time: formData.selectedTime,
+        time: formData.selectedTime, // This is now the timeSlot ID
         room: formData.selectedRoom,
       }));
       
@@ -479,7 +479,8 @@ const UnifiedClassCreationCard = () => {
                     onClick={() => handleDayToggle(day)}
                     aria-label={`Select ${day}`}
                     title={`Select ${day}`}
-                    aria-pressed={formData.selectedDays.includes(day) ? 'true' : 'false'}
+                    role="button"
+                    data-selected={formData.selectedDays.includes(day) ? 'true' : 'false'}
                     className={`px-3 py-2 rounded-md text-sm font-medium ${
                       formData.selectedDays.includes(day)
                         ? 'bg-indigo-600 text-white'
@@ -508,7 +509,7 @@ const UnifiedClassCreationCard = () => {
                 <option value="">Select a time slot</option>
                 {timeSlots && timeSlots.length > 0 ? (
                   timeSlots.map((timeSlot) => (
-                    <option key={timeSlot.id} value={timeSlot.label}>
+                    <option key={timeSlot.id} value={timeSlot.id}>
                       {timeSlot.label}
                     </option>
                   ))
@@ -550,11 +551,12 @@ const UnifiedClassCreationCard = () => {
                   </p>
                   <p className="text-sm text-blue-700">
                     <span className="font-medium">Time:</span>{' '}
-                    {formData.selectedTime || 'Not selected'}
+                    {timeSlots.find(t => t.id === formData.selectedTime)?.label || formData.selectedTime}
                   </p>
                   <p className="text-sm text-blue-700">
                     <span className="font-medium">Room:</span>{' '}
-                    {formData.selectedRoom || 'Not selected'}
+                    {rooms.find(r => r.id === formData.selectedRoom)?.name || formData.selectedRoom}
+                    {rooms.find(r => r.id === formData.selectedRoom)?.building ? ` (${rooms.find(r => r.id === formData.selectedRoom)?.building})` : ''}
                   </p>
                 </div>
               ) : (

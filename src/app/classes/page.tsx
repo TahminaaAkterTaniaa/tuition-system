@@ -28,6 +28,14 @@ interface ClassItem {
   availableSeats: number;
   isFull: boolean;
   enrollmentStatus: string | null;
+  roomDetails?: {
+    id: string;
+    name: string;
+    capacity: number | null;
+    building: string | null;
+    floor: string | null;
+    features: string | null;
+  } | null;
 }
 
 export default function Classes() {
@@ -273,7 +281,11 @@ export default function Classes() {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
-                    <span className="text-gray-700">{classItem.room || 'Room not assigned'}</span>
+                    <span className="text-gray-700">
+                      {classItem.roomDetails ? 
+                        `${classItem.roomDetails.name}${classItem.roomDetails.building ? ` (${classItem.roomDetails.building})` : ''}` : 
+                        (classItem.room || 'Room not assigned')}
+                    </span>
                   </div>
                 </div>
                 

@@ -4,12 +4,17 @@ import { PrismaClient } from '@prisma/client';
 // exhausting your database connection limit.
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
+// Set longer connection timeouts via env vars
+process.env.DATABASE_CONNECTION_TIMEOUT = '60'; // 60 seconds instead of default 10
+process.env.DATABASE_CONNECTION_LIMIT = '15'; // 15 connections instead of default 9
+
 /**
  * Creates a new PrismaClient instance with enhanced connection retry logic
  */
 function createPrismaClient() {
   console.log('Creating new PrismaClient instance');
   
+  // Create a new PrismaClient with enhanced error handling
   const client = new PrismaClient({
     log: ['error', 'warn'],
     datasources: {
@@ -84,14 +89,33 @@ function createPrismaClient() {
     return result;
   });
 
-  // Test the connection
-  client.$connect()
-    .then(() => {
+  // Test the connection with retry mechanism
+  let connectionAttempts = 0;
+  const maxConnectionAttempts = 3;
+  
+  const tryConnect = async () => {
+    try {
+      await client.$connect();
       console.log('Successfully connected to the database');
-    })
-    .catch((error) => {
-      console.error('Failed to connect to the database:', error);
-    });
+      return true;
+    } catch (error) {
+      connectionAttempts++;
+      console.error(`Database connection attempt ${connectionAttempts} failed:`, error);
+      
+      if (connectionAttempts < maxConnectionAttempts) {
+        console.log(`Retrying in ${connectionAttempts * 2} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, connectionAttempts * 2000));
+        return tryConnect();
+      } else {
+        console.error('Failed to connect to the database after multiple attempts');
+        // Continue anyway, as the connection might work later
+        return false;
+      }
+    }
+  };
+  
+  // Start connection process without waiting for it to complete
+  tryConnect();
 
   return client;
 }

@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // Create the new class
+    // Create the new class with status set to Approved for admin-created classes
     const newClass = await prisma.class.create({
       data: {
         name,
@@ -111,6 +111,7 @@ export async function POST(req: NextRequest) {
         capacity: parseInt(capacity),
         room,
         teacherId,
+        status: 'Approved', // Automatically approve classes created by admins
       },
     });
     

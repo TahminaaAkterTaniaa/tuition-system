@@ -17,6 +17,7 @@ model User {
   role                 Role                   @default(STUDENT)
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
+  isActive             Boolean                @default(true)
   accounts             Account[]
   activityLogs         ActivityLog[]
   admin                Admin?
