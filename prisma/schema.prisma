@@ -200,17 +200,15 @@ model TimeSlot {
 }
 
 model Enrollment {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   studentId      String
   classId        String
-  enrollmentDate DateTime  @default(now())
-  status         String    @default("enrolled")
+  enrollmentDate DateTime @default(now())
+  status         String   @default("enrolled")
   notes          String?
-  paymentDate    DateTime?
-  paymentId      String?
-  paymentStatus  String    @default("pending")
-  class          Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
-  student        Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class          Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  Payment        Payment?
 
   @@unique([studentId, classId])
 }
@@ -249,20 +247,22 @@ model Grade {
 }
 
 model Payment {
-  id            String    @id @default(cuid())
-  parentId      String
+  id            String      @id @default(cuid())
+  parentId      String?
   amount        Float
-  currency      String    @default("USD")
+  currency      String      @default("USD")
   description   String
-  invoiceNumber String    @unique
+  invoiceNumber String      @unique
   dueDate       DateTime
   paymentDate   DateTime?
-  status        String    @default("pending")
+  status        String      @default("PENDING")
   paymentMethod String?
   transactionId String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  parent        Parent    @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  enrollmentId  String?     @unique
+  Enrollment    Enrollment? @relation(fields: [enrollmentId], references: [id])
+  parent        Parent?     @relation(fields: [parentId], references: [id])
 }
 
 model Resource {

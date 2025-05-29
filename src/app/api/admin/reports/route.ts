@@ -109,16 +109,16 @@ async function generateEnrollmentReport(startDate: Date, endDate: Date) {
   // Get monthly enrollments for chart
   const enrollments = await prisma.enrollment.findMany({
     where: {
-      createdAt: {
+      enrollmentDate: {
         gte: startDate,
         lte: endDate,
       },
     },
     select: {
-      createdAt: true,
+      enrollmentDate: true,
     },
     orderBy: {
-      createdAt: 'asc',
+      enrollmentDate: 'asc',
     },
   });
   
@@ -132,7 +132,7 @@ async function generateEnrollmentReport(startDate: Date, endDate: Date) {
   }
   
   enrollments.forEach(enrollment => {
-    const monthName = new Date(enrollment.createdAt).toLocaleString('default', { month: 'short' });
+    const monthName = new Date(enrollment.enrollmentDate).toLocaleString('default', { month: 'short' });
     if (monthlyEnrollments[monthName] !== undefined) {
       monthlyEnrollments[monthName]++;
     }
@@ -154,25 +154,25 @@ async function generateAcademicReport(startDate: Date, endDate: Date) {
   // Calculate average grade
   const gradesAggregate = await prisma.grade.aggregate({
     _avg: {
-      value: true,
+      score: true,
     },
     where: {
-      createdAt: {
+      gradedDate: {
         gte: startDate,
         lte: endDate,
       },
     },
   });
-  const averageGrade = gradesAggregate._avg.value || 0;
+  const averageGrade = gradesAggregate._avg?.score || 0;
   
   // Find classes with highest and lowest average grades
   const classGrades = await prisma.grade.groupBy({
     by: ['classId'],
     _avg: {
-      value: true,
+      score: true,
     },
     where: {
-      createdAt: {
+      gradedDate: {
         gte: startDate,
         lte: endDate,
       },
@@ -186,7 +186,7 @@ async function generateAcademicReport(startDate: Date, endDate: Date) {
     },
     orderBy: {
       _avg: {
-        value: 'desc',
+        score: 'desc',
       },
     },
   });
@@ -222,7 +222,8 @@ async function generateAcademicReport(startDate: Date, endDate: Date) {
       },
     },
     select: {
-      value: true,
+      score: true,
+      maxScore: true,
     },
   });
   
@@ -235,13 +236,16 @@ async function generateAcademicReport(startDate: Date, endDate: Date) {
   };
   
   allGrades.forEach(grade => {
-    if (grade.value >= 90) {
+    // Calculate percentage score (score / maxScore * 100) or use raw score if maxScore is not available
+    const percentage = grade.maxScore ? (grade.score / grade.maxScore * 100) : grade.score;
+    
+    if (percentage >= 90) {
       gradeDistribution.A++;
-    } else if (grade.value >= 80) {
+    } else if (percentage >= 80) {
       gradeDistribution.B++;
-    } else if (grade.value >= 70) {
+    } else if (percentage >= 70) {
       gradeDistribution.C++;
-    } else if (grade.value >= 60) {
+    } else if (percentage >= 60) {
       gradeDistribution.D++;
     } else {
       gradeDistribution.F++;
@@ -268,12 +272,12 @@ async function generateAttendanceReport(startDate: Date, endDate: Date) {
       },
     },
     select: {
-      isPresent: true,
+      status: true,
     },
   });
   
   const totalRecords = attendanceRecords.length;
-  const presentCount = attendanceRecords.filter(record => record.isPresent).length;
+  const presentCount = attendanceRecords.filter(record => record.status === 'PRESENT').length;
   const averageAttendanceRate = totalRecords > 0 ? presentCount / totalRecords : 0;
   
   // Find classes with highest and lowest attendance rates
@@ -296,7 +300,7 @@ async function generateAttendanceReport(startDate: Date, endDate: Date) {
     const classPresent = await prisma.attendance.count({
       where: {
         classId: item.classId,
-        isPresent: true,
+        status: 'PRESENT',
         date: {
           gte: startDate,
           lte: endDate,

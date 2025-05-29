@@ -15,54 +15,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    // Calculate total revenue
-    const totalRevenueResult = await prisma.payment.aggregate({
-      _sum: {
-        amount: true,
-      },
-      where: {
-        status: 'COMPLETED',
-      },
-    });
-    const totalRevenue = totalRevenueResult._sum.amount || 0;
-    
-    // Count payments by status
-    const completedPayments = await prisma.payment.count({
-      where: {
-        status: 'COMPLETED',
-      },
-    });
-    
-    const pendingPayments = await prisma.payment.count({
-      where: {
-        status: 'PENDING',
-      },
+    // Fetch all enrollments with class information
+    // Explicitly select only the fields that exist in the database
+    const enrollments = await prisma.enrollment.findMany({
+      select: {
+        id: true,
+        status: true,
+        enrollmentDate: true,
+        class: {
+          select: {
+            id: true,
+            name: true,
+            fee: true
+          }
+        }
+      }
     });
     
-    const failedPayments = await prisma.payment.count({
-      where: {
-        status: 'FAILED',
-      },
-    });
+    // Calculate total revenue (sum of class fees for enrolled students)
+    const completedEnrollments = enrollments.filter(e => e.status === 'enrolled');
+    const totalRevenue = completedEnrollments.reduce((sum, enrollment) => sum + (enrollment.class?.fee || 0), 0);
+    
+    // Count enrollments by status (map to payment status)
+    const completedPayments = enrollments.filter(e => e.status === 'enrolled').length;
+    const pendingPayments = enrollments.filter(e => e.status === 'pending').length;
+    const failedPayments = enrollments.filter(e => e.status === 'rejected').length;
     
     // Calculate monthly revenue for the last 6 months
     const today = new Date();
     const sixMonthsAgo = new Date(today);
     sixMonthsAgo.setMonth(today.getMonth() - 6);
     
-    const monthlyPayments = await prisma.payment.findMany({
-      where: {
-        status: 'COMPLETED',
-        paymentDate: {
-          gte: sixMonthsAgo,
-        },
-      },
-      select: {
-        amount: true,
-        paymentDate: true,
-      },
-    });
-    
+    // Initialize monthly revenue object
     const monthlyRevenue: Record<string, number> = {};
     for (let i = 0; i < 6; i++) {
       const month = new Date(today);
@@ -71,55 +55,42 @@ export async function GET(request: NextRequest) {
       monthlyRevenue[monthName] = 0;
     }
     
-    monthlyPayments.forEach(payment => {
-      const monthName = new Date(payment.paymentDate).toLocaleString('default', { month: 'short' });
-      if (monthlyRevenue[monthName] !== undefined) {
-        monthlyRevenue[monthName] += payment.amount;
+    // Calculate monthly revenue based on enrollments
+    completedEnrollments.forEach(enrollment => {
+      // Use the enrollment date as the payment date
+      const enrollmentDate = enrollment.enrollmentDate;
+      const monthName = new Date(enrollmentDate).toLocaleString('default', { month: 'short' });
+      if (monthlyRevenue[monthName] !== undefined && enrollmentDate >= sixMonthsAgo) {
+        monthlyRevenue[monthName] += enrollment.class?.fee || 0;
       }
     });
     
     // Get top paying classes
-    const classRevenues = await prisma.payment.groupBy({
-      by: ['enrollmentId'],
-      _sum: {
-        amount: true,
-      },
-      where: {
-        status: 'COMPLETED',
-      },
-      orderBy: {
-        _sum: {
-          amount: 'desc',
-        },
-      },
-      take: 5,
+    // Group enrollments by class and calculate revenue for each class
+    const classRevenueMap = new Map<string, { className: string, revenue: number }>();
+    
+    completedEnrollments.forEach(enrollment => {
+      const classId = enrollment.class.id;
+      const className = enrollment.class.name || 'Unknown Class';
+      const fee = enrollment.class.fee || 0;
+      
+      if (classRevenueMap.has(classId)) {
+        const current = classRevenueMap.get(classId)!;
+        classRevenueMap.set(classId, {
+          className,
+          revenue: current.revenue + fee
+        });
+      } else {
+        classRevenueMap.set(classId, {
+          className,
+          revenue: fee
+        });
+      }
     });
     
-    const enrollmentIds = classRevenues.map(item => item.enrollmentId);
-    
-    const enrollments = await prisma.enrollment.findMany({
-      where: {
-        id: {
-          in: enrollmentIds,
-        },
-      },
-      select: {
-        id: true,
-        class: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-    
-    const topPayingClasses = classRevenues.map(revenueItem => {
-      const enrollment = enrollments.find(e => e.id === revenueItem.enrollmentId);
-      return {
-        className: enrollment?.class?.name || 'Unknown Class',
-        revenue: revenueItem._sum.amount || 0,
-      };
-    });
+    const topPayingClasses = Array.from(classRevenueMap.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
     
     return NextResponse.json({
       totalRevenue,

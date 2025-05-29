@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
-import { createActivityLog } from '@/app/lib/notifications';
+import { createActivityLog, createAdminNotification } from '@/app/lib/notifications';
 
 export async function PATCH(
   request: NextRequest,
@@ -19,67 +19,84 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    const paymentId = params.id;
+    const enrollmentId = params.id;
     const { status } = await request.json();
     
     if (!['PENDING', 'COMPLETED', 'FAILED'].includes(status)) {
       return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
     }
     
-    // Get the payment before updating to log details
-    const paymentBefore = await prisma.payment.findUnique({
-      where: { id: paymentId },
+    // Map payment status to enrollment status
+    const enrollmentStatus = 
+      status === 'COMPLETED' ? 'enrolled' : 
+      status === 'FAILED' ? 'rejected' : 'pending';
+    
+    // Get the enrollment before updating to log details
+    const enrollmentBefore = await prisma.enrollment.findUnique({
+      where: { id: enrollmentId },
       include: {
-        enrollment: {
+        student: {
           include: {
-            student: {
-              include: {
-                user: true
-              }
-            },
-            class: true
+            user: true
           }
-        }
+        },
+        class: true
       }
     });
     
-    if (!paymentBefore) {
-      return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
+    if (!enrollmentBefore) {
+      return NextResponse.json({ error: 'Enrollment not found' }, { status: 404 });
     }
     
-    // Update payment status
-    const updatedPayment = await prisma.payment.update({
-      where: { id: paymentId },
-      data: { status },
+    // Update enrollment status
+    const updatedEnrollment = await prisma.enrollment.update({
+      where: { id: enrollmentId },
+      data: { status: enrollmentStatus },
       include: {
-        enrollment: {
+        student: {
           include: {
-            student: {
-              include: {
-                user: true
-              }
-            },
-            class: true
+            user: true
           }
-        }
+        },
+        class: true
       }
     });
     
+    // Create notification for admins about the payment status change
+    // Using 'enrollment_request' type since payments are related to enrollments
+    try {
+      await createAdminNotification(
+        'enrollment_request',
+        enrollmentId,
+        `Payment for ${updatedEnrollment.student?.user?.name || 'a student'} in class ${updatedEnrollment.class.name} has been marked as ${status.toLowerCase()}.`
+      );
+    } catch (notificationError) {
+      console.error('Error creating notification (non-fatal):', notificationError);
+      // Continue processing despite notification error
+    }
+    
     // Log this activity
-    await createActivityLog(
-      session.user.id,
-      'UPDATE',
-      `Updated payment status from ${paymentBefore.status} to ${status} for ${updatedPayment.enrollment?.student?.user?.name || 'Unknown Student'} - ${updatedPayment.enrollment?.class?.name || 'Unknown Class'}`,
-      'PAYMENT',
-      paymentId,
-    );
+    try {
+      if (session.user?.id) {
+        await createActivityLog(
+          session.user.id,
+          'UPDATE',
+          `Updated payment status to ${status} (enrollment status: ${enrollmentStatus}) for ${updatedEnrollment.student?.user?.name || 'Unknown Student'} - ${updatedEnrollment.class?.name || 'Unknown Class'}`,
+          'ENROLLMENT',
+          enrollmentId || 'unknown',
+        );
+      }
+    } catch (logError) {
+      console.error('Error logging activity (non-fatal):', logError);
+      // Continue processing despite logging error
+    }
     
     return NextResponse.json({
-      id: updatedPayment.id,
-      status: updatedPayment.status,
-      amount: updatedPayment.amount,
-      studentName: updatedPayment.enrollment.student.user.name,
-      className: updatedPayment.enrollment.class.name,
+      id: updatedEnrollment.id,
+      status: status, // Return the payment status format for UI consistency
+      amount: updatedEnrollment.class.fee || 0,
+      studentName: updatedEnrollment.student.user?.name || 'Unknown Student',
+      className: updatedEnrollment.class.name || 'Unknown Class',
     });
   } catch (error) {
     console.error('Error updating payment status:', error);

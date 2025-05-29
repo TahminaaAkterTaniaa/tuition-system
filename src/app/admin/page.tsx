@@ -156,9 +156,6 @@ export default function AdminDashboard() {
           <Link href="/admin/finance" className="text-indigo-600 hover:text-indigo-800 font-medium">
             Financial Dashboard →
           </Link>
-          <Link href="/admin/payments" className="text-indigo-600 hover:text-indigo-800 font-medium">
-            Manage Payments →
-          </Link>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">

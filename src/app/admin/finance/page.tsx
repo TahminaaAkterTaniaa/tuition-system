@@ -82,29 +82,7 @@ export default function FinancialManagement() {
     }
   };
 
-  const handleStatusChange = async (paymentId: string, newStatus: 'PENDING' | 'COMPLETED' | 'FAILED') => {
-    try {
-      const response = await fetch(`/api/admin/finance/payments/${paymentId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
 
-      if (!response.ok) throw new Error('Failed to update payment status');
-      
-      // Update local state to reflect the change
-      setPayments(payments.map(payment => 
-        payment.id === paymentId ? { ...payment, status: newStatus } : payment
-      ));
-
-      // Refresh summary data to reflect the updated payment status
-      fetchFinancialData();
-    } catch (error) {
-      console.error('Error updating payment status:', error);
-    }
-  };
 
   const filteredPayments = payments.filter(payment => {
     const matchesStatus = filter === 'ALL' || payment.status === filter;
@@ -120,6 +98,17 @@ export default function FinancialManagement() {
       style: 'currency',
       currency: 'USD',
     }).format(amount);
+  };
+
+  const calculateRevenueTrend = (monthlyRevenue: Record<string, number>): number => {
+    const values = Object.values(monthlyRevenue);
+    if (values.length < 2) return 0;
+    
+    const currentPeriod = values[values.length - 1];
+    const previousPeriod = values[values.length - 2];
+    
+    if (previousPeriod === 0) return 0;
+    return Math.round(((currentPeriod - previousPeriod) / previousPeriod) * 100);
   };
 
   if (isLoading) {
@@ -224,24 +213,79 @@ export default function FinancialManagement() {
         </div>
       </div>
 
-      {/* Monthly Revenue Chart */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Monthly Revenue</h2>
-        <div className="h-64">
-          <div className="flex h-full items-end">
-            {Object.entries(summary.monthlyRevenue).map(([month, amount], index) => (
-              <div key={index} className="flex-1 flex flex-col items-center">
-                <div 
-                  className="w-full bg-indigo-500 rounded-t" 
-                  style={{ 
-                    height: `${(amount / Math.max(...Object.values(summary.monthlyRevenue))) * 100}%`,
-                    minHeight: '10px'
-                  }}
-                ></div>
-                <p className="text-xs font-medium text-gray-500 mt-2">{month}</p>
-                <p className="text-xs font-medium text-gray-900">{formatCurrency(amount)}</p>
+      {/* Monthly Revenue Chart - Enhanced */}
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border border-gray-100">
+        <div className="p-6 pb-4">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800">Monthly Revenue</h2>
+              <p className="text-sm text-gray-500">Revenue overview for the past 12 months</p>
+            </div>
+            <div className="bg-green-50 text-green-800 text-xs font-medium px-2.5 py-1 rounded-full flex items-center">
+              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd" />
+              </svg>
+              {calculateRevenueTrend(summary.monthlyRevenue)}% from last period
+            </div>
+          </div>
+          
+          <div className="h-64 relative">
+            {/* Y-axis labels */}
+            <div className="absolute left-0 top-0 bottom-0 w-10 pr-2 flex flex-col justify-between text-right">
+              {[100, 75, 50, 25, 0].map((percent) => (
+                <div key={percent} className="text-xs text-gray-400">
+                  {percent}%
+                </div>
+              ))}
+            </div>
+            
+            <div className="h-full flex items-end pl-10">
+              {Object.entries(summary.monthlyRevenue).map(([month, amount], index) => {
+                const maxAmount = Math.max(...Object.values(summary.monthlyRevenue));
+                const height = (amount / maxAmount) * 100;
+                const isCurrentMonth = index === Object.keys(summary.monthlyRevenue).length - 1;
+                
+                return (
+                  <div 
+                    key={index} 
+                    className="relative flex-1 flex flex-col items-center group"
+                    style={{ height: '100%' }}
+                  >
+                    {/* Tooltip */}
+                    <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap">
+                      <div className="font-semibold">{formatCurrency(amount)}</div>
+                      <div className="text-gray-300">{month}</div>
+                    </div>
+                    {/* Bar */}
+                    <div 
+                      className={`w-3/4 rounded-t-md transition-all duration-300 ease-out ${
+                        isCurrentMonth ? 'bg-gradient-to-t from-indigo-600 to-indigo-400' : 'bg-gradient-to-t from-indigo-500 to-indigo-300'
+                      }`}
+                      style={{
+                        height: `${height}%`,
+                        minHeight: '8px',
+                        boxShadow: isCurrentMonth ? '0 4px 6px -1px rgba(99, 102, 241, 0.3)' : 'none'
+                      }}
+                    ></div>
+                    {/* X-axis labels */}
+                    <div className="text-xs text-gray-500 mt-2">
+                      {month.split(' ').map((m, i) => (
+                        <div key={i} className="text-center">{m}</div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          <div className="mt-6 pt-4 border-t border-gray-100">
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-gray-500">Total Revenue (12 months)</div>
+              <div className="text-lg font-semibold text-gray-800">
+                {formatCurrency(Object.values(summary.monthlyRevenue).reduce((a, b) => a + b, 0))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </div>
@@ -299,7 +343,6 @@ export default function FinancialManagement() {
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -319,45 +362,12 @@ export default function FinancialManagement() {
                         {payment.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        {payment.status !== 'COMPLETED' && (
-                          <button
-                            onClick={() => handleStatusChange(payment.id, 'COMPLETED')}
-                            className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200"
-                          >
-                            Mark Complete
-                          </button>
-                        )}
-                        {payment.status !== 'PENDING' && (
-                          <button
-                            onClick={() => handleStatusChange(payment.id, 'PENDING')}
-                            className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                          >
-                            Mark Pending
-                          </button>
-                        )}
-                        {payment.status !== 'FAILED' && (
-                          <button
-                            onClick={() => handleStatusChange(payment.id, 'FAILED')}
-                            className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200"
-                          >
-                            Mark Failed
-                          </button>
-                        )}
-                        <Link
-                          href={`/admin/finance/payments/${payment.id}`}
-                          className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
-                        >
-                          View
-                        </Link>
-                      </div>
-                    </td>
+
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
                     No payments found matching your criteria.
                   </td>
                 </tr>
