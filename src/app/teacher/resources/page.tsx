@@ -59,13 +59,25 @@ export default function TeacherResources() {
         }
         
         const classesData = await classesResponse.json();
+        console.log('Classes data from API:', classesData);
         
-        // Format classes data
-        const formattedClasses = classesData.classes?.map((cls: any) => ({
-          id: cls.id,
-          name: cls.name,
-          subject: cls.subject
-        })) || [];
+        // Format classes data - handle both array format and object with classes property
+        let formattedClasses = [];
+        if (Array.isArray(classesData)) {
+          formattedClasses = classesData.map((cls: any) => ({
+            id: cls.id,
+            name: cls.name,
+            subject: cls.subject
+          }));
+        } else if (classesData.classes && Array.isArray(classesData.classes)) {
+          formattedClasses = classesData.classes.map((cls: any) => ({
+            id: cls.id,
+            name: cls.name,
+            subject: cls.subject
+          }));
+        } else {
+          console.warn('Unexpected classes data format:', classesData);
+        }
         
         setClasses(formattedClasses);
         
@@ -79,16 +91,32 @@ export default function TeacherResources() {
         const resourcesData = await resourcesResponse.json();
         
         // Format resources data
-        const formattedResources = resourcesData.resources?.map((resource: any) => ({
-          id: resource.id,
-          title: resource.title || 'Untitled Resource',
-          description: resource.description || 'No description available',
-          fileType: resource.fileType || 'Unknown',
-          fileSize: resource.fileSize || 'Unknown',
-          uploadDate: resource.uploadDate || new Date().toISOString(),
-          classId: resource.classId,
-          className: formattedClasses.find((cls: ClassData) => cls.id === resource.classId)?.name || 'Unknown Class'
-        })) || [];
+        let formattedResources = [];
+        if (resourcesData.resources && Array.isArray(resourcesData.resources)) {
+          formattedResources = resourcesData.resources.map((resource: any) => ({
+            id: resource.id,
+            title: resource.title || 'Untitled Resource',
+            description: resource.description || 'No description available',
+            fileType: resource.fileType || 'Unknown',
+            fileSize: resource.fileSize || 'Unknown',
+            uploadDate: resource.uploadDate || new Date().toISOString(),
+            classId: resource.classId,
+            className: formattedClasses.find((cls: ClassData) => cls.id === resource.classId)?.name || 'Unknown Class'
+          }));
+        } else if (Array.isArray(resourcesData)) {
+          formattedResources = resourcesData.map((resource: any) => ({
+            id: resource.id,
+            title: resource.title || 'Untitled Resource',
+            description: resource.description || 'No description available',
+            fileType: resource.fileType || 'Unknown',
+            fileSize: resource.fileSize || 'Unknown',
+            uploadDate: resource.uploadDate || new Date().toISOString(),
+            classId: resource.classId,
+            className: formattedClasses.find((cls: ClassData) => cls.id === resource.classId)?.name || 'Unknown Class'
+          }));
+        } else {
+          console.warn('Unexpected resources data format:', resourcesData);
+        }
         
         setResources(formattedResources);
       } catch (err) {
@@ -192,21 +220,21 @@ export default function TeacherResources() {
                 <span>Uploaded: {new Date(resource.uploadDate).toLocaleDateString()}</span>
               </div>
               <div className="flex justify-between">
-                <Link 
-                  href={`/teacher/resources/${resource.id}`}
-                  className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                >
-                  View Details
-                </Link>
-                <button 
-                  className="text-gray-500 hover:text-gray-700" 
+                <span className="text-gray-500 text-sm">
+                  {resource.fileType.toUpperCase()}
+                </span>
+                <a 
+                  href={`/api/teacher/resources/${resource.id}/download`}
+                  download={resource.title}
+                  className="text-indigo-600 hover:text-indigo-800 flex items-center text-sm font-medium"
                   title={`Download ${resource.title}`}
                   aria-label={`Download ${resource.title}`}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                </button>
+                  Download
+                </a>
               </div>
             </div>
           ))
@@ -231,10 +259,11 @@ export default function TeacherResources() {
         )}
       </div>
       
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Quick Upload</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {classes.slice(0, 3).map(cls => (
+      {classes.length > 0 && (
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Quick Upload</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {classes.slice(0, 3).map(cls => (
             <Link 
               key={cls.id}
               href={`/teacher/resources/upload?classId=${cls.id}`}
@@ -253,6 +282,20 @@ export default function TeacherResources() {
           ))}
         </div>
       </div>
+      )}
+      
+      {classes.length === 0 && (
+        <div className="bg-white p-6 rounded-lg shadow-md text-center">
+          <h2 className="text-xl font-semibold mb-4">No Classes Available</h2>
+          <p className="text-gray-600 mb-4">You don't have any assigned classes yet.</p>
+          <Link 
+            href="/teacher/classes"
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            View Classes
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

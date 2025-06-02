@@ -56,13 +56,25 @@ function ResourceUploadContent() {
         }
         
         const data = await response.json();
+        console.log('Classes data from API:', data);
         
-        // Format classes data
-        const formattedClasses = data.classes?.map((cls: any) => ({
-          id: cls.id,
-          name: cls.name,
-          subject: cls.subject
-        })) || [];
+        // Format classes data - handle both array format and object with classes property
+        let formattedClasses = [];
+        if (Array.isArray(data)) {
+          formattedClasses = data.map((cls: any) => ({
+            id: cls.id,
+            name: cls.name,
+            subject: cls.subject
+          }));
+        } else if (data.classes && Array.isArray(data.classes)) {
+          formattedClasses = data.classes.map((cls: any) => ({
+            id: cls.id,
+            name: cls.name,
+            subject: cls.subject
+          }));
+        } else {
+          console.warn('Unexpected classes data format:', data);
+        }
         
         setClasses(formattedClasses);
         
@@ -207,20 +219,32 @@ function ResourceUploadContent() {
             <label htmlFor="class" className="block text-sm font-medium text-gray-700 mb-1">
               Class *
             </label>
-            <select
-              id="class"
-              value={selectedClassId}
-              onChange={(e) => setSelectedClassId(e.target.value)}
-              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              required
-            >
-              <option value="">Select a class</option>
-              {classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name} - {cls.subject}
-                </option>
-              ))}
-            </select>
+            {classes.length > 0 ? (
+              <select
+                id="class"
+                value={selectedClassId}
+                onChange={(e) => setSelectedClassId(e.target.value)}
+                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                required
+              >
+                <option value="">Select a class</option>
+                {classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name} - {cls.subject}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="mt-1">
+                <div className="text-sm text-gray-500 mb-2">No classes available</div>
+                <Link 
+                  href="/teacher/classes"
+                  className="text-sm text-indigo-600 hover:text-indigo-500"
+                >
+                  View your classes
+                </Link>
+              </div>
+            )}
           </div>
           
           <div className="mb-6">

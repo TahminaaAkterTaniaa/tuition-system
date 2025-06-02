@@ -130,12 +130,38 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
     fetchStudentProfile();
   }, [setValue]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: 'idDocument' | 'transcript') => {
-    if (e.target.files && e.target.files[0]) {
-      setUploadedFiles(prev => ({
-        ...prev,
-        [fileType]: e.target.files![0],
-      }));
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, fileType: 'idDocument' | 'transcript') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileType', fileType);
+
+      const response = await fetch('/api/enrollment/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setUploadedFiles(prev => ({
+          ...prev,
+          [fileType]: file
+        }));
+        toast.success(`${fileType === 'idDocument' ? 'ID Document' : 'Transcript'} uploaded successfully`);
+      } else {
+        throw new Error('Failed to upload file');
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload file');
     }
   };
 
@@ -148,176 +174,44 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
     try {
       setIsSubmitting(true);
       
-      // First check if the user already has an enrollment or enrollment request for this class
-      console.log('Checking existing enrollments for classId:', classId);
-      const checkResponse = await fetch(`/api/student/enrollments?classId=${classId}&userId=${userId}`, {
-        method: 'GET',
-        credentials: 'include', // Include cookies for authentication
+      // Validate required files
+      if (!uploadedFiles.idDocument) {
+        throw new Error('ID Document is required');
+      }
+
+      // Create enrollment request with document paths
+      const requestData = {
+        ...data,
+        classId,
+        userId,
+        documents: {
+          idDocumentPath: uploadedFiles.idDocument?.name,
+          transcriptPath: uploadedFiles.transcript?.name
+        }
+      };
+
+      const response = await fetch('/api/student/enrollment-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
       });
-      
-      if (checkResponse.ok) {
-        const enrollments = await checkResponse.json();
-        console.log('Existing enrollments/requests:', enrollments);
-        
-        if (enrollments && enrollments.length > 0) {
-          // User already has an enrollment or request for this class
-          const existingRecord = enrollments[0];
-          console.log('Found existing record:', existingRecord);
-          
-          // Check if it's a regular enrollment
-          if (existingRecord.recordType === 'enrollment') {
-            if (existingRecord.status === 'enrolled' || existingRecord.status === 'completed') {
-              throw new Error('You are already enrolled in this class.');
-            }
-            
-            if (existingRecord.status === 'pending') {
-              // If application is already submitted, go to payment step
-              if (existingRecord.applicationSubmitted) {
-                console.log('Application already submitted, going to payment step');
-                toast.success('Continuing your existing enrollment process.');
-                onSuccess(existingRecord.id);
-                return;
-              } else {
-                // Continue with the application submission for the existing enrollment
-                console.log('Continuing with application for existing enrollment');
-              }
-            }
-          } 
-          // Check if it's an enrollment request
-          else if (existingRecord.recordType === 'enrollmentRequest') {
-            if (existingRecord.status === 'pending') {
-              // If application is already submitted, go to payment step
-              if (existingRecord.applicationSubmitted) {
-                console.log('Application already submitted for enrollment request');
-                toast.success('Your enrollment request is already submitted and pending admin approval.');
-                onSuccess(existingRecord.id);
-                return;
-              } else {
-                // Continue with the application submission for the existing request
-                console.log('Continuing with application for existing enrollment request');
-              }
-            }
-          }
-        }
-      }
 
-      // Create form data for file uploads
-      const formData = new FormData();
-      formData.append('classId', classId);
-      formData.append('userId', userId); // Add userId to the form data
-      formData.append('fullName', data.fullName);
-      formData.append('email', data.email);
-      formData.append('phone', data.phone);
-      formData.append('idNumber', data.idNumber);
-      formData.append('emergencyContact', data.emergencyContact);
-      formData.append('additionalNotes', data.additionalNotes || '');
+      const responseData = await response.json();
       
-      if (uploadedFiles.idDocument) {
-        formData.append('idDocument', uploadedFiles.idDocument);
-      }
-      
-      if (uploadedFiles.transcript) {
-        formData.append('transcript', uploadedFiles.transcript);
-      }
-
-      // First submit the enrollment application
-      console.log('Submitting enrollment request with:', { classId, userId });
-      let enrollData;
-      try {
-        const enrollResponse = await fetch('/api/enrollment/enroll', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            classId,
-            userId, // Pass the userId directly in the request body
-          }),
-          credentials: 'include', // Include cookies for authentication
-        });
-
-        console.log('Enrollment response status:', enrollResponse.status);
-        
-        if (!enrollResponse.ok) {
-          const errorData = await enrollResponse.json();
-          console.error('Enrollment error response:', errorData);
-          throw new Error(errorData.error || 'Failed to submit enrollment');
-        }
-        
-        enrollData = await enrollResponse.json();
-        console.log('Enrollment created:', enrollData);
-      } catch (error) {
-        console.error('Error during enrollment request:', error);
-        throw error;
-      }
-      
-      // Then submit the additional form data and documents
-      console.log('Submitting application form data');
-      try {
-        const applicationResponse = await fetch('/api/enrollment/application', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include', // Include cookies for authentication
-        });
-
-        console.log('Application response status:', applicationResponse.status);
-        
-        if (!applicationResponse.ok) {
-          const errorData = await applicationResponse.json();
-          console.error('Application error response:', errorData);
-          throw new Error(errorData.error || 'Failed to submit application details');
-        }
-        
-        // Process the successful application response
-        const applicationData = await applicationResponse.json();
-        console.log('Application submitted successfully:', applicationData);
-        toast.success('Your enrollment request has been submitted and is pending admin approval.');
-        
-        // Determine which ID to use for the success callback
-        if (applicationData.recordId) {
-          // Use the record ID from the application API
-          console.log('Using recordId from application response:', applicationData.recordId);
-          onSuccess(applicationData.recordId);
-          return;
-        } else if (applicationData.requestId) {
-          // Use the request ID if available
-          console.log('Using requestId from application response:', applicationData.requestId);
-          onSuccess(applicationData.requestId);
-          return;
-        } else if (applicationData.enrollmentId) {
-          // Use the enrollment ID if available
-          console.log('Using enrollmentId from application response:', applicationData.enrollmentId);
-          onSuccess(applicationData.enrollmentId);
-          return;
-        }
-      } catch (error) {
-        console.error('Error during application submission:', error);
-        throw error;
-      }
-
-      // If we get here, the application was submitted but we didn't get a valid ID from the response
-      // Fall back to using the enrollment data from the initial enrollment request
-      console.log('Falling back to enrollment data for ID');
-      
-      if (enrollData.enrollmentRequest) {
-        // For enrollment requests (new admin approval flow)
-        console.log('Using ID from enrollment request:', enrollData.enrollmentRequest.id);
-        onSuccess(enrollData.enrollmentRequest.id);
-      } else if (enrollData.enrollment) {
-        // For backward compatibility with old format
-        console.log('Using ID from enrollment:', enrollData.enrollment.id);
-        onSuccess(enrollData.enrollment.id);
+      if (responseData.success) {
+        toast.success('Enrollment request submitted successfully!');
+        console.log('Enrollment request API response:', responseData);
+        // Fix: API returns requestId instead of enrollmentId
+        onSuccess(responseData.requestId);
       } else {
-        // Fallback case if we have no valid ID anywhere
-        console.log('No valid record ID found in any response:', enrollData);
-        toast.success('Application submitted, you will be notified once approved.');
-        // Navigate to the next step without passing an ID
-        onSuccess('pending');
+        throw new Error(responseData.error || 'Failed to submit enrollment request');
       }
       
     } catch (error) {
-      console.error('Error submitting enrollment:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to submit enrollment');
+      console.error('Error submitting enrollment request:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to submit enrollment request');
     } finally {
       setIsSubmitting(false);
     }

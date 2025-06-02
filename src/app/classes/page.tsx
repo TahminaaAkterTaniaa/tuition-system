@@ -6,37 +6,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import EnrollmentStatusBadge from '@/app/components/EnrollmentStatusBadge';
+import ClassDetailsModal from '@/app/components/ClassDetailsModal';
+import { ClassItem } from '@/app/types/class';
 
-interface ClassItem {
-  id: string;
-  name: string;
-  subject: string;
-  description: string | null;
-  startDate: string;
-  endDate: string | null;
-  schedule: string | null;
-  capacity: number;
-  room: string | null;
-  status: string;
-  teacher: {
-    user: {
-      name: string | null;
-      id?: string;
-    } | null;
-  } | null;
-  enrolledCount: number;
-  availableSeats: number;
-  isFull: boolean;
-  enrollmentStatus: string | null;
-  roomDetails?: {
-    id: string;
-    name: string;
-    capacity: number | null;
-    building: string | null;
-    floor: string | null;
-    features: string | null;
-  } | null;
-}
+// Using ClassItem from types/class.ts
 
 export default function Classes() {
   const { data: session, status } = useSession();
@@ -45,6 +18,8 @@ export default function Classes() {
   const [searchTerm, setSearchTerm] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
   const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Function to fetch all classes
   const fetchAllClasses = async () => {
@@ -325,8 +300,11 @@ export default function Classes() {
                             Edit
                           </Link>
                         ) : (
-                          <Link
-                            href={`/classes/${classItem.id}`}
+                          <button
+                            onClick={() => {
+                              setSelectedClass(classItem);
+                              setIsModalOpen(true);
+                            }}
                             className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -334,7 +312,7 @@ export default function Classes() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                             </svg>
                             View
-                          </Link>
+                          </button>
                         )}
                       </div>
                     )}
@@ -355,8 +333,11 @@ export default function Classes() {
                     
                     {/* PARENT ROLE ACTIONS */}
                     {session?.user?.role === 'PARENT' && (
-                      <Link
-                        href={`/classes/${classItem.id}`}
+                      <button
+                        onClick={() => {
+                          setSelectedClass(classItem);
+                          setIsModalOpen(true);
+                        }}
                         className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
                       >
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -364,7 +345,7 @@ export default function Classes() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                         </svg>
                         View Details
-                      </Link>
+                      </button>
                     )}
                     
                     {/* NOT LOGGED IN - Login to enroll button */}
@@ -386,6 +367,13 @@ export default function Classes() {
           );
         })}
       </div>
+      
+      {/* Class Details Modal */}
+      <ClassDetailsModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        classData={selectedClass} 
+      />
     </div>
   );
 }

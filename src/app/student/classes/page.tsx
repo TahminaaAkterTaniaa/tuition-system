@@ -12,8 +12,8 @@ interface Class {
   name: string;
   subject: string;
   description: string | null;
-  schedule: string | null;
-  room: string | null;
+  schedule: string | null; // Legacy field, keeping for compatibility
+  room: string | null; // Legacy field, keeping for compatibility
   teacher: {
     user: {
       name: string | null;
@@ -26,6 +26,9 @@ interface Class {
   enrollmentRequestId?: string;
   withdrawalRequestId?: string;
   requestStatus?: string | null;
+  // New fields for better display
+  schedulesDisplay?: string;
+  formattedRoom?: string;
 }
 
 export default function StudentClasses() {
@@ -215,13 +218,13 @@ export default function StudentClasses() {
               <p className="text-gray-700 mb-2">{classItem.description}</p>
               
               <div className="mt-4 space-y-2">
-                <div className="flex">
-                  <span className="font-medium w-24">Schedule:</span>
-                  <span className="text-gray-600">{classItem.schedule}</span>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium">{classItem.name}</h3>
+                  <span className="text-gray-600">{classItem.schedulesDisplay || classItem.schedule || 'Not scheduled'}</span>
                 </div>
                 <div className="flex">
                   <span className="font-medium w-24">Room:</span>
-                  <span className="text-gray-600">{classItem.room}</span>
+                  <span className="text-gray-600">{classItem.formattedRoom || classItem.room || 'Not assigned'}</span>
                 </div>
                 <div className="flex">
                   <span className="font-medium w-24">Teacher:</span>
@@ -337,12 +340,12 @@ export default function StudentClasses() {
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <h4 className="font-semibold text-gray-700">Schedule</h4>
-                            <p className="text-gray-600">{selectedClass.schedule || 'Not specified'}</p>
+                            <h4 className="font-semibold text-gray-700">Schedules</h4>
+                            <p className="text-gray-600">{selectedClass.schedulesDisplay || selectedClass.schedule || 'Not scheduled'}</p>
                           </div>
                           <div>
                             <h4 className="font-semibold text-gray-700">Room</h4>
-                            <p className="text-gray-600">{selectedClass.room || 'Not assigned'}</p>
+                            <p className="text-gray-600">{selectedClass.formattedRoom || selectedClass.room || 'Not assigned'}</p>
                           </div>
                           <div>
                             <h4 className="font-semibold text-gray-700">Teacher</h4>

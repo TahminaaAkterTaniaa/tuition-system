@@ -38,6 +38,7 @@ interface ClassFormData {
   startDate: string;
   endDate: string;
   capacity: string;
+  fee: string;
   teacherId: string;
   selectedDays: string[];
   selectedTime: string;
@@ -55,6 +56,7 @@ const UnifiedClassCreationCard = () => {
     startDate: '',
     endDate: '',
     capacity: '30',
+    fee: '99.99',
     teacherId: '',
     selectedDays: [],
     selectedTime: '',
@@ -239,8 +241,8 @@ const UnifiedClassCreationCard = () => {
     setIsSubmitting(true);
     
     try {
-      // Step 1: Create the class
-      const classResponse = await fetch('/api/admin/classes', {
+      // Create class with schedules for each selected day
+      const response = await fetch('/api/admin/classes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -250,19 +252,21 @@ const UnifiedClassCreationCard = () => {
           subject: formData.subject,
           description: formData.description,
           startDate: formData.startDate,
-          endDate: formData.endDate || null,
+          endDate: formData.endDate,
           capacity: formData.capacity,
+          fee: parseFloat(formData.fee),
           room: formData.selectedRoom,
-          teacherId: formData.teacherId || null,
+          // Only include teacherId if it has a value
+          ...(formData.teacherId ? { teacherId: formData.teacherId } : {})
         }),
       });
       
-      if (!classResponse.ok) {
-        const errorData = await classResponse.json();
+      if (!response.ok) {
+        const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to create class');
       }
       
-      const newClass = await classResponse.json();
+      const newClass = await response.json();
       
       // Step 2: Create schedules for each selected day
       const schedules = formData.selectedDays.map(day => ({
@@ -295,7 +299,7 @@ const UnifiedClassCreationCard = () => {
         router.push('/classes');
       }, 1500);
       
-      // Reset form (though we're redirecting, this is good practice)
+      // Reset form to initial state
       setFormData({
         name: '',
         subject: '',
@@ -303,6 +307,7 @@ const UnifiedClassCreationCard = () => {
         startDate: '',
         endDate: '',
         capacity: '30',
+        fee: '99.99',
         teacherId: '',
         selectedDays: [],
         selectedTime: '',
@@ -411,6 +416,7 @@ const UnifiedClassCreationCard = () => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   required
+                  aria-label="Start Date"
                 />
               </div>
               
@@ -424,23 +430,41 @@ const UnifiedClassCreationCard = () => {
                   value={formData.endDate}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  aria-label="End Date"
                 />
               </div>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Capacity*
-              </label>
-              <input
-                type="number"
-                name="capacity"
-                value={formData.capacity}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                min="1"
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Class Capacity
+                </label>
+                <input
+                  type="number"
+                  name="capacity"
+                  value={formData.capacity}
+                  onChange={handleInputChange}
+                  min="1"
+                  placeholder="E.g., 30"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Class Fee ($)
+                </label>
+                <input
+                  type="number"
+                  name="fee"
+                  value={formData.fee}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="0.01"
+                  placeholder="E.g., 99.99"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
             </div>
             
             <div>

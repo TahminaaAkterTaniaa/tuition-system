@@ -3,6 +3,36 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
 
+// Helper function to format room information from schedules
+function formatRoomInfo(schedules: any[]) {
+  if (!schedules || schedules.length === 0) {
+    return 'Not assigned';
+  }
+  
+  // Get room info from the first schedule with a room
+  const scheduleWithRoom = schedules.find(s => s.room);
+  if (!scheduleWithRoom?.room) {
+    return 'Not assigned';
+  }
+  
+  // Format as Room Name (Building) if building exists, otherwise just Room Name
+  return scheduleWithRoom.room.building
+    ? `${scheduleWithRoom.room.name} (${scheduleWithRoom.room.building})`
+    : scheduleWithRoom.room.name;
+}
+
+// Helper function to format schedules in Day.TimeSlot format
+function formatSchedulesDisplay(schedules: any[]) {
+  if (!schedules || schedules.length === 0) {
+    return 'Not scheduled';
+  }
+  
+  // Create formatted schedules string with Day.TimeSlot format
+  return schedules.map(schedule => 
+    `${schedule.day}.${schedule.time}`
+  ).join(', ');
+}
+
 export async function GET(req: NextRequest) {
   try {
     // Get the authenticated user's session
@@ -148,6 +178,32 @@ export async function GET(req: NextRequest) {
         requestStatus?: string | null;
       };
 
+      // Get all class schedules for relevant classes
+      const classIds = [...enrollments.map(e => e.classId), ...enrollmentRequests.map(er => er.classId)];
+      const schedules = await prisma.classSchedule.findMany({
+        where: {
+          classId: { in: classIds }
+        },
+        include: {
+          room: {
+            select: {
+              id: true,
+              name: true,
+              building: true
+            }
+          }
+        }
+      });
+      
+      // Group schedules by classId
+      const schedulesByClass: Record<string, any[]> = {};
+      schedules.forEach(schedule => {
+        if (!schedulesByClass[schedule.classId]) {
+          schedulesByClass[schedule.classId] = [];
+        }
+        schedulesByClass[schedule.classId].push(schedule);
+      });
+      
       // Extract the classes from enrollments and add enrollment status
       let classes: ClassWithEnrollmentStatus[] = enrollments.map(enrollment => {
         const classData = enrollment.class;
@@ -157,13 +213,20 @@ export async function GET(req: NextRequest) {
           wr.classId === enrollment.classId && wr.status === 'pending'
         );
         
+        // Format schedules for this class
+        const classSchedules = schedulesByClass[classData.id] || [];
+        const formattedRoom = formatRoomInfo(classSchedules);
+        const schedulesDisplay = formatSchedulesDisplay(classSchedules);
+        
         // Add enrollment status information
         return {
           ...classData,
           enrollmentStatus: pendingWithdrawal ? 'withdrawal_pending' : enrollment.status,
           enrollmentId: enrollment.id,
           withdrawalRequestId: pendingWithdrawal?.id,
-          requestStatus: pendingWithdrawal ? 'withdrawal_pending' : null
+          requestStatus: pendingWithdrawal ? 'withdrawal_pending' : null,
+          formattedRoom,
+          schedulesDisplay
         };
       });
       

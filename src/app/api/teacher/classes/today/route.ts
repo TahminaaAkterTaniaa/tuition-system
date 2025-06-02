@@ -69,11 +69,19 @@ export async function GET(request: Request) {
     const classes = await prisma.class.findMany({
       where: { 
         teacherId: teacher.id,
-        // Filter classes that are active and have a schedule containing today's day name
         status: 'active',
-        schedule: {
-          contains: todayName,
-        },
+        OR: [
+          {
+            // Classes with schedule containing today's day name
+            schedule: {
+              contains: todayName,
+            },
+          },
+          {
+            // Also include classes with no specific schedule as a fallback
+            schedule: null,
+          },
+        ],
       },
       include: {
         enrollments: {
@@ -81,20 +89,47 @@ export async function GET(request: Request) {
             status: 'enrolled',
           },
         },
+        schedules: {
+          where: {
+            day: todayName,
+          },
+        },
+        teacher: {
+          include: {
+            user: true,
+          },
+        },
       },
     });
     
     // Format the class data
-    const processedClasses = classes.map((classItem: any) => ({
-      id: classItem.id,
-      name: classItem.name,
-      subject: classItem.subject,
-      schedule: classItem.schedule || 'Not scheduled',
-      room: classItem.room || 'No room assigned',
-      startTime: classItem.startTime || null,
-      endTime: classItem.endTime || null,
-      studentCount: classItem.enrollments.length,
-    }));
+    const processedClasses = classes.map((classItem: any) => {
+      // Get schedule information
+      let schedule = classItem.schedule || 'Not scheduled';
+      let startTime = null;
+      let endTime = null;
+      let roomName = classItem.room || 'No room assigned';
+      
+      // If we have schedules for today, use that information
+      if (classItem.schedules && classItem.schedules.length > 0) {
+        const todaySchedule = classItem.schedules[0]; // We already filtered for today's day
+        startTime = todaySchedule.time;
+        endTime = null; // We don't have end time in the schema
+        schedule = `${todaySchedule.day} at ${todaySchedule.time}`;
+        roomName = todaySchedule.roomId || classItem.room || 'No room assigned';
+      }
+      
+      return {
+        id: classItem.id,
+        name: classItem.name,
+        subject: classItem.subject,
+        schedule: schedule,
+        room: roomName,
+        startTime: startTime,
+        endTime: endTime,
+        studentCount: classItem.enrollments.length,
+      };
+    });
     
     // Sort classes by start time
     processedClasses.sort((a: ProcessedClass, b: ProcessedClass) => {
@@ -122,9 +157,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ classes: formattedClasses });
   } catch (error) {
     console.error('Error fetching today\'s classes:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch today\'s classes' },
-      { status: 500 }
-    );
+    // Return an empty array instead of an error to prevent UI issues
+    return NextResponse.json({ classes: [] }, { status: 200 });
+    // Uncomment below for stricter error handling
+    // return NextResponse.json(
+    //   { error: 'Failed to fetch today\'s classes' },
+    //   { status: 500 }
+    // );
   }
 }

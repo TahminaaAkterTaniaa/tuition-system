@@ -96,23 +96,23 @@ export default function TodaysClasses() {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-xl font-semibold mb-4">Today's Classes</h2>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+      <div className="w-full">
+        <table className="w-full table-fixed divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="w-1/4 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Class
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="w-1/5 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Time
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="w-1/5 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Room
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="w-1/6 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Students
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="w-1/5 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -120,24 +120,26 @@ export default function TodaysClasses() {
           <tbody className="bg-white divide-y divide-gray-200">
             {classes.map((classItem) => (
               <tr key={classItem.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{classItem.name}</div>
-                  <div className="text-sm text-gray-500">{classItem.subject}</div>
+                <td className="px-2 py-4 truncate">
+                  <div className="text-sm font-medium text-gray-900 truncate">{classItem.name}</div>
+                  <div className="text-sm text-gray-500 truncate">{classItem.subject}</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-2 py-4 truncate">
                   <div className="text-sm text-gray-500">
-                    {classItem.startTime || 'Not set'} - {classItem.endTime || 'Not set'}
+                    {classItem.startTime || 'Not set'}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{classItem.room}</div>
+                <td className="px-2 py-4 truncate">
+                  <div className="text-sm text-gray-500 truncate">{classItem.room}</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-2 py-4 text-center">
                   <div className="text-sm text-gray-500">{classItem.studentCount}</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <Link href={`/teacher/classes/${classItem.id}`} className="text-indigo-600 hover:text-indigo-900 mr-3">View</Link>
-                  <Link href={`/teacher/attendance/mark/${classItem.id}`} className="text-green-600 hover:text-green-900">Attendance</Link>
+                <td className="px-2 py-4 text-sm font-medium">
+                  <div className="flex space-x-2">
+                    <Link href={`/teacher/classes/${classItem.id}`} className="text-indigo-600 hover:text-indigo-900">View</Link>
+                    <Link href={`/teacher/attendance/mark/${classItem.id}`} className="text-green-600 hover:text-green-900">Attendance</Link>
+                  </div>
                 </td>
               </tr>
             ))}

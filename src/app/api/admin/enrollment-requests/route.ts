@@ -216,9 +216,6 @@ export async function POST(req: NextRequest) {
           },
           data: {
             status: 'enrolled',
-            paymentStatus: paymentInfo.paymentStatus || existingEnrollment.paymentStatus,
-            paymentId: paymentInfo.paymentId || existingEnrollment.paymentId,
-            paymentDate: paymentInfo.paymentDate || existingEnrollment.paymentDate,
             notes: `Re-approved by admin (${session.user.email}) on ${new Date().toLocaleString()}`
           }
         });
@@ -230,9 +227,6 @@ export async function POST(req: NextRequest) {
             classId: enrollmentRequest.classId,
             enrollmentDate: new Date(),
             status: 'enrolled',
-            paymentStatus: paymentInfo.paymentStatus || 'pending',
-            paymentId: paymentInfo.paymentId || null,
-            paymentDate: paymentInfo.paymentDate || null,
             notes: `Approved by admin (${session.user.email}) on ${new Date().toLocaleString()}`
           }
         });

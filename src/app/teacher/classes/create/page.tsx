@@ -137,7 +137,10 @@ export default function CreateClass() {
   
   const formatTimeLabel = () => {
     if (formData.selectedTime) {
-      return formData.selectedTime;
+      const selectedSlot = timeSlots.find(slot => slot.id === formData.selectedTime);
+      if (selectedSlot) {
+        return `${selectedSlot.label} (${selectedSlot.startTime} - ${selectedSlot.endTime})`;
+      }
     }
     return '';
   };
@@ -153,32 +156,37 @@ export default function CreateClass() {
     setConflicts([]);
     
     try {
-      // Find the selected room object from the rooms array
+      // Find the selected room and time slot
       const selectedRoom = rooms.find(room => room.id === formData.selectedRoom);
+      const selectedTimeSlot = timeSlots.find(slot => slot.id === formData.selectedTime);
       
       const schedules = formData.selectedDays.map(day => ({
         day,
-        time: formData.selectedTime,
-        roomId: formData.selectedRoom,
-        roomName: selectedRoom?.name || 'Unknown Room'
+        timeSlotId: formData.selectedTime,
+        timeSlot: selectedTimeSlot,
+        roomId: formData.selectedRoom
       }));
       
       console.log('Checking conflicts with schedules:', schedules);
       
       try {
-        const response = await fetch('/api/teacher/schedule/conflicts', {
+        const response = await fetch('/api/teacher/classes/check-conflicts', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            schedules,
-            teacherId: session?.user.id || null
+            schedules: schedules.map(schedule => ({
+              day: schedule.day,
+              timeSlotId: schedule.timeSlotId,
+              roomId: schedule.roomId
+            }))
           }),
         });
         
         if (!response.ok) {
           const errorData = await response.json();
+          console.error('Error checking conflicts:', errorData);
           toast.error(errorData.error || 'Failed to check for conflicts');
           return false;
         }
@@ -187,21 +195,16 @@ export default function CreateClass() {
         
         if (data.hasConflicts) {
           setConflicts(data.conflicts);
-          // Show the conflicts in a toast message
-          toast.error('Scheduling conflicts detected. Please check the conflicts section.');
+          toast.error('Scheduling conflicts detected. Please select different time slots.');
           return false;
         }
         
         return true;
-      } catch (fetchError) {
-        console.error('Network error checking for conflicts:', fetchError);
-        toast.error('Network error when checking for conflicts. Please try again.');
+      } catch (error) {
+        console.error('Error checking for conflicts:', error);
+        toast.error('Failed to check for scheduling conflicts. Please try again.');
         return false;
       }
-    } catch (error) {
-      console.error('Error checking for conflicts:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to check for conflicts');
-      return false;
     } finally {
       setIsCheckingConflicts(false);
     }
@@ -247,7 +250,7 @@ export default function CreateClass() {
     
     try {
       // Step 1: Create the class
-      const classResponse = await fetch('/api/teacher/classes', {
+      const classResponse = await fetch('/api/teacher/classes/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -259,57 +262,37 @@ export default function CreateClass() {
           startDate: formData.startDate,
           endDate: formData.endDate || null,
           capacity: formData.capacity,
-          room: formData.selectedRoom, // This is the roomId parameter expected by the API
-          // No need to specify teacherId, it will be automatically set from the session
+          selectedDays: formData.selectedDays,
+          selectedTimeSlot: formData.selectedTime, // Send as selectedTimeSlot to match backend
+          selectedRoom: formData.selectedRoom
         }),
       });
       
+      // Handle non-OK responses
       if (!classResponse.ok) {
-        const errorData = await classResponse.json();
-        throw new Error(errorData.error || 'Failed to create class');
-      }
-      
-      const newClass = await classResponse.json();
-      
-      // Step 2: Create schedules only if we have days, time, and room selected
-      if (formData.selectedDays.length > 0 && formData.selectedTime && formData.selectedRoom) {
-        const schedules = formData.selectedDays.map(day => ({
-          day,
-          time: formData.selectedTime,
-          room: formData.selectedRoom,
-        }));
-        
+        let errorMessage = 'Failed to create class';
         try {
-          const scheduleResponse = await fetch(`/api/teacher/classes/${newClass.id}/schedule`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              schedules,
-              action: 'replace', // Replace any existing schedules
-            }),
-          });
-          
-          if (!scheduleResponse.ok) {
-            const errorData = await scheduleResponse.json();
-            console.error('Schedule creation error:', errorData);
-            toast.error(errorData.error || 'Failed to create class schedule');
-            // Don't throw error here, we still created the class successfully
-          } else {
-            console.log('Schedules created successfully');
-          }
-        } catch (scheduleError) {
-          console.error('Error creating schedules:', scheduleError);
-          toast.error('Error creating schedules, but class was created');
-          // Don't throw error here, we still created the class successfully
+          const errorData = await classResponse.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          console.error('Error parsing error response:', jsonError);
+          // Use default error message if JSON parsing fails
         }
-      } else {
-        console.log('No schedule information provided, skipping schedule creation');
+        throw new Error(errorMessage);
       }
       
-      // Show success message and redirect to classes page
-      toast.success('Class created successfully with schedule!');
+      // Safely parse the response JSON
+      let classData;
+      try {
+        classData = await classResponse.json();
+        console.log('Class created successfully:', classData);
+      } catch (jsonError) {
+        console.error('Error parsing class response:', jsonError);
+        throw new Error('Server returned invalid response. Please try again.');
+      }
+      
+      // Show success message
+      toast.success('Class created successfully!');
       
       // Short delay before redirecting to ensure the toast is visible
       setTimeout(() => {
@@ -329,9 +312,9 @@ export default function CreateClass() {
         selectedRoom: '',
       });
       
-    } catch (err) {
-      console.error('Error creating class:', err);
-      toast.error(err instanceof Error ? err.message : 'An unknown error occurred');
+    } catch (error: unknown) {
+      console.error('Error creating class:', error);
+      toast.error(error instanceof Error ? error.message : 'An unknown error occurred');
     } finally {
       setIsSubmitting(false);
     }

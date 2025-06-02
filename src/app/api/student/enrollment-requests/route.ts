@@ -17,10 +17,23 @@ export async function POST(req: NextRequest) {
     }
     
     const data = await req.json();
-    const { classId, notes } = data;
+    const { 
+      classId, 
+      fullName,
+      email,
+      phone,
+      idNumber,
+      emergencyContact,
+      additionalNotes,
+      documents
+    } = data;
     
     if (!classId) {
       return NextResponse.json({ error: 'Class ID is required' }, { status: 400 });
+    }
+    
+    if (!documents?.idDocumentPath) {
+      return NextResponse.json({ error: 'ID Document is required' }, { status: 400 });
     }
     
     // Get student ID from session
@@ -44,7 +57,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Class not found' }, { status: 404 });
     }
     
-    if (classDetails.status !== 'active') {
+    // Allow classes with either 'active' or 'Approved' status for enrollment
+    if (classDetails.status !== 'active' && classDetails.status !== 'Approved') {
       return NextResponse.json({ error: 'This class is not currently accepting enrollments' }, { status: 400 });
     }
     
@@ -88,13 +102,25 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
     
-    // Create the enrollment request
+    // Create enrollment request
     const enrollmentRequest = await prisma.enrollmentRequest.create({
       data: {
         studentId: student.id,
-        classId: classId,
-        notes: notes || 'Enrollment request',
-      }
+        classId,
+        status: 'pending',
+        notes: JSON.stringify({
+          fullName,
+          email,
+          phone,
+          idNumber,
+          emergencyContact,
+          additionalNotes,
+          documents: {
+            idDocumentPath: documents.idDocumentPath,
+            transcriptPath: documents.transcriptPath
+          }
+        })
+      },
     });
     
     // Create notification for admins

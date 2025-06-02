@@ -103,8 +103,10 @@ export default function PaymentForm({ enrollmentId, classId, className, amount, 
     }
   };
 
+  console.log('PaymentForm render called with props:', { enrollmentId, classId, className, amount });
+  
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 max-w-md mx-auto">
+    <div className="bg-white rounded-lg shadow-md p-6 max-w-md mx-auto border-4 border-red-500">
       <h2 className="text-2xl font-bold mb-6 text-center text-indigo-700">
         Complete Your Enrollment
       </h2>

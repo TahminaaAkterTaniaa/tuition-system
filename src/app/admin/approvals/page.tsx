@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
+import DocumentPreview from '@/app/components/DocumentPreview';
 
 interface Student {
   id: string;
@@ -263,7 +264,37 @@ export default function AdminApprovalsPage() {
                   {request.notes && (
                     <div className="mb-6">
                       <h3 className="text-sm font-medium text-gray-500">Notes</h3>
-                      <p className="text-base text-gray-900">{request.notes}</p>
+                      <p className="text-base text-gray-900">
+                        {(() => {
+                          try {
+                            // Try to parse as JSON to check if it contains document paths
+                            JSON.parse(request.notes);
+                            // If parsing succeeds, return an empty string since we'll display documents separately
+                            return '';
+                          } catch (e) {
+                            // If it's not valid JSON, display it as regular text
+                            return request.notes;
+                          }
+                        })()}
+                      </p>
+                      {request.notes && (() => {
+                        console.log('Document Notes:', request.notes);
+                        try {
+                          // Try to parse as JSON to check if it contains document paths
+                          const docData = JSON.parse(request.notes);
+                          console.log('Parsed Document Data:', docData);
+                          // If it's valid JSON and contains document paths, render the DocumentPreview component
+                          if (docData.idDocumentPath || docData.transcriptPath) {
+                            return <DocumentPreview jsonData={request.notes} />;
+                          }
+                          // If no document paths found, show the notes as text
+                          return <p className="text-base text-gray-900">{request.notes}</p>;
+                        } catch (e) {
+                          console.log('JSON Parse Error:', e);
+                          // If it's not valid JSON, show as plain text
+                          return <p className="text-base text-gray-900">{request.notes}</p>;
+                        }
+                      })()}
                     </div>
                   )}
                   

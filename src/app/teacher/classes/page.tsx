@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import ClassDetailsModal from '@/app/components/ClassDetailsModal';
 
 interface Class {
   id: string;
@@ -12,10 +13,21 @@ interface Class {
   description: string | null;
   schedule: string | null;
   room: string | null;
-  students: number;
+  // Renamed properties to match API response
+  enrolledCount: number;
   status: string;
   startDate: string;
   endDate: string | null;
+  // Properties from API
+  roomDisplay: string;
+  schedulesDisplay: string;
+  schedules?: Array<{
+    day: string;
+    time: string;
+    roomName: string;
+    roomBuilding: string;
+    roomId: string | null;
+  }>;
 }
 
 export default function TeacherClasses() {
@@ -24,6 +36,8 @@ export default function TeacherClasses() {
   const [isLoading, setIsLoading] = useState(true);
   const [classes, setClasses] = useState<Class[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Function to fetch classes
   const fetchClasses = async () => {
@@ -137,30 +151,33 @@ export default function TeacherClasses() {
                 <h2 className="text-xl font-semibold">{classItem.name}</h2>
                 <p className="text-gray-600 mt-1">{classItem.description || classItem.subject}</p>
               </div>
-              <Link 
-                href={`/teacher/classes/${classItem.id}`}
-                className="text-indigo-600 hover:text-indigo-800"
-                title="View Class Details"
+              <button 
+                onClick={() => {
+                  setSelectedClass(classItem);
+                  setIsModalOpen(true);
+                }}
+                className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-              </Link>
+                View
+              </button>
             </div>
             
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <p className="text-sm text-gray-500">Schedule</p>
-                <p className="font-medium">{classItem.schedule || 'Not scheduled'}</p>
+                <p className="text-sm text-gray-500">Schedules</p>
+                <p className="font-medium">{classItem.schedulesDisplay || 'Not scheduled'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Room</p>
-                <p className="font-medium">{classItem.room || 'Not assigned'}</p>
+                <p className="font-medium">{classItem.roomDisplay || 'Not assigned'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Students</p>
-                <p className="font-medium">{classItem.students}</p>
+                <p className="font-medium">{classItem.enrolledCount || 0}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Status</p>
@@ -217,7 +234,12 @@ export default function TeacherClasses() {
         </div>
       )}
 
-
+      {/* Class Details Modal */}
+      <ClassDetailsModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        classData={selectedClass as any} 
+      />
     </div>
   );
 }

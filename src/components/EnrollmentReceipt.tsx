@@ -23,13 +23,13 @@ interface EnrollmentReceiptProps {
 export default function EnrollmentReceipt({ enrollmentId, receipt }: EnrollmentReceiptProps) {
   const router = useRouter();
   const [isPrinting, setIsPrinting] = useState(false);
-  const [countdown, setCountdown] = useState(4);
+  const [countdown, setCountdown] = useState(30);
   
-  // Redirect to dashboard after 4 seconds
+  // Redirect to dashboard after 30 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
       router.push('/student');
-    }, 4000);
+    }, 30000);
     
     // Update countdown every second
     const countdownInterval = setInterval(() => {

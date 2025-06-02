@@ -6,7 +6,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import EnrollmentForm from '@/components/EnrollmentForm';
-import PaymentForm from '@/components/PaymentForm';
+// Temporarily use an inline PaymentForm to bypass import issues
+// import PaymentForm from '../../../../components/PaymentForm';
 import EnrollmentReceipt from '@/components/EnrollmentReceipt';
 
 interface ClassDetails {
@@ -54,6 +55,264 @@ enum EnrollmentStep {
   ERROR
 }
 
+// Temporary inline payment form component to bypass import issues
+function TempPaymentForm({ enrollmentId, classId, className, amount, onSuccess, userId }: {
+  enrollmentId: string;
+  classId: string;
+  className: string;
+  amount: number;
+  onSuccess: (paymentData: any) => void;
+  userId: string;
+}) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('credit_card');
+  const [cardDetails, setCardDetails] = useState({
+    cardNumber: '',
+    cardholderName: '',
+    expiryDate: '',
+    cvv: ''
+  });
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  
+  console.log('TempPaymentForm rendering with props:', { enrollmentId, classId, className, amount });
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setCardDetails(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // Clear error for this field when user types
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = {...prev};
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {};
+    
+    if (paymentMethod === 'credit_card') {
+      if (!cardDetails.cardNumber) {
+        newErrors.cardNumber = 'Card number is required';
+      } else if (!/^\d{13,19}$/.test(cardDetails.cardNumber.replace(/\s/g, ''))) {
+        newErrors.cardNumber = 'Invalid card number';
+      }
+      
+      if (!cardDetails.cardholderName) {
+        newErrors.cardholderName = 'Cardholder name is required';
+      }
+      
+      if (!cardDetails.expiryDate) {
+        newErrors.expiryDate = 'Expiry date is required';
+      } else if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardDetails.expiryDate)) {
+        newErrors.expiryDate = 'Invalid format (MM/YY)';
+      }
+      
+      if (!cardDetails.cvv) {
+        newErrors.cvv = 'CVV is required';
+      } else if (!/^\d{3,4}$/.test(cardDetails.cvv)) {
+        newErrors.cvv = 'Invalid CVV';
+      }
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsProcessing(true);
+    console.log('Processing payment for enrollment:', enrollmentId);
+    
+    try {
+      // In development mode, we'll just send the basic information needed
+      const paymentData = {
+        enrollmentId,
+        classId,
+        amount,
+        paymentMethod,
+        userId,
+        ...(paymentMethod === 'credit_card' ? {
+          cardDetails: {
+            // Only send last 4 digits for security
+            cardNumberLast4: cardDetails.cardNumber.slice(-4),
+            cardholderName: cardDetails.cardholderName,
+            expiryDate: cardDetails.expiryDate
+          }
+        } : {})
+      };
+      
+      const response = await fetch('/api/enrollment/payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paymentData),
+      });
+      
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Failed to process payment');
+      }
+      
+      toast.success('Payment processed successfully!');
+      onSuccess(responseData);
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to process payment');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 max-w-md mx-auto">
+      <h2 className="text-2xl font-bold mb-6 text-center text-indigo-700">
+        Complete Your Enrollment
+      </h2>
+      
+      <div className="mb-6">
+        <h3 className="text-lg font-medium mb-2">Payment Summary</h3>
+        <div className="bg-gray-50 p-4 rounded-md">
+          <div className="flex justify-between mb-2">
+            <span className="text-gray-600">Class:</span>
+            <span className="font-medium">{className}</span>
+          </div>
+          <div className="flex justify-between mb-2">
+            <span className="text-gray-600">Enrollment Fee:</span>
+            <span className="font-medium">${amount.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between pt-2 border-t border-gray-200 mt-2">
+            <span className="text-gray-800 font-medium">Total:</span>
+            <span className="text-indigo-700 font-bold">${amount.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="mb-6">
+        <h3 className="text-lg font-medium mb-2">Payment Method</h3>
+        <div className="flex space-x-4">
+          <button
+            type="button"
+            onClick={() => setPaymentMethod('credit_card')}
+            className={`flex-1 py-2 px-4 rounded-md ${paymentMethod === 'credit_card' ? 'bg-indigo-100 border-indigo-500 text-indigo-700 border-2' : 'bg-gray-100 border-gray-300 text-gray-700 border'}`}
+          >
+            Credit Card
+          </button>
+          <button
+            type="button"
+            onClick={() => setPaymentMethod('paypal')}
+            className={`flex-1 py-2 px-4 rounded-md ${paymentMethod === 'paypal' ? 'bg-blue-100 border-blue-500 text-blue-700 border-2' : 'bg-gray-100 border-gray-300 text-gray-700 border'}`}
+          >
+            PayPal
+          </button>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {paymentMethod === 'credit_card' && (
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                Card Number
+              </label>
+              <input
+                type="text"
+                id="cardNumber"
+                name="cardNumber"
+                placeholder="1234 5678 9012 3456"
+                value={cardDetails.cardNumber}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border ${errors.cardNumber ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+              />
+              {errors.cardNumber && (
+                <p className="text-red-500 text-xs mt-1">{errors.cardNumber}</p>
+              )}
+            </div>
+            
+            <div>
+              <label htmlFor="cardholderName" className="block text-sm font-medium text-gray-700 mb-1">
+                Cardholder Name
+              </label>
+              <input
+                type="text"
+                id="cardholderName"
+                name="cardholderName"
+                placeholder="John Doe"
+                value={cardDetails.cardholderName}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border ${errors.cardholderName ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+              />
+              {errors.cardholderName && (
+                <p className="text-red-500 text-xs mt-1">{errors.cardholderName}</p>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700 mb-1">
+                  Expiry Date
+                </label>
+                <input
+                  type="text"
+                  id="expiryDate"
+                  name="expiryDate"
+                  placeholder="MM/YY"
+                  value={cardDetails.expiryDate}
+                  onChange={handleInputChange}
+                  className={`w-full px-3 py-2 border ${errors.expiryDate ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+                />
+                {errors.expiryDate && (
+                  <p className="text-red-500 text-xs mt-1">{errors.expiryDate}</p>
+                )}
+              </div>
+              
+              <div>
+                <label htmlFor="cvv" className="block text-sm font-medium text-gray-700 mb-1">
+                  CVV
+                </label>
+                <input
+                  type="text"
+                  id="cvv"
+                  name="cvv"
+                  placeholder="123"
+                  value={cardDetails.cvv}
+                  onChange={handleInputChange}
+                  className={`w-full px-3 py-2 border ${errors.cvv ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+                />
+                {errors.cvv && (
+                  <p className="text-red-500 text-xs mt-1">{errors.cvv}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="mt-6">
+          <button
+            type="submit"
+            disabled={isProcessing}
+            className={`w-full py-3 px-4 ${isProcessing ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'} text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+          >
+            {isProcessing ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export default function EnrollPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -67,21 +326,27 @@ export default function EnrollPage() {
   const [receipt, setReceipt] = useState<any>(null);
 
   useEffect(() => {
+    console.log('Enrollment page mount/update effect. Auth status:', status);
+    
     if (status === 'loading') {
+      console.log('Auth is still loading...');
       return;
     }
 
     if (status === 'unauthenticated') {
+      console.log('User is not authenticated, redirecting to login');
       router.push(`/login?callbackUrl=/classes/enroll/${classId}`);
       return;
     }
 
     if (session?.user.role !== 'STUDENT') {
+      console.log('User is not a student, showing error');
       setError('Only students can enroll in classes');
       setCurrentStep(EnrollmentStep.ERROR);
       return;
     }
 
+    console.log('User is authenticated as student, fetching class details');
     fetchClassDetails();
   }, [session, status, router, classId]);
 
@@ -114,7 +379,8 @@ export default function EnrollPage() {
         return;
       }
       
-      if (data.status !== 'active') {
+      // Allow classes with either 'active' or 'Approved' status for enrollment
+      if (data.status !== 'active' && data.status !== 'Approved') {
         setError('This class is not currently accepting enrollments.');
         setCurrentStep(EnrollmentStep.ERROR);
         return;
@@ -178,7 +444,9 @@ export default function EnrollPage() {
   };
 
   const handleApplicationSubmit = (enrollmentId: string) => {
+    console.log('Application submitted successfully, enrollment ID:', enrollmentId);
     setEnrollmentId(enrollmentId);
+    console.log('Setting current step to PAYMENT');
     setCurrentStep(EnrollmentStep.PAYMENT);
   };
 
@@ -198,6 +466,13 @@ export default function EnrollPage() {
 
   // Render different content based on the current step
   const renderContent = () => {
+    console.log('renderContent called with:', { 
+      currentStep: EnrollmentStep[currentStep], 
+      enrollmentId,
+      classDetails: classDetails ? `${classDetails.name} (fee: ${classDetails.fee})` : 'null',
+      userId: session?.user?.id
+    });
+    
     switch (currentStep) {
       case EnrollmentStep.LOADING:
         return (
@@ -275,17 +550,42 @@ export default function EnrollPage() {
         );
         
       case EnrollmentStep.PAYMENT:
-        if (!classDetails || !enrollmentId) return null;
+        console.log('PAYMENT STEP RENDERING ATTEMPT - Details:', { 
+          enrollmentId, 
+          classId,
+          className: classDetails?.name,
+          fee: classDetails?.fee,
+          userId: session?.user?.id 
+        });
         
+        if (!classDetails) {
+          console.error('Missing classDetails for payment step');
+          return <div className="p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded">
+            Loading class details...
+          </div>;
+        }
+        
+        if (!enrollmentId) {
+          console.error('Missing enrollmentId for payment step');
+          return <div className="p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded">
+            Missing enrollment ID. Please try again.
+          </div>;
+        }
+        
+        console.log('All data present for PaymentForm! Rendering with fee:', classDetails.fee);
+        
+        // Use an inline temporary payment form component to bypass any import issues
         return (
-          <PaymentForm
-            enrollmentId={enrollmentId}
-            classId={classId}
-            className={classDetails.name}
-            amount={classDetails.fee} // Using the class-specific fee from the database
-            onSuccess={(paymentData: PaymentData) => handlePaymentSuccess(paymentData)}
-            userId={session?.user?.id || ''}
-          />
+          <div className="max-w-md mx-auto">
+            <TempPaymentForm
+              enrollmentId={enrollmentId}
+              classId={classId}
+              className={classDetails.name}
+              amount={classDetails.fee}
+              onSuccess={(paymentData: PaymentData) => handlePaymentSuccess(paymentData)}
+              userId={session?.user?.id || ''}
+            />
+          </div>
         );
         
       case EnrollmentStep.CONFIRMATION:

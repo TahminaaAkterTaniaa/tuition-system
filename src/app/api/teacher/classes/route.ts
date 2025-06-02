@@ -49,31 +49,102 @@ export async function GET(req: NextRequest) {
             select: {
               id: true
             }
+          },
+          schedules: {
+            include: {
+              room: true,
+              timeSlot: true
+            }
           }
         }
       });
 
       console.log(`Found ${classes.length} classes`);
       
-      // Transform the data to include student count
-      const classesWithStudentCount = classes.map(classItem => {
+      // Transform the data to include student count and properly formatted schedules and room info
+      // Transform the data to include student count and properly formatted schedules
+      const processedClasses = await Promise.all(classes.map(async (classItem) => {
         const enrolledCount = classItem.enrollments.length;
-        
-        // Remove the enrollments array from the response
-        const { enrollments, ...classWithoutEnrollments } = classItem;
-        
+
+        // Helper function to process a schedule
+        async function processSchedule(schedule: any) {
+          let timeSlotData = schedule.timeSlot;
+          if (!timeSlotData && schedule.timeSlotId) {
+            timeSlotData = await prisma.timeSlot.findUnique({
+              where: { id: schedule.timeSlotId }
+            });
+          }
+          return { schedule, timeSlotData };
+        }
+
+        // Process all schedules
+        const scheduleDetails = await Promise.all(
+          classItem.schedules.map(async (schedule) => {
+            const { timeSlotData } = await processSchedule(schedule);
+
+            // Determine time label in order of preference
+            let timeLabel = '—';
+            if (timeSlotData?.label) {
+              timeLabel = timeSlotData.label;
+            } else if (schedule.time && !schedule.time.includes('cmb')) {
+              timeLabel = schedule.time;
+            } else if (timeSlotData?.startTime && timeSlotData?.endTime) {
+              timeLabel = `${timeSlotData.startTime} - ${timeSlotData.endTime}`;
+            }
+
+            console.log('Processing schedule:', {
+              timeSlot: timeSlotData,
+              day: schedule.day,
+              time: schedule.time,
+              timeLabel
+            });
+
+            return {
+              day: schedule.day,
+              time: timeLabel,
+              roomName: schedule.room?.name || 'Not assigned',
+              roomBuilding: schedule.room?.building || '',
+              roomId: schedule.roomId
+            };
+          })
+        );
+
+        // Sort schedules by day
+        const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        scheduleDetails.sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
+
+        // Format room information (use the first schedule's room if available)
+        const firstSchedule = scheduleDetails[0];
+        const roomDisplay = firstSchedule && firstSchedule.roomName !== 'Not assigned'
+          ? firstSchedule.roomBuilding
+            ? `${firstSchedule.roomName} (${firstSchedule.roomBuilding})`
+            : firstSchedule.roomName
+          : 'Not assigned';
+
+        // Create formatted schedules string with Day: Time format
+        const schedulesDisplay = scheduleDetails
+          .map(s => `${s.day}: ${s.time}`)
+          .join('; ');
+
         return {
-          ...classWithoutEnrollments,
-          students: enrolledCount
+          ...classItem,
+          roomDisplay,
+          schedulesDisplay,
+          enrolledCount,
+          schedules: scheduleDetails
         };
-      });
-      
-      console.log(`Returning ${classesWithStudentCount.length} classes`);
-      
-      // Return the classes with a proper structure
-      return NextResponse.json({
-        classes: classesWithStudentCount
-      });
+      }));
+
+      const searchQuery = req.nextUrl.searchParams.get('search');
+      if (searchQuery) {
+        const filteredClasses = processedClasses.filter(classItem =>
+          classItem.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          classItem.subject.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        return NextResponse.json(filteredClasses);
+      }
+
+      return NextResponse.json(processedClasses);
     } catch (classesError) {
       console.error('Error in classes query:', classesError);
       throw classesError; // Re-throw to be caught by the outer try-catch

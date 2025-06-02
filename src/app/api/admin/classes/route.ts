@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     }
     
     const body = await req.json();
-    const { name, subject, description, startDate, endDate, capacity, room, teacherId } = body;
+    const { name, subject, description, startDate, endDate, capacity, fee, room, teacherId } = body;
     
     // Validate required fields
     if (!name || !subject || !startDate || !capacity) {
@@ -109,8 +109,10 @@ export async function POST(req: NextRequest) {
         startDate: new Date(startDate),
         endDate: endDate ? new Date(endDate) : null,
         capacity: parseInt(capacity),
+        fee: fee || 99.99, // Use provided fee or default to 99.99
         room,
-        teacherId,
+        // Only include teacherId if it's not null, undefined, or empty string
+        ...(teacherId ? { teacherId } : {}),
         status: 'Approved', // Automatically approve classes created by admins
       },
     });
