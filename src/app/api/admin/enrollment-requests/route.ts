@@ -62,7 +62,48 @@ export async function GET(req: NextRequest) {
       }
     });
     
-    return NextResponse.json(enrollmentRequests);
+    // Fetch document info from ActivityLog for each enrollment request
+    const enrichedRequests = await Promise.all(enrollmentRequests.map(async (request) => {
+      // Find related activity log for this enrollment request
+      const activityLog = await prisma.activityLog.findFirst({
+        where: {
+          action: 'ENROLLMENT_REQUESTED',
+          entityType: 'ENROLLMENT_REQUEST',
+          entityId: request.id
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+      
+      // Extract document info from activity log metadata
+      let documents = null;
+      if (activityLog?.metadata) {
+        try {
+          const metadata = JSON.parse(activityLog.metadata);
+          documents = {
+            idDocument: metadata.idDocumentUrl ? {
+              url: metadata.idDocumentUrl,
+              fileName: 'ID Document'
+            } : null,
+            transcript: metadata.transcriptUrl ? {
+              url: metadata.transcriptUrl,
+              fileName: 'Academic Transcript'
+            } : null
+          };
+        } catch (error) {
+          console.error('Error parsing activity log metadata:', error);
+        }
+      }
+      
+      // Return request with documents added
+      return {
+        ...request,
+        documents
+      };
+    }));
+    
+    return NextResponse.json(enrichedRequests);
     
   } catch (error: any) {
     console.error('Error fetching enrollment requests:', error);

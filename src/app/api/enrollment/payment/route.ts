@@ -163,15 +163,27 @@ export async function POST(req: NextRequest) {
         console.log('Recording payment for enrollment request ID:', enrollmentRequest.id);
         
         // Update the enrollment request with payment details
+        // Safely parse the existing notes with error handling
+        let existingNotes = {};
+        try {
+          if (enrollmentRequest.notes && enrollmentRequest.notes.trim() !== '') {
+            existingNotes = JSON.parse(enrollmentRequest.notes);
+          }
+        } catch (parseError) {
+          console.error('Error parsing existing notes:', parseError);
+          console.log('Original notes content:', enrollmentRequest.notes);
+          // Continue with empty object if parsing fails
+        }
+        
         const updatedRequest = await prisma.enrollmentRequest.update({
           where: { id: enrollmentRequest.id },
           data: {
             // Don't change status - admin will approve it
             notes: JSON.stringify({
-              ...JSON.parse(enrollmentRequest.notes || '{}'),
+              ...existingNotes,
               paymentId: mockPayment.id,
               paymentStatus: paymentStatus,
-              paymentDate: new Date(),
+              paymentDate: new Date().toISOString(),
               transactionId,
               paymentMethod: paymentMethod || 'Development Mode',
               amount: mockPayment.amount

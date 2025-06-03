@@ -34,21 +34,17 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<{
-    idDocument: File | null;
-    transcript: File | null;
-  }>({
-    idDocument: null,
-    transcript: null,
-  });
-
-  // Store file paths for preview
-  const [filePaths, setFilePaths] = useState<{
-    idDocument: string | null;
-    transcript: string | null;
-  }>({
-    idDocument: null,
-    transcript: null,
-  });
+    idDocument?: {
+      fileName: string;
+      url: string;
+      blobId?: string;
+    };
+    transcript?: {
+      fileName: string;
+      url: string;
+      blobId?: string;
+    };
+  }>({});
 
   const {
     register,
@@ -121,17 +117,11 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
           Object.entries(mockProfileData).forEach(([field, value]) => {
             setValue(field as keyof EnrollmentFormData, value);
           });
-          toast.success('Form pre-filled with sample data (API error fallback)');
+          toast.success('Form pre-filled with sample data (API error)');
         }
       } catch (error) {
         console.error('Error fetching student profile:', error);
-        // Use mock data as fallback
-        setValue('fullName', 'Student Name');
-        setValue('email', 'student@example.com');
-        setValue('phone', '123-456-7890');
-        setValue('idNumber', 'ST123456');
-        setValue('emergencyContact', 'Emergency Contact: 987-654-3210');
-        toast.success('Form pre-filled with sample data (error fallback)');
+        toast.error('Failed to load your profile information');
       } finally {
         setIsLoading(false);
       }
@@ -144,160 +134,152 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Client-side validation
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type. Only JPG, PNG, and PDF files are allowed.');
+      return;
+    }
+
+    // Check file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast.error('File size too large. Maximum size is 10MB.');
+      return;
+    }
+
+    const toastId = toast.loading(`Uploading ${fileType === 'idDocument' ? 'ID Document' : 'Transcript'}...`);
+
     try {
-      // Validate file type client-side first
-      const fileName = file.name;
-      const fileExt = fileName.split('.').pop()?.toLowerCase();
-      const allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
-
-      if (!fileExt || !allowedExtensions.includes(fileExt)) {
-        toast.error('Invalid file format. Only JPG, PNG, and PDF files are allowed.');
-        return;
-      }
-
-      // Validate file size client-side (10MB limit)
-      const maxSize = 10 * 1024 * 1024; // 10MB
-      if (file.size > maxSize) {
-        toast.error('File size too large. Maximum size is 10MB.');
-        return;
-      }
-
-      const toastId = `upload-${fileType}`;
-      toast.loading(`Uploading ${fileType === 'idDocument' ? 'ID Document' : 'Transcript'}...`, {
-        id: toastId,
-      });
-
       const formData = new FormData();
       formData.append('file', file);
       formData.append('fileType', fileType);
 
-      const response = await fetch('/api/enrollment/upload', {
+      const response = await fetch('/api/blob/upload', {
         method: 'POST',
         body: formData,
       });
 
-      let errorMessage = 'Failed to upload file';
-
-      if (!response.ok) {
-        // Try to parse error as JSON first
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || 'Server error: ' + response.status;
-        } catch {
-          // If not JSON, get as text
-          try {
-            errorMessage = await response.text();
-          } catch {
-            errorMessage = `HTTP error: ${response.status}`;
-          }
-        }
-
-        toast.error(errorMessage, { id: toastId });
-        throw new Error(errorMessage);
-      }
-
       const data = await response.json();
-      if (data.success && data.path) {
-        // Store the file and its path
-        setUploadedFiles(prev => ({
-          ...prev,
-          [fileType]: file
-        }));
 
-        // Store the file path for preview
-        setFilePaths(prev => ({
-          ...prev,
-          [fileType]: data.path
+      if (response.ok) {
+        console.log('File uploaded successfully:', data);
+        // Safely access file name (we already checked file exists at the top of the function)
+        const fileName = file ? file.name : 'file';
+        
+        setUploadedFiles(prevState => ({
+          ...prevState,
+          [fileType]: {
+            fileName,
+            url: data.url,
+            blobId: data.blobId
+          }
         }));
-
+        console.log(`Set ${fileType} with fileName: ${fileName}`);
         toast.success(`${fileType === 'idDocument' ? 'ID Document' : 'Transcript'} uploaded successfully`, {
-          id: toastId,
+          id: toastId
         });
       } else {
-        toast.error(data.error || 'Failed to upload file', { id: toastId });
         throw new Error(data.error || 'Failed to upload file');
       }
     } catch (error) {
       console.error('Error uploading file:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to upload file', {
-        id: `upload-${fileType}`,
+        id: toastId
       });
     }
   };
 
   // Remove an uploaded file
   const handleRemoveFile = (fileType: 'idDocument' | 'transcript') => {
-    setUploadedFiles(prev => ({
-      ...prev,
-      [fileType]: null
-    }));
-
-    setFilePaths(prev => ({
-      ...prev,
-      [fileType]: null
-    }));
-
-    toast.success(`${fileType === 'idDocument' ? 'ID Document' : 'Transcript'} removed`);
+    if (uploadedFiles[fileType]) {
+      setUploadedFiles(prevState => {
+        const newState = { ...prevState };
+        delete newState[fileType];
+        return newState;
+      });
+      toast.success(`${fileType === 'idDocument' ? 'ID Document' : 'Transcript'} removed`);
+    }
   };
 
   const onSubmit = async (data: EnrollmentFormData) => {
     if (step === 1) {
+      // Move to step 2 (document upload)
       setStep(2);
       return;
     }
 
+    // Validate required files
+    if (!uploadedFiles.idDocument) {
+      toast.error('ID Document is required');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const toastId = toast.loading('Submitting enrollment application...');
+
     try {
-      setIsSubmitting(true);
-
-      // Validate required files
-      if (!uploadedFiles.idDocument) {
-        throw new Error('ID Document is required');
-      }
-
-      // Create enrollment request with document paths
-      const requestData = {
+      // Prepare the enrollment data
+      // Simplified document data preparation
+      const enrollmentData = {
         ...data,
         classId,
         userId,
         documents: {
-          idDocumentPath: uploadedFiles.idDocument?.name,
-          transcriptPath: uploadedFiles.transcript?.name
+          idDocument: uploadedFiles.idDocument ? {
+            url: uploadedFiles.idDocument.url || '',
+            blobId: uploadedFiles.idDocument.blobId || '',
+            fileName: uploadedFiles.idDocument.fileName || 'id-document' 
+          } : undefined,
+          transcript: uploadedFiles.transcript ? {
+            url: uploadedFiles.transcript.url || '',
+            blobId: uploadedFiles.transcript.blobId || '',
+            fileName: uploadedFiles.transcript.fileName || 'transcript'
+          } : undefined
         }
       };
+      
+      console.log('Prepared enrollment data:', JSON.stringify(enrollmentData));
 
-      const response = await fetch('/api/student/enrollment-requests', {
+      // Submit the enrollment request
+      const response = await fetch('/api/enrollment/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify(enrollmentData),
       });
 
       const responseData = await response.json();
 
-      if (responseData.success) {
-        toast.success('Enrollment request submitted successfully!');
-        console.log('Enrollment request API response:', responseData);
-        // Fix: API returns requestId instead of enrollmentId
-        onSuccess(responseData.requestId);
+      if (response.ok) {
+        toast.success('Enrollment request submitted successfully and awaiting admin approval!', { id: toastId });
+        if (onSuccess && responseData.enrollmentRequestId) {
+          // Pass the enrollment request ID to the success handler
+          onSuccess(responseData.enrollmentRequestId);
+        }
       } else {
         throw new Error(responseData.error || 'Failed to submit enrollment request');
       }
     } catch (error) {
       console.error('Error submitting enrollment request:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to submit enrollment request');
+      toast.error(error instanceof Error ? error.message : 'Failed to submit enrollment request', { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 max-w-3xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6 text-center text-indigo-700">
-        Enrollment Application for {className}
+    <div className="bg-white p-6 rounded-lg shadow-md max-w-3xl mx-auto">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+        Enrollment for {className}
       </h2>
-
-      {step === 1 ? (
+      
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
+      ) : step === 1 ? (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -360,7 +342,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
               )}
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label htmlFor="emergencyContact" className="block text-sm font-medium text-gray-700 mb-1">
                 Emergency Contact *
               </label>
@@ -415,108 +397,64 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-6">
-            <div>
+            <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Upload ID Document *
+                Upload ID Document (Required)
               </label>
-
-              {filePaths.idDocument ? (
-                <div className="mt-2">
+              <div className="mt-1">
+                <label htmlFor="idDocumentInput" className="sr-only">Upload ID Document</label>
+                <input
+                  id="idDocumentInput"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  onChange={(e) => handleFileChange(e, 'idDocument')}
+                  aria-label="Upload ID Document"
+                  className="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-md file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-primary-50 file:text-primary-700
+                    hover:file:bg-primary-100"
+                />
+              </div>
+              {uploadedFiles.idDocument && (
+                <div className="mt-3">
                   <DocumentPreview
-                    documentType="idDocument"
-                    fileName={filePaths.idDocument}
+                    fileName={uploadedFiles.idDocument.fileName}
+                    fileUrl={uploadedFiles.idDocument.url}
                     onRemove={() => handleRemoveFile('idDocument')}
                   />
-                </div>
-              ) : (
-                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                  <div className="space-y-1 text-center">
-                    <svg
-                      className="mx-auto h-12 w-12 text-gray-400"
-                      stroke="currentColor"
-                      fill="none"
-                      viewBox="0 0 48 48"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <div className="flex text-sm text-gray-600">
-                      <label
-                        htmlFor="idDocument"
-                        className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
-                      >
-                        <span>Upload a file</span>
-                        <input
-                          id="idDocument"
-                          name="idDocument"
-                          type="file"
-                          className="sr-only"
-                          onChange={(e) => handleFileChange(e, 'idDocument')}
-                          accept=".jpg,.jpeg,.png,.pdf"
-                        />
-                      </label>
-                      <p className="pl-1">or drag and drop</p>
-                    </div>
-                    <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
-                  </div>
                 </div>
               )}
             </div>
 
-            <div>
+            <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Upload Academic Transcript (Optional)
               </label>
-              
-              {filePaths.transcript ? (
-                <div className="mt-2">
-                  <DocumentPreview 
-                    documentType="transcript" 
-                    fileName={filePaths.transcript} 
+              <div className="mt-1">
+                <label htmlFor="transcriptInput" className="sr-only">Upload Academic Transcript</label>
+                <input
+                  id="transcriptInput"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  onChange={(e) => handleFileChange(e, 'transcript')}
+                  aria-label="Upload Academic Transcript"
+                  className="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-md file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-primary-50 file:text-primary-700
+                    hover:file:bg-primary-100"
+                />
+              </div>
+              {uploadedFiles.transcript && (
+                <div className="mt-3">
+                  <DocumentPreview
+                    fileName={uploadedFiles.transcript.fileName}
+                    fileUrl={uploadedFiles.transcript.url}
                     onRemove={() => handleRemoveFile('transcript')}
                   />
-                </div>
-              ) : (
-                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                  <div className="space-y-1 text-center">
-                    <svg
-                      className="mx-auto h-12 w-12 text-gray-400"
-                      stroke="currentColor"
-                      fill="none"
-                      viewBox="0 0 48 48"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <div className="flex text-sm text-gray-600">
-                      <label
-                        htmlFor="transcript"
-                        className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
-                      >
-                        <span>Upload a file</span>
-                        <input
-                          id="transcript"
-                          name="transcript"
-                          type="file"
-                          className="sr-only"
-                          onChange={(e) => handleFileChange(e, 'transcript')}
-                          accept=".jpg,.jpeg,.png,.pdf"
-                        />
-                      </label>
-                      <p className="pl-1">or drag and drop</p>
-                    </div>
-                    <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
-                  </div>
                 </div>
               )}
             </div>

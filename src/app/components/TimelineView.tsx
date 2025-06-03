@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import DocumentPreview from './DocumentPreview';
+import Image from 'next/image';
 
 interface TimelineItem {
   title: string;
@@ -38,6 +39,12 @@ export default function TimelineView({ enrollmentData }: TimelineViewProps) {
   
   // Extract document paths from parsed notes or documents field
   const getDocumentPaths = () => {
+    // First check if enrollmentData has documents directly
+    if (enrollmentData.documents) {
+      return enrollmentData.documents;
+    }
+    
+    // Then check parsed notes
     if (!parsedNotes) return null;
     
     // Check if parsedNotes has documents object
@@ -125,48 +132,117 @@ export default function TimelineView({ enrollmentData }: TimelineViewProps) {
                   )}
                 </div>
                 
-                {expandedDocuments && (
-                  <div className="mt-2">
-                    {/* If we have document paths directly */}
-                    {documentPaths && (
-                      <DocumentPreview jsonData={JSON.stringify({
-                        idDocumentPath: documentPaths.idDocumentPath || 
-                          (documentPaths.documents && documentPaths.documents.idDocumentPath),
-                        transcriptPath: documentPaths.transcriptPath || 
-                          (documentPaths.documents && documentPaths.documents.transcriptPath)
-                      })} />
-                    )}
-                  </div>
-                )}
+
                 
-                {/* Document list */}
-                <ul className="mt-2 space-y-2">
-                  {(documentPaths.idDocumentPath || (documentPaths.documents && documentPaths.documents.idDocumentPath)) && (
-                    <li className="flex items-center">
-                      <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-sm">ID Document</span>
-                      <button 
-                        onClick={() => setExpandedDocuments(true)}
-                        className="ml-2 text-xs text-indigo-600 hover:text-indigo-800"
-                      >
-                        Preview
-                      </button>
+                {/* Document list with enhanced previews */}
+                <ul className="mt-2 space-y-4">
+                  {/* ID Document */}
+                  {(documentPaths.idDocument || documentPaths.idDocumentPath || 
+                    (documentPaths.documents && documentPaths.documents.idDocumentPath)) && (
+                    <li className="border border-gray-200 rounded-md p-3 bg-gray-50">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center">
+                          <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span className="font-medium">ID Document</span>
+                        </div>
+                        <button 
+                          onClick={() => setExpandedDocuments(!expandedDocuments)}
+                          className="text-xs text-indigo-600 hover:text-indigo-800 px-2 py-1 border border-indigo-200 rounded-md"
+                        >
+                          {expandedDocuments ? 'Hide Preview' : 'Show Preview'}
+                        </button>
+                      </div>
+                      
+                      {expandedDocuments && (
+                        <div className="mt-2 border border-gray-200 rounded-md overflow-hidden">
+                          {documentPaths.idDocument?.url ? (
+                            <a 
+                              href={documentPaths.idDocument.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="block hover:opacity-90 transition-opacity"
+                            >
+                              <div className="bg-gray-100 h-32 flex items-center justify-center">
+                                {documentPaths.idDocument.url.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                                  <img 
+                                    src={documentPaths.idDocument.url} 
+                                    alt="ID Document" 
+                                    className="max-h-full max-w-full object-contain"
+                                  />
+                                ) : (
+                                  <div className="flex flex-col items-center">
+                                    <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span className="mt-2 text-sm text-gray-600">Click to view document</span>
+                                  </div>
+                                )}
+                              </div>
+                            </a>
+                          ) : (
+                            <div className="bg-gray-100 h-32 flex items-center justify-center">
+                              <span className="text-sm text-gray-500">Document preview not available</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </li>
                   )}
-                  {(documentPaths.transcriptPath || (documentPaths.documents && documentPaths.documents.transcriptPath)) && (
-                    <li className="flex items-center">
-                      <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-sm">Transcript</span>
-                      <button 
-                        onClick={() => setExpandedDocuments(true)}
-                        className="ml-2 text-xs text-indigo-600 hover:text-indigo-800"
-                      >
-                        Preview
-                      </button>
+                  
+                  {/* Transcript */}
+                  {(documentPaths.transcript || documentPaths.transcriptPath || 
+                    (documentPaths.documents && documentPaths.documents.transcriptPath)) && (
+                    <li className="border border-gray-200 rounded-md p-3 bg-gray-50">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center">
+                          <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span className="font-medium">Academic Transcript</span>
+                        </div>
+                        <button 
+                          onClick={() => setExpandedDocuments(!expandedDocuments)}
+                          className="text-xs text-indigo-600 hover:text-indigo-800 px-2 py-1 border border-indigo-200 rounded-md"
+                        >
+                          {expandedDocuments ? 'Hide Preview' : 'Show Preview'}
+                        </button>
+                      </div>
+                      
+                      {expandedDocuments && (
+                        <div className="mt-2 border border-gray-200 rounded-md overflow-hidden">
+                          {documentPaths.transcript?.url ? (
+                            <a 
+                              href={documentPaths.transcript.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="block hover:opacity-90 transition-opacity"
+                            >
+                              <div className="bg-gray-100 h-32 flex items-center justify-center">
+                                {documentPaths.transcript.url.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                                  <img 
+                                    src={documentPaths.transcript.url} 
+                                    alt="Academic Transcript" 
+                                    className="max-h-full max-w-full object-contain"
+                                  />
+                                ) : (
+                                  <div className="flex flex-col items-center">
+                                    <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span className="mt-2 text-sm text-gray-600">Click to view document</span>
+                                  </div>
+                                )}
+                              </div>
+                            </a>
+                          ) : (
+                            <div className="bg-gray-100 h-32 flex items-center justify-center">
+                              <span className="text-sm text-gray-500">Document preview not available</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </li>
                   )}
                 </ul>

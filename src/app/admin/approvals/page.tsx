@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
-import DocumentPreview from '@/app/components/DocumentPreview';
+import DocumentPreview from '@/components/DocumentPreview';
 import TimelineView from '@/app/components/TimelineView';
 
 interface Student {
@@ -29,6 +29,16 @@ interface Class {
   };
 }
 
+interface Document {
+  url: string;
+  fileName: string;
+}
+
+interface Documents {
+  idDocument?: Document | null;
+  transcript?: Document | null;
+}
+
 interface EnrollmentRequest {
   id: string;
   status: string;
@@ -38,6 +48,7 @@ interface EnrollmentRequest {
   notes?: string;
   student: Student;
   class: Class;
+  documents?: Documents | null;
 }
 
 interface WithdrawalRequest {
@@ -266,6 +277,8 @@ export default function AdminApprovalsPage() {
                   <div className="mb-6">
                     <TimelineView enrollmentData={request} />
                   </div>
+                  
+
                   
                   <div className="mb-4">
                     <label htmlFor="feedback" className="block text-sm font-medium text-gray-700 mb-1">

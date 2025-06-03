@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/lib/auth';
-import { saveFile } from '@/app/lib/fileStorage';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { uploadToBlob } from '@/app/lib/blob-storage';
+import { PrismaClient } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,31 +36,53 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Use the utility function to save the file
-    console.log(`Saving ${fileType} file ${file.name}...`);
-    const result = await saveFile(file, fileType);
+    // Get file extension
+    const originalName = file.name;
+    const ext = originalName.split('.').pop()?.toLowerCase();
 
-    if (!result.success) {
-      console.error('File save failed:', result.error);
-      return new NextResponse(JSON.stringify({ 
-        error: result.error || 'Failed to save file' 
-      }), { 
+    // Validate file type
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
+    if (!ext || !allowedExtensions.includes(ext)) {
+      console.error('Invalid file extension:', ext);
+      return new NextResponse(JSON.stringify({ error: 'Invalid file format. Only JPG, PNG, and PDF files are allowed.' }), { 
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('File saved successfully:', result.path);
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      console.error('File too large:', file.size);
+      return new NextResponse(JSON.stringify({ error: 'File size too large. Maximum size is 10MB.' }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('Converting file to buffer for Vercel Blob upload...');
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
     
-    // Return the relative path to the file
+    // Upload file to Vercel Blob storage
+    const uploadResult = await uploadToBlob(buffer, originalName, fileType);
+
+    if (!uploadResult.success) {
+      console.error('Failed to upload file to Vercel Blob:', uploadResult.error);
+      return new NextResponse(JSON.stringify({ error: 'Failed to upload file to blob storage' }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Return the Blob URL and ID
     return new NextResponse(JSON.stringify({
       success: true,
-      path: result.path,
+      path: uploadResult.url,
+      blobId: uploadResult.blobId
     }), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
