@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/lib/auth';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
-import { randomUUID } from 'crypto';
+import { saveFile } from '@/app/lib/fileStorage';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('File upload request received');
     const session = await getServerSession(authOptions);
     if (!session) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      console.error('Unauthorized: No session found');
+      return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const formData = await request.formData();
@@ -17,46 +20,41 @@ export async function POST(request: NextRequest) {
     const fileType = formData.get('fileType') as string;
 
     if (!file) {
-      return new NextResponse('No file uploaded', { status: 400 });
+      console.error('No file in request');
+      return new NextResponse(JSON.stringify({ error: 'No file uploaded' }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     if (!fileType || !['idDocument', 'transcript'].includes(fileType)) {
-      return new NextResponse('Invalid file type', { status: 400 });
+      console.error('Invalid file type:', fileType);
+      return new NextResponse(JSON.stringify({ error: 'Invalid file type' }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    // Get file extension
-    const originalName = file.name;
-    const ext = originalName.split('.').pop()?.toLowerCase();
+    // Use the utility function to save the file
+    console.log(`Saving ${fileType} file ${file.name}...`);
+    const result = await saveFile(file, fileType);
 
-    // Validate file type
-    const allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
-    if (!ext || !allowedExtensions.includes(ext)) {
-      return new NextResponse('Invalid file format. Only JPG, PNG, and PDF files are allowed.', { status: 400 });
+    if (!result.success) {
+      console.error('File save failed:', result.error);
+      return new NextResponse(JSON.stringify({ 
+        error: result.error || 'Failed to save file' 
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    // Validate file size (10MB limit)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      return new NextResponse('File size too large. Maximum size is 10MB.', { status: 400 });
-    }
-
-    // Generate unique filename
-    const uniqueId = randomUUID();
-    const fileName = `${fileType}_${uniqueId}.${ext}`;
-    const uploadDir = join(process.cwd(), 'uploads');
-    const filePath = join(uploadDir, fileName);
-
-    // Convert File to Buffer and save
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
-
+    console.log('File saved successfully:', result.path);
+    
     // Return the relative path to the file
-    const relativePath = `${fileName}`;
-
     return new NextResponse(JSON.stringify({
       success: true,
-      path: relativePath,
+      path: result.path,
     }), {
       status: 200,
       headers: {
@@ -66,6 +64,16 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error uploading file:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error details:', errorMessage);
+    return new NextResponse(JSON.stringify({ 
+      error: errorMessage,
+      success: false,
+    }), { 
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 }

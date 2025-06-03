@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'react-hot-toast';
+import DocumentPreview from './DocumentPreview';
 
 // Define the form schema with Zod
 const enrollmentSchema = z.object({
@@ -40,6 +41,15 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
     transcript: null,
   });
 
+  // Store file paths for preview
+  const [filePaths, setFilePaths] = useState<{
+    idDocument: string | null;
+    transcript: string | null;
+  }>({
+    idDocument: null,
+    transcript: null,
+  });
+
   const {
     register,
     handleSubmit,
@@ -48,14 +58,14 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
   } = useForm<EnrollmentFormData>({
     resolver: zodResolver(enrollmentSchema),
   });
-  
+
   // Fetch student profile data for auto-filling the form
   useEffect(() => {
     const fetchStudentProfile = async () => {
       try {
         setIsLoading(true);
         console.log('Fetching student profile data for auto-fill...');
-        
+
         // For development/testing, we'll use hardcoded data if API fails
         const mockProfileData = {
           fullName: 'Student Name',
@@ -64,7 +74,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
           idNumber: 'ST123456',
           emergencyContact: 'Emergency Contact: 987-654-3210',
         };
-        
+
         // Using the simplified API endpoint that uses the session
         const response = await fetch('/api/student/profile', {
           method: 'GET',
@@ -73,13 +83,13 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
           },
           credentials: 'include', // Include cookies for authentication
         });
-        
+
         console.log('Profile API response status:', response.status);
-        
+
         if (response.ok) {
           const data = await response.json();
           console.log('Profile data received:', data);
-          
+
           if (data.success && data.profile) {
             console.log('Auto-filling form with profile data:', data.profile);
             // Auto-fill form fields with student profile data
@@ -88,7 +98,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
             setValue('phone', data.profile.phone || '');
             setValue('idNumber', data.profile.idNumber || '');
             setValue('emergencyContact', data.profile.emergencyContact || '');
-            
+
             toast.success('Form pre-filled with your profile information');
           } else {
             console.warn('Profile data structure is not as expected:', data);
@@ -106,7 +116,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
           } catch (parseError) {
             console.error('Could not parse error response');
           }
-          
+
           // Fallback to mock data for development
           Object.entries(mockProfileData).forEach(([field, value]) => {
             setValue(field as keyof EnrollmentFormData, value);
@@ -126,7 +136,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
         setIsLoading(false);
       }
     };
-    
+
     fetchStudentProfile();
   }, [setValue]);
 
@@ -135,6 +145,28 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
     if (!file) return;
 
     try {
+      // Validate file type client-side first
+      const fileName = file.name;
+      const fileExt = fileName.split('.').pop()?.toLowerCase();
+      const allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
+
+      if (!fileExt || !allowedExtensions.includes(fileExt)) {
+        toast.error('Invalid file format. Only JPG, PNG, and PDF files are allowed.');
+        return;
+      }
+
+      // Validate file size client-side (10MB limit)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        toast.error('File size too large. Maximum size is 10MB.');
+        return;
+      }
+
+      const toastId = `upload-${fileType}`;
+      toast.loading(`Uploading ${fileType === 'idDocument' ? 'ID Document' : 'Transcript'}...`, {
+        id: toastId,
+      });
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('fileType', fileType);
@@ -144,25 +176,68 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
         body: formData,
       });
 
+      let errorMessage = 'Failed to upload file';
+
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error);
+        // Try to parse error as JSON first
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || 'Server error: ' + response.status;
+        } catch {
+          // If not JSON, get as text
+          try {
+            errorMessage = await response.text();
+          } catch {
+            errorMessage = `HTTP error: ${response.status}`;
+          }
+        }
+
+        toast.error(errorMessage, { id: toastId });
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      if (data.success) {
+      if (data.success && data.path) {
+        // Store the file and its path
         setUploadedFiles(prev => ({
           ...prev,
           [fileType]: file
         }));
-        toast.success(`${fileType === 'idDocument' ? 'ID Document' : 'Transcript'} uploaded successfully`);
+
+        // Store the file path for preview
+        setFilePaths(prev => ({
+          ...prev,
+          [fileType]: data.path
+        }));
+
+        toast.success(`${fileType === 'idDocument' ? 'ID Document' : 'Transcript'} uploaded successfully`, {
+          id: toastId,
+        });
       } else {
-        throw new Error('Failed to upload file');
+        toast.error(data.error || 'Failed to upload file', { id: toastId });
+        throw new Error(data.error || 'Failed to upload file');
       }
     } catch (error) {
       console.error('Error uploading file:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to upload file');
+      toast.error(error instanceof Error ? error.message : 'Failed to upload file', {
+        id: `upload-${fileType}`,
+      });
     }
+  };
+
+  // Remove an uploaded file
+  const handleRemoveFile = (fileType: 'idDocument' | 'transcript') => {
+    setUploadedFiles(prev => ({
+      ...prev,
+      [fileType]: null
+    }));
+
+    setFilePaths(prev => ({
+      ...prev,
+      [fileType]: null
+    }));
+
+    toast.success(`${fileType === 'idDocument' ? 'ID Document' : 'Transcript'} removed`);
   };
 
   const onSubmit = async (data: EnrollmentFormData) => {
@@ -173,7 +248,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
 
     try {
       setIsSubmitting(true);
-      
+
       // Validate required files
       if (!uploadedFiles.idDocument) {
         throw new Error('ID Document is required');
@@ -199,7 +274,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
       });
 
       const responseData = await response.json();
-      
+
       if (responseData.success) {
         toast.success('Enrollment request submitted successfully!');
         console.log('Enrollment request API response:', responseData);
@@ -208,7 +283,6 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
       } else {
         throw new Error(responseData.error || 'Failed to submit enrollment request');
       }
-      
     } catch (error) {
       console.error('Error submitting enrollment request:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to submit enrollment request');
@@ -222,7 +296,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
       <h2 className="text-2xl font-bold mb-6 text-center text-indigo-700">
         Enrollment Application for {className}
       </h2>
-      
+
       {step === 1 ? (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -240,7 +314,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
                 <p className="mt-1 text-sm text-red-600">{errors.fullName.message}</p>
               )}
             </div>
-            
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email Address *
@@ -255,7 +329,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
                 <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
               )}
             </div>
-            
+
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                 Phone Number *
@@ -270,7 +344,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
                 <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
               )}
             </div>
-            
+
             <div>
               <label htmlFor="idNumber" className="block text-sm font-medium text-gray-700 mb-1">
                 Student ID Number *
@@ -285,7 +359,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
                 <p className="mt-1 text-sm text-red-600">{errors.idNumber.message}</p>
               )}
             </div>
-            
+
             <div>
               <label htmlFor="emergencyContact" className="block text-sm font-medium text-gray-700 mb-1">
                 Emergency Contact *
@@ -301,7 +375,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
               )}
             </div>
           </div>
-          
+
           <div>
             <label htmlFor="additionalNotes" className="block text-sm font-medium text-gray-700 mb-1">
               Additional Notes (Optional)
@@ -313,7 +387,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          
+
           <div className="flex items-start">
             <input
               id="agreeToTerms"
@@ -328,7 +402,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
           {errors.agreeToTerms && (
             <p className="mt-1 text-sm text-red-600">{errors.agreeToTerms.message}</p>
           )}
-          
+
           <div className="flex justify-end">
             <button
               type="submit"
@@ -343,93 +417,107 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Upload ID Document (Required)
+                Upload ID Document *
               </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                <div className="space-y-1 text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    stroke="currentColor"
-                    fill="none"
-                    viewBox="0 0 48 48"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <div className="flex text-sm text-gray-600">
-                    <label
-                      htmlFor="idDocument"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
-                    >
-                      <span>Upload a file</span>
-                      <input
-                        id="idDocument"
-                        name="idDocument"
-                        type="file"
-                        className="sr-only"
-                        onChange={(e) => handleFileChange(e, 'idDocument')}
-                      />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
+
+              {filePaths.idDocument ? (
+                <div className="mt-2">
+                  <DocumentPreview
+                    documentType="idDocument"
+                    fileName={filePaths.idDocument}
+                    onRemove={() => handleRemoveFile('idDocument')}
+                  />
                 </div>
-              </div>
-              {uploadedFiles.idDocument && (
-                <p className="mt-2 text-sm text-green-600">
-                  Uploaded: {uploadedFiles.idDocument.name}
-                </p>
+              ) : (
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                  <div className="space-y-1 text-center">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      stroke="currentColor"
+                      fill="none"
+                      viewBox="0 0 48 48"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <div className="flex text-sm text-gray-600">
+                      <label
+                        htmlFor="idDocument"
+                        className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                      >
+                        <span>Upload a file</span>
+                        <input
+                          id="idDocument"
+                          name="idDocument"
+                          type="file"
+                          className="sr-only"
+                          onChange={(e) => handleFileChange(e, 'idDocument')}
+                          accept=".jpg,.jpeg,.png,.pdf"
+                        />
+                      </label>
+                      <p className="pl-1">or drag and drop</p>
+                    </div>
+                    <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
+                  </div>
+                </div>
               )}
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Upload Academic Transcript (Optional)
               </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                <div className="space-y-1 text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    stroke="currentColor"
-                    fill="none"
-                    viewBox="0 0 48 48"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <div className="flex text-sm text-gray-600">
-                    <label
-                      htmlFor="transcript"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
-                    >
-                      <span>Upload a file</span>
-                      <input
-                        id="transcript"
-                        name="transcript"
-                        type="file"
-                        className="sr-only"
-                        onChange={(e) => handleFileChange(e, 'transcript')}
-                      />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
+              
+              {filePaths.transcript ? (
+                <div className="mt-2">
+                  <DocumentPreview 
+                    documentType="transcript" 
+                    fileName={filePaths.transcript} 
+                    onRemove={() => handleRemoveFile('transcript')}
+                  />
                 </div>
-              </div>
-              {uploadedFiles.transcript && (
-                <p className="mt-2 text-sm text-green-600">
-                  Uploaded: {uploadedFiles.transcript.name}
-                </p>
+              ) : (
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                  <div className="space-y-1 text-center">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      stroke="currentColor"
+                      fill="none"
+                      viewBox="0 0 48 48"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <div className="flex text-sm text-gray-600">
+                      <label
+                        htmlFor="transcript"
+                        className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                      >
+                        <span>Upload a file</span>
+                        <input
+                          id="transcript"
+                          name="transcript"
+                          type="file"
+                          className="sr-only"
+                          onChange={(e) => handleFileChange(e, 'transcript')}
+                          accept=".jpg,.jpeg,.png,.pdf"
+                        />
+                      </label>
+                      <p className="pl-1">or drag and drop</p>
+                    </div>
+                    <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
+                  </div>
+                </div>
               )}
             </div>
           </div>
