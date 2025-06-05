@@ -62,64 +62,115 @@ export default function EnrollmentReceipt({ enrollmentId, receipt }: EnrollmentR
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 max-w-3xl mx-auto print:shadow-none print:p-0">
-      <div className="text-center mb-8 print:mb-4">
-        <h2 className="text-2xl font-bold text-indigo-700 print:text-black">Enrollment Confirmation</h2>
-        <p className="text-gray-600">Thank you for your enrollment!</p>
-        <p className="text-sm text-indigo-600 mt-2">Redirecting to dashboard in {countdown} seconds...</p>
-      </div>
-
-      <div className="border-t border-b border-gray-200 py-6 mb-6 print:py-4 print:mb-4">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h3 className="text-lg font-medium">Payment Receipt</h3>
-            <p className="text-gray-600 text-sm">Receipt #{receipt.receiptNumber}</p>
+      {/* Non-print instruction */}
+      <p className="text-sm text-indigo-600 mb-4 print:hidden">Redirecting to dashboard in {countdown} seconds...</p>
+      
+      {/* Header Section with Logo and Company Info */}
+      <div className="flex justify-between items-start mb-8 pb-4">
+        <div className="flex items-center">
+          <div className="bg-indigo-600 text-white p-3 rounded-lg h-16 w-16 flex items-center justify-center mr-3">
+            <span className="text-2xl font-bold">TS</span>
           </div>
-          <div className="text-right">
-            <p className="text-gray-600 text-sm">Date: {new Date(receipt.date).toLocaleDateString()}</p>
-            <p className="text-gray-600 text-sm">Transaction ID: {receipt.transactionId}</p>
+          <div>
+            <h2 className="text-xl font-bold text-gray-800">NexStack Tuition</h2>
+            <p className="text-gray-600 text-sm">Singapore</p>
+            <p className="text-gray-600 text-sm">Singapore, 90588146</p>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <p className="text-gray-600 text-sm">Student Name:</p>
-            <p className="font-medium">{receipt.studentName}</p>
-          </div>
-          <div>
-            <p className="text-gray-600 text-sm">Class:</p>
-            <p className="font-medium">{receipt.className}</p>
-          </div>
+        <div className="text-right">
+          <h1 className="text-2xl font-bold text-gray-500 uppercase">RECEIPT</h1>
+          <div className="w-full h-0.5 bg-indigo-600 mt-1"></div>
         </div>
       </div>
 
-      <div className="mb-6 print:mb-4">
-        <h3 className="text-lg font-medium mb-3">Payment Details</h3>
-        <div className="bg-gray-50 p-4 rounded-md print:bg-white print:p-0 print:border print:border-gray-300">
-          <div className="flex justify-between mb-2">
-            <span className="text-gray-600">Payment Method:</span>
-            <span className="font-medium">{receipt.paymentMethod}</span>
+      {/* Billing and Invoice Info */}
+      <div className="flex justify-between mb-8">
+        <div>
+          <p className="text-gray-600 font-medium mb-1">Bill To:</p>
+          <p className="font-medium">{receipt.studentName}</p>
+          <p className="text-gray-600">Student ID: {receipt.transactionId.substring(0, 8)}</p>
+          <p className="text-gray-600">Class: {receipt.className}</p>
+        </div>
+        <div className="text-right">
+          <div className="mb-1">
+            <span className="inline-block w-32 text-gray-600">Receipt #</span>
+            <span className="font-medium">{receipt.receiptNumber}</span>
           </div>
-          <div className="flex justify-between mb-2">
-            <span className="text-gray-600">Amount Paid:</span>
+          <div className="mb-1">
+            <span className="inline-block w-32 text-gray-600">Receipt Date</span>
+            <span className="font-medium">{new Date(receipt.date).toLocaleDateString()}</span>
+          </div>
+          <div className="mb-1">
+            <span className="inline-block w-32 text-gray-600">Payment Date</span>
+            <span className="font-medium">{new Date(receipt.date).toLocaleDateString()}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="mb-8">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="py-2 px-4 text-left border border-gray-300">Item</th>
+              <th className="py-2 px-4 text-left border border-gray-300">Description</th>
+              <th className="py-2 px-4 text-right border border-gray-300">Unit Price</th>
+              <th className="py-2 px-4 text-center border border-gray-300">Quantity</th>
+              <th className="py-2 px-4 text-right border border-gray-300">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="py-2 px-4 border border-gray-300">Tuition</td>
+              <td className="py-2 px-4 border border-gray-300">{receipt.className} - Enrollment Fee</td>
+              <td className="py-2 px-4 text-right border border-gray-300">${receipt.amount.toFixed(2)}</td>
+              <td className="py-2 px-4 text-center border border-gray-300">1</td>
+              <td className="py-2 px-4 text-right border border-gray-300">${receipt.amount.toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Summary Section */}
+      <div className="flex justify-end mb-8">
+        <div className="w-72">
+          <div className="flex justify-between py-2">
+            <span className="font-medium">Total</span>
             <span className="font-medium">${receipt.amount.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between pt-2 border-t border-gray-200 mt-2">
-            <span className="text-gray-800 font-medium">Status:</span>
-            <span className="text-green-600 font-bold">{receipt.status}</span>
+          <div className="flex justify-between py-2 border-t border-b border-gray-200">
+            <span className="font-medium">Paid</span>
+            <span className="font-medium">${receipt.amount.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between py-2">
+            <span className="font-bold">Balance Due</span>
+            <span className="font-bold">$0.00</span>
           </div>
         </div>
       </div>
 
-      <div className="mb-6 print:mb-4">
-        <h3 className="text-lg font-medium mb-3">Next Steps</h3>
-        <div className="bg-indigo-50 p-4 rounded-md print:bg-white print:p-0 print:border print:border-gray-300">
-          <ol className="list-decimal list-inside space-y-2 text-gray-700">
-            <li>Check your email for a confirmation message with class details.</li>
-            <li>Mark the class schedule in your calendar.</li>
-            <li>Prepare any required materials or textbooks.</li>
-            <li>Contact the administration if you have any questions.</li>
-          </ol>
+      {/* Payment Method & Status */}
+      <div className="mb-6 border-t border-gray-200 pt-4">
+        <div className="flex justify-between">
+          <div>
+            <p className="text-gray-600">Payment Method:</p>
+            <p className="font-medium">{receipt.paymentMethod}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-gray-600">Payment Status:</p>
+            <p className="text-green-600 font-bold">{receipt.status}</p>
+          </div>
         </div>
+      </div>
+
+      {/* Notes & Terms */}
+      <div className="mb-6">
+        <h3 className="font-medium mb-2">Notes / Terms</h3>
+        <p className="text-gray-600 text-sm">
+          Thank you for enrolling in our class. This receipt confirms your payment and enrollment. 
+          Please refer to the class schedule for start dates and times. For any questions or assistance, 
+          contact our administration office.
+        </p>
       </div>
 
       <div className="text-center mt-8 print:hidden">

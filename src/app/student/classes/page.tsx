@@ -41,28 +41,47 @@ export default function StudentClasses() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
+  const [withdrawalReason, setWithdrawalReason] = useState('');
+  const [classToWithdraw, setClassToWithdraw] = useState<{id: string, name: string} | null>(null);
 
-  // Function to handle class withdrawal
-  const handleWithdraw = async (enrollmentId: string | undefined, className: string) => {
+  // Function to open the withdrawal modal
+  const openWithdrawalModal = (enrollmentId: string | undefined, className: string) => {
     if (!enrollmentId) {
       setError("Cannot withdraw: Missing enrollment information");
       return;
     }
     
-    if (!confirm(`Are you sure you want to withdraw from ${className}? This action cannot be undone.`)) {
+    // Set class to withdraw and open modal
+    setClassToWithdraw({ id: enrollmentId, name: className });
+    setWithdrawalReason(''); // Reset reason field
+    setIsWithdrawalModalOpen(true);
+  };
+  
+  // Function to handle class withdrawal submission
+  const handleWithdrawSubmit = async () => {
+    if (!classToWithdraw || !classToWithdraw.id) {
+      setError("Cannot withdraw: Missing enrollment information");
       return;
     }
-
+    
+    const enrollmentId = classToWithdraw.id;
+    const className = classToWithdraw.name;
+    
     try {
       setWithdrawingClassId(enrollmentId);
       setError(null);
+      setIsWithdrawalModalOpen(false);
       
       const response = await fetch('/api/student/classes/withdraw', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ enrollmentId }),
+        body: JSON.stringify({ 
+          enrollmentId,
+          reason: withdrawalReason.trim() || 'No reason provided'
+        }),
       });
 
       const data = await response.json();
@@ -91,6 +110,7 @@ export default function StudentClasses() {
       setError(`Failed to withdraw from class. ${err instanceof Error ? err.message : ''}`);
     } finally {
       setWithdrawingClassId(null);
+      setClassToWithdraw(null);
     }
   };
 
@@ -242,7 +262,7 @@ export default function StudentClasses() {
               <div className="mt-6 flex justify-end space-x-2">
                 {classItem.enrollmentStatus === 'enrolled' && (
                   <button 
-                    onClick={() => handleWithdraw(classItem.enrollmentId, classItem.name)}
+                    onClick={() => openWithdrawalModal(classItem.enrollmentId, classItem.name)}
                     disabled={withdrawingClassId === classItem.enrollmentId}
                     className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -296,6 +316,86 @@ export default function StudentClasses() {
         </div>
       )}
 
+      {/* Withdrawal Reason Modal */}
+      <Transition appear show={isWithdrawalModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-10" onClose={() => setIsWithdrawalModalOpen(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                  <Dialog.Title
+                    as="h3"
+                    className="text-xl font-bold leading-6 text-gray-900 mb-4"
+                  >
+                    Request Withdrawal
+                  </Dialog.Title>
+                  
+                  {classToWithdraw && (
+                    <div className="mt-2">
+                      <p className="text-gray-600 mb-4">
+                        You are about to request withdrawal from <span className="font-semibold">{classToWithdraw.name}</span>. Please provide a reason for your withdrawal request.
+                      </p>
+                      
+                      <div className="mt-4">
+                        <label htmlFor="withdrawalReason" className="block text-sm font-medium text-gray-700 mb-1">
+                          Withdrawal Reason <span className="text-gray-400 text-xs">(Optional)</span>
+                        </label>
+                        <textarea
+                          id="withdrawalReason"
+                          name="withdrawalReason"
+                          rows={4}
+                          className="w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Please explain why you wish to withdraw from this class..."
+                          value={withdrawalReason}
+                          onChange={(e) => setWithdrawalReason(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="mt-6 flex justify-end space-x-3">
+                        <button
+                          type="button"
+                          className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2"
+                          onClick={() => setIsWithdrawalModalOpen(false)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                          onClick={handleWithdrawSubmit}
+                        >
+                          Confirm Withdrawal
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+      
       {/* Class Details Modal */}
       <Transition appear show={isModalOpen} as={Fragment}>
         <Dialog as="div" className="relative z-10" onClose={() => setIsModalOpen(false)}>

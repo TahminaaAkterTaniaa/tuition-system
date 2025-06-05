@@ -418,7 +418,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
                 />
               </div>
               {uploadedFiles.idDocument && (
-                <div className="mt-3">
+                <div className="mt-3 max-w-sm mx-auto">
                   <DocumentPreview
                     fileName={uploadedFiles.idDocument.fileName}
                     fileUrl={uploadedFiles.idDocument.url}
@@ -449,7 +449,7 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
                 />
               </div>
               {uploadedFiles.transcript && (
-                <div className="mt-3">
+                <div className="mt-3 max-w-sm mx-auto">
                   <DocumentPreview
                     fileName={uploadedFiles.transcript.fileName}
                     fileUrl={uploadedFiles.transcript.url}

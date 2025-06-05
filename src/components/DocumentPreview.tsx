@@ -57,15 +57,15 @@ export default function DocumentPreview({
   };
   
   return (
-    <div className="relative bg-white border rounded-lg overflow-hidden shadow-sm">
+    <div className="relative bg-white border rounded-lg overflow-hidden shadow-sm max-w-xs">
       {/* Preview Area */}
-      <div className="h-48 flex items-center justify-center bg-gray-50 border-b">
+      <div className="h-32 flex items-center justify-center bg-gray-50 border-b">
         {documentType === 'image' && !previewError ? (
           <div className="relative w-full h-full flex items-center justify-center">
             <img
               src={fileUrl}
               alt={fileName || 'Document preview'}
-              className="max-h-full max-w-full object-contain"
+              className="max-h-full max-w-full object-contain p-1"
               onError={() => setPreviewError(true)}
             />
           </div>

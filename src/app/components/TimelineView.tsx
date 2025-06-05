@@ -296,53 +296,70 @@ export default function TimelineView({ enrollmentData }: TimelineViewProps) {
     });
   }
 
+  // Create separate item variables for specific layout
+  const applicationSubmittedItem = timelineItems[0]; // First item
+  const documentsUploadedItem = timelineItems.find(item => item.title === 'Documents Uploaded');
+  const paymentInitiatedItem = timelineItems.find(item => item.title === 'Payment Initiated');
+  
+  // Function to render an individual timeline item with compact styling
+  const renderTimelineItem = (item: TimelineItem, isCompact: boolean = false) => {
+    if (!item) return null;
+    
+    return (
+      <div className={`bg-white rounded-lg border border-gray-100 shadow-sm ${isCompact ? 'p-2' : 'p-3'}`}>
+        <div className="flex items-start space-x-3">
+          <div>
+            <span
+              className={`${isCompact ? 'h-8 w-8' : 'h-9 w-9'} rounded-full flex items-center justify-center ${  
+                item.status === 'completed' 
+                  ? 'bg-green-500' 
+                  : item.status === 'pending' 
+                    ? 'bg-yellow-500' 
+                    : 'bg-red-500'
+              }`}
+            >
+              {item.icon || (
+                <svg className={`${isCompact ? 'w-4 h-4' : 'w-5 h-5'} text-white`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+            </span>
+          </div>
+          <div className="flex-1">
+            <div className="flex justify-between items-start">
+              <p className={`${isCompact ? 'text-sm' : 'text-base'} font-medium text-gray-900`}>{item.title}</p>
+              <div className="text-xs text-gray-500">
+                <time dateTime={item.time}>{item.time}</time>
+              </div>
+            </div>
+            <div className={`mt-1 ${!isCompact && 'border-t pt-2'}`}>{item.content}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flow-root">
       <div className="border border-gray-200 rounded-lg bg-white p-4">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Application Progress</h3>
         
-        <ul className="-mb-8">
-          {timelineItems.map((item, index) => (
-            <li key={index}>
-              <div className="relative pb-8">
-                {index < timelineItems.length - 1 && (
-                  <span
-                    className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
-                    aria-hidden="true"
-                  />
-                )}
-                <div className="relative flex space-x-3">
-                  <div>
-                    <span
-                      className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${
-                        item.status === 'completed' 
-                          ? 'bg-green-500' 
-                          : item.status === 'pending' 
-                            ? 'bg-yellow-500' 
-                            : 'bg-red-500'
-                      }`}
-                    >
-                      {item.icon || (
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      )}
-                    </span>
-                  </div>
-                  <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{item.title}</p>
-                      <div className="mt-2">{item.content}</div>
-                    </div>
-                    <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                      <time dateTime={item.time}>{item.time}</time>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+        {/* Custom grid layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Column 1: Application Submitted */}
+          <div className="space-y-4">
+            {/* Application Submitted - compact height */}
+            {applicationSubmittedItem && renderTimelineItem(applicationSubmittedItem, true)}
+            
+            {/* Documents Uploaded - placed below Application Submitted */}
+            {documentsUploadedItem && renderTimelineItem(documentsUploadedItem)}
+          </div>
+          
+          {/* Column 2: Payment Initiated */}
+          <div>
+            {paymentInitiatedItem && renderTimelineItem(paymentInitiatedItem)}
+          </div>
+        </div>
       </div>
     </div>
   );
