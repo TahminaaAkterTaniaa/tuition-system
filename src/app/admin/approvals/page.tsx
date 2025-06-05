@@ -68,7 +68,7 @@ export default function AdminApprovalsPage() {
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [isLoadingEnrollments, setIsLoadingEnrollments] = useState(true);
   const [isLoadingWithdrawals, setIsLoadingWithdrawals] = useState(true);
-  const [processingId, setProcessingId] = useState('');
+  const [processingState, setProcessingState] = useState<{id: string, action: string} | null>(null);
   const [activeTab, setActiveTab] = useState('enrollments');
   const [feedbackNote, setFeedbackNote] = useState('');
 
@@ -84,9 +84,9 @@ export default function AdminApprovalsPage() {
         } else {
           toast.error('Failed to load enrollment requests');
         }
-      } catch (error) {
-        console.error('Error fetching enrollment requests:', error);
-        toast.error('Failed to load enrollment requests');
+      } catch (error: any) {
+        console.error('Error handling enrollment action:', error);
+        toast.error(error?.message || 'Failed to process enrollment request');
       } finally {
         setIsLoadingEnrollments(false);
       }
@@ -107,9 +107,9 @@ export default function AdminApprovalsPage() {
         } else {
           toast.error('Failed to load withdrawal requests');
         }
-      } catch (error) {
-        console.error('Error fetching withdrawal requests:', error);
-        toast.error('Failed to load withdrawal requests');
+      } catch (error: any) {
+        console.error('Error handling withdrawal action:', error);
+        toast.error(error?.message || 'Failed to process withdrawal request');
       } finally {
         setIsLoadingWithdrawals(false);
       }
@@ -120,7 +120,7 @@ export default function AdminApprovalsPage() {
 
   // Handle enrollment request approval/rejection
   const handleEnrollmentAction = async (requestId: string, action: 'approve' | 'reject') => {
-    setProcessingId(requestId);
+    setProcessingState({ id: requestId, action });
     try {
       const response = await fetch('/api/admin/enrollment-requests', {
         method: 'POST',
@@ -147,19 +147,19 @@ export default function AdminApprovalsPage() {
         setFeedbackNote('');
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to ${action} enrollment request`);
+        toast.error(errorData.error || 'Failed to process enrollment request');
       }
     } catch (error: any) {
-      console.error(`Error ${action}ing enrollment request:`, error);
-      toast.error(error.message || `Failed to ${action} enrollment request`);
+      console.error('Error handling enrollment action:', error);
+      toast.error(error?.message || 'Failed to process enrollment request');
     } finally {
-      setProcessingId('');
+      setProcessingState(null);
     }
   };
 
   // Handle withdrawal request approval/rejection
   const handleWithdrawalAction = async (requestId: string, action: 'approve' | 'reject') => {
-    setProcessingId(requestId);
+    setProcessingState({ id: requestId, action });
     try {
       const response = await fetch('/api/admin/withdrawal-requests', {
         method: 'POST',
@@ -186,13 +186,13 @@ export default function AdminApprovalsPage() {
         setFeedbackNote('');
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to ${action} withdrawal request`);
+        toast.error(errorData.error || 'Failed to process withdrawal request');
       }
     } catch (error: any) {
-      console.error(`Error ${action}ing withdrawal request:`, error);
-      toast.error(error.message || `Failed to ${action} withdrawal request`);
+      console.error('Error handling withdrawal action:', error);
+      toast.error(error?.message || 'Failed to process withdrawal request');
     } finally {
-      setProcessingId('');
+      setProcessingState(null);
     }
   };
 
@@ -297,17 +297,17 @@ export default function AdminApprovalsPage() {
                   <div className="flex space-x-4">
                     <button
                       onClick={() => handleEnrollmentAction(request.id, 'approve')}
-                      disabled={processingId === request.id}
-                      className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+                      disabled={processingState?.id === request.id}
+                      className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm font-medium"
                     >
-                      {processingId === request.id ? 'Processing...' : 'Approve'}
+                      {processingState?.id === request.id && processingState?.action === 'approve' ? 'Processing...' : 'Approve'}
                     </button>
                     <button
                       onClick={() => handleEnrollmentAction(request.id, 'reject')}
-                      disabled={processingId === request.id}
-                      className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"
+                      disabled={processingState?.id === request.id}
+                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm font-medium"
                     >
-                      {processingId === request.id ? 'Processing...' : 'Reject'}
+                      {processingState?.id === request.id && processingState?.action === 'reject' ? 'Processing...' : 'Reject'}
                     </button>
                   </div>
                 </div>
@@ -386,17 +386,17 @@ export default function AdminApprovalsPage() {
                   <div className="flex space-x-4">
                     <button
                       onClick={() => handleWithdrawalAction(request.id, 'approve')}
-                      disabled={processingId === request.id}
+                      disabled={processingState?.id === request.id}
                       className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
                     >
-                      {processingId === request.id ? 'Processing...' : 'Approve'}
+                      {processingState?.id === request.id && processingState?.action === 'approve' ? 'Processing...' : 'Approve Withdrawal'}
                     </button>
                     <button
                       onClick={() => handleWithdrawalAction(request.id, 'reject')}
-                      disabled={processingId === request.id}
+                      disabled={processingState?.id === request.id}
                       className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"
                     >
-                      {processingId === request.id ? 'Processing...' : 'Reject'}
+                      {processingState?.id === request.id && processingState?.action === 'reject' ? 'Processing...' : 'Reject'}
                     </button>
                   </div>
                 </div>

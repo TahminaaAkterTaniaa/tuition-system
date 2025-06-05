@@ -101,6 +101,28 @@ export default function UserManagement() {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 className="text-xl font-semibold mb-4">User Statistics</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-indigo-50 p-4 rounded-lg">
+            <p className="text-sm font-medium text-indigo-600">Total Users</p>
+            <p className="text-2xl font-bold">{users.length}</p>
+          </div>
+          <div className="bg-green-50 p-4 rounded-lg">
+            <p className="text-sm font-medium text-green-600">Teachers</p>
+            <p className="text-2xl font-bold">{users.filter(user => user.role === 'TEACHER').length}</p>
+          </div>
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <p className="text-sm font-medium text-blue-600">Students</p>
+            <p className="text-2xl font-bold">{users.filter(user => user.role === 'STUDENT').length}</p>
+          </div>
+          <div className="bg-yellow-50 p-4 rounded-lg">
+            <p className="text-sm font-medium text-yellow-600">Parents</p>
+            <p className="text-2xl font-bold">{users.filter(user => user.role === 'PARENT').length}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-4 md:mb-0">
             <div>
@@ -212,27 +234,7 @@ export default function UserManagement() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4">User Statistics</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-indigo-50 p-4 rounded-lg">
-            <p className="text-sm font-medium text-indigo-600">Total Users</p>
-            <p className="text-2xl font-bold">{users.length}</p>
-          </div>
-          <div className="bg-green-50 p-4 rounded-lg">
-            <p className="text-sm font-medium text-green-600">Teachers</p>
-            <p className="text-2xl font-bold">{users.filter(user => user.role === 'TEACHER').length}</p>
-          </div>
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-sm font-medium text-blue-600">Students</p>
-            <p className="text-2xl font-bold">{users.filter(user => user.role === 'STUDENT').length}</p>
-          </div>
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <p className="text-sm font-medium text-yellow-600">Parents</p>
-            <p className="text-2xl font-bold">{users.filter(user => user.role === 'PARENT').length}</p>
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 }

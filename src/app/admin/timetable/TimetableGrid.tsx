@@ -40,7 +40,13 @@ interface Class {
   name: string;
   subject: string;
   teacherId: string;
+  schedule?: string | null;
+  room?: string | null;
+  roomId?: string | null;
   schedules?: ClassSchedule[];
+  _count?: {
+    enrollments: number;
+  };
 }
 
 interface Teacher {
@@ -131,6 +137,7 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
 
   // Get classes for a specific day and time slot
   const getClassesForSlot = (day: string, timeSlotLabel: string) => {
+    if (!timeSlots || !filteredClasses) return [];
     // Find the time slot to get its ID
     const timeSlot = timeSlots.find(ts => ts.label === timeSlotLabel);
     if (!timeSlot) {
@@ -207,6 +214,7 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
 
   // Check for conflicts in the timetable
   const checkForConflicts = () => {
+    if (!days || !timeSlots || !filteredClasses) return [];
     const newConflicts: {id: string, type: 'teacher' | 'room', message: string}[] = [];
     
     // Check each day and time slot
@@ -771,6 +779,9 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
                         Teacher: {teacher.user.name}
                       </div>
                     )}
+                    <div className="text-xs mt-1 bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full inline-block">
+                      {cls._count?.enrollments || 0} students
+                    </div>
                   </div>
                 );
               })}
@@ -899,6 +910,9 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
                                     Room: {room.name}
                                   </div>
                                 )}
+                                <div className="text-xs mt-1 bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full inline-block">
+                                  {cls._count?.enrollments || 0} students
+                                </div>
                               </div>
                             );
                             }
@@ -920,6 +934,9 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
                                   <div className="text-xs text-purple-600 font-semibold">
                                     {matchingSchedules.length} schedules
                                   </div>
+                                  <div className="text-xs mt-1 bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full inline-block">
+                                    {cls._count?.enrollments || 0} students
+                                  </div>
                                 </div>
                               );
                             }
@@ -938,4 +955,4 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
   );
 };
 
-export default TimetableGrid;
+export { TimetableGrid };

@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import TimetableGrid from './TimetableGrid';
+import { TimetableGrid } from './TimetableGrid';
 
 // Type definitions
 interface Teacher {
@@ -36,11 +36,14 @@ interface Class {
   id: string;
   name: string;
   subject: string;
-  schedule: string | null;
-  room: string | null;
+  schedule?: string | null;
+  room?: string | null;
   roomId?: string | null;
-  teacherId: string | null;
+  teacherId: string;
   schedules?: ClassSchedule[];
+  _count?: {
+    enrollments: number;
+  };
 }
 
 interface ClassSchedule {
@@ -587,7 +590,9 @@ export default function TimetableGenerator() {
   };
 
   // Helper function to get class style based on various factors
-  const getClassStyle = (cls: Class) => {
+  const getClassStyle = (cls: Class): string => {
+    if (!cls || !cls.subject) return 'bg-gray-200';
+    
     let style = getSubjectColor(cls.subject);
     
     // Add warning border for teachers with high workload
