@@ -47,6 +47,7 @@ interface Class {
   _count?: {
     enrollments: number;
   };
+  enrolledStudents?: string[];
 }
 
 interface Teacher {
@@ -78,6 +79,7 @@ interface TimetableGridProps {
   days: string[];
   selectedRoom: string;
   selectedTeacher: string | null;
+  selectedStudent?: string;
   teachers: Teacher[];
   onClassesUpdated: (updatedClasses: Class[]) => void;
   onUnassignedClassesUpdated: (updatedUnassignedClasses: Class[]) => void;
@@ -96,6 +98,7 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
   days,
   selectedRoom,
   selectedTeacher,
+  selectedStudent,
   teachers,
   onClassesUpdated,
   onUnassignedClassesUpdated,
@@ -107,30 +110,36 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
 }) => {
   const [draggedClass, setDraggedClass] = useState<Class | null>(null);
   const [dragSource, setDragSource] = useState<string | null>(null);
+  
   interface Conflict {
     id: string;
-    type: 'teacher' | 'room';
-    message: string;
+    type: 'teacher' | 'room' | 'student';
+    name: string;
+    message?: string;
   }
   
+  // State for conflict tracking and UI refreshing
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0); // Used to force re-render
+  const [refreshKey, setRefreshKey] = useState<number>(0); // Used to force re-render
 
   // Update hasChanges when pendingChanges change
   useEffect(() => {
     setHasChanges(pendingChanges.length > 0);
   }, [pendingChanges, setHasChanges]);
 
-  // Filter classes based on selected teacher or room
+  // Filter classes based on selected teacher, room, or student
   const filteredClasses = classes.filter(cls => {
     // If no filters are applied, show all classes
-    if (!selectedTeacher && !selectedRoom) return true;
+    if (!selectedTeacher && !selectedRoom && !selectedStudent) return true;
     
     // Filter by teacher
     if (selectedTeacher && cls.teacherId !== selectedTeacher) return false;
     
     // Filter by room
     if (selectedRoom && !cls.schedules?.some(schedule => schedule.roomId === selectedRoom)) return false;
+    
+    // Filter by student - check if the student is enrolled in this class
+    if (selectedStudent && (!cls.enrolledStudents || !cls.enrolledStudents.includes(selectedStudent))) return false;
     
     return true;
   });
@@ -215,7 +224,7 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
   // Check for conflicts in the timetable
   const checkForConflicts = () => {
     if (!days || !timeSlots || !filteredClasses) return [];
-    const newConflicts: {id: string, type: 'teacher' | 'room', message: string}[] = [];
+    const newConflicts: Conflict[] = [];
     
     // Check each day and time slot
     days.forEach(day => {
@@ -247,7 +256,8 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
                 newConflicts.push({
                   id: `teacher-${day}-${timeSlot.label}-${teacherId}`,
                   type: 'teacher',
-                  message: `Teacher conflict: ${teacherName} is assigned to ${classNames.join(', ')} on ${day} at ${timeSlot.label}`
+                  name: teacherName,
+                  message: `Assigned to ${classNames.join(', ')} on ${day} at ${timeSlot.label}`
                 });
               }
             });
@@ -281,7 +291,8 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
               newConflicts.push({
                 id: `room-${day}-${timeSlot.label}-${roomId}`,
                 type: 'room',
-                message: `Room conflict: ${roomName} is assigned to ${classNames.join(', ')} on ${day} at ${timeSlot.label}`
+                name: roomName,
+                message: `Assigned to ${classNames.join(', ')} on ${day} at ${timeSlot.label}`
               });
             }
           });
@@ -316,6 +327,7 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
       e.dataTransfer.setData('text/plain', classObj.id);
       e.dataTransfer.setData('application/json', JSON.stringify({
         classId: classObj.id,
+        className: classObj.name,
         scheduleId,
         day,
         time,
@@ -349,7 +361,7 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
     target.classList.remove('drag-over');
   };
 
-  // Handle drop on the unassigned classes section
+  // Handle drop on the unscheduled classes section
   const handleUnassignDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -366,7 +378,7 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
       }, 800);
     }
     
-    console.log('Drop event on unassigned section');
+    console.log('Drop event on unscheduled classes section');
     
     // Get the dragged class data
     let currentDraggedClass = draggedClass;
@@ -405,14 +417,14 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
     
     // If we still don't have a dragged class, we can't proceed
     if (!currentDraggedClass) {
-      console.error('❌ No dragged class found - cannot complete unassign operation');
-      toast.error('Unable to unassign class: drop data not found');
+      console.error('❌ No dragged class found - cannot complete unschedule operation');
+      toast.error('Unable to unschedule class: drop data not found');
       return;
     }
     
-    // Check if the class has schedules to unassign
+    // Check if the class has schedules to unschedule
     if (!currentDraggedClass.schedules || currentDraggedClass.schedules.length === 0) {
-      toast.success(`${currentDraggedClass.name} is already unassigned`);
+      toast.success(`${currentDraggedClass.name} is already unscheduled`);
       return;
     }
     
@@ -445,7 +457,7 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
     setDraggedClass(null);
     setDragSource(null);
     
-    toast.success(`${currentDraggedClass.name} marked for unassignment. Save changes to confirm.`);
+    toast.success(`${currentDraggedClass.name} marked for unscheduling. Save changes to confirm.`);
   };
 
   // Handle drop event on a timetable cell
@@ -664,6 +676,8 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
       
       // If the class was in unassigned classes, move it to regular classes
       if (unassignedClasses.some(c => c.id === currentDraggedClass.id)) {
+        console.log('Scheduling a previously unscheduled class:', currentDraggedClass.name);
+        
         // Add to regular classes if not already there
         const isAlreadyInClasses = classes.some(c => c.id === currentDraggedClass?.id);
         
@@ -679,11 +693,11 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
         }
         
         // Remove from unassigned classes
-        const updatedUnassignedClasses = unassignedClasses.filter(
+        const newUnassignedClasses = unassignedClasses.filter(
           c => c.id !== currentDraggedClass.id
         );
         
-        onUnassignedClassesUpdated(updatedUnassignedClasses);
+        onUnassignedClassesUpdated(newUnassignedClasses);
       } else {
         // Just update the classes array
         onClassesUpdated(updatedClassesArray);
@@ -738,57 +752,15 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
   return (
     <div className="timetable-container space-y-6" key={refreshKey}>
       {/* Debug button */}
-      <button 
+      {/* <button 
         onClick={debugState} 
         className="text-xs text-gray-500 hover:text-gray-700 mb-2"
         style={{ position: 'absolute', top: '10px', right: '10px' }}
       >
         Debug
-      </button>
+      </button> */}
       
-      {/* Unassigned Classes Section */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-300">
-        <h2 className="text-lg font-semibold mb-3">Unassigned Classes</h2>
-        <div 
-          className="min-h-[100px] p-4 border-2 border-dashed border-gray-300 rounded-lg unassigned-drop-zone"
-          onDragOver={handleDragOver}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDrop={handleUnassignDrop}
-        >
-          {unassignedClasses.length === 0 ? (
-            <div className="text-center text-gray-400 italic">No unassigned classes</div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {unassignedClasses.map(cls => {
-                // Find teacher name for display
-                const teacher = teachers.find(t => t.id === cls.teacherId);
-                
-                return (
-                  <div
-                    key={cls.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, cls, 'unassigned')}
-                    className={`p-2 rounded text-sm cursor-grab active:cursor-grabbing class-card ${getClassStyle(cls)} shadow hover:shadow-md transition-all duration-200`}
-                    data-class-id={cls.id}
-                  >
-                    <div className="font-semibold">{cls.name}</div>
-                    <div className="text-xs">{cls.subject}</div>
-                    {teacher && (
-                      <div className="text-xs text-gray-600">
-                        Teacher: {teacher.user.name}
-                      </div>
-                    )}
-                    <div className="text-xs mt-1 bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full inline-block">
-                      {cls._count?.enrollments || 0} students
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+     
       
       {/* Conflicts Display */}
       {conflicts.length > 0 && (
@@ -796,8 +768,11 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
           <h3 className="font-bold">Conflicts Detected:</h3>
           <ul className="list-disc pl-5 mt-2">
             {conflicts.map((conflict) => (
-              <li key={conflict.id} className={conflict.type === 'teacher' ? 'text-orange-700' : 'text-red-700'}>
-                {conflict.message}
+              <li key={conflict.id} className={
+                conflict.type === 'teacher' ? 'text-orange-700' : 
+                conflict.type === 'room' ? 'text-red-700' : 'text-purple-700'
+              }>
+                <span className="font-medium">{conflict.type === 'teacher' ? 'Teacher' : conflict.type === 'room' ? 'Room' : 'Student'} conflict:</span> {conflict.name} {conflict.message}
               </li>
             ))}
           </ul>
@@ -805,13 +780,15 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
       )}
       
       {/* Timetable Grid */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-300">
-        <h2 className="text-lg font-semibold mb-3">Timetable</h2>
-        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-300px)] mt-4">
-          <table className="min-w-full border-collapse">
+      <div className="bg-white p-1 rounded-lg shadow-sm border border-gray-300">
+        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-240px)]">
+          <table className="w-full border-collapse table-fixed">
+            <colgroup>
+              <col className="w-[150px]" />
+            </colgroup>
             <thead>
               <tr>
-                <th className="py-2 px-4 border bg-gray-50">Time / Day</th>
+                <th className="border bg-gray-100 p-2 text-left">Time / Day</th>
                 {days.map(day => (
                   <th key={day} className="py-2 px-4 border bg-gray-50">{day}</th>
                 ))}
@@ -820,11 +797,8 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({
             <tbody>
               {timeSlots.map(timeSlot => (
                 <tr key={timeSlot.id}>
-                  <td className="py-2 px-4 border bg-gray-50">
+                  <td className="py-2 px-2 border bg-gray-50">
                     <div className="font-medium">{timeSlot.label}</div>
-                    <div className="text-xs text-gray-500">
-                      {timeSlot.startTime} - {timeSlot.endTime}
-                    </div>
                   </td>
                   
                   {days.map(day => {
