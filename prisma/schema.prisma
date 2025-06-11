@@ -272,6 +272,9 @@ model Resource {
   type        String
   url         String?
   filePath    String?
+  blobUrl     String?
+  blobId      String?
+  fileSize    String?
   classId     String
   teacherId   String
   isPublished Boolean   @default(false)

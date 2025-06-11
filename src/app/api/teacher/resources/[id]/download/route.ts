@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
-import path from 'path';
-import fs from 'fs';
+import { Resource } from '@prisma/client';
+
+// Extended Resource type with Blob fields
+type ResourceWithBlob = Resource & {
+  blobUrl?: string;
+  blobId?: string;
+  class?: any;
+};
 
 export async function GET(
   request: NextRequest,
@@ -61,74 +67,39 @@ export async function GET(
       }
     } else if (session.user.role === 'STUDENT') {
       // Check if student is enrolled in the class
-      if (resource.class.enrollments.length === 0) {
+      if (!resource.class?.enrollments || resource.class.enrollments.length === 0) {
         return NextResponse.json({ error: 'You do not have access to this resource' }, { status: 403 });
       }
     }
     
-    // Get the file path
+    // Type assertion to include the new blob fields
+    const resourceWithBlob = resource as unknown as ResourceWithBlob;
+    
+    // Check if the resource has a Vercel Blob URL
+    if (resourceWithBlob.blobUrl) {
+      // If the resource has a Blob URL, redirect to it for direct download
+      return NextResponse.redirect(resourceWithBlob.blobUrl);
+    }
+    
+    // If there's no blob URL, check for a traditional file path
     const filePath = resource.filePath;
     
     if (!filePath) {
-      return NextResponse.json({ error: 'File path not found' }, { status: 404 });
+      return NextResponse.json({ error: 'No download URL or file path found' }, { status: 404 });
     }
     
     try {
-      // Since we don't have actual file storage yet, we'll create a sample file
-      // based on the resource type to demonstrate the download functionality
+      // Legacy fallback for resources without blob URLs
+      // This section would handle local file paths if applicable
+      // Since we're migrating to Vercel Blob, this is mainly for backward compatibility
       
-      let fileContent = '';
-      let contentType = 'text/plain';
-      let fileName = `${resource.title || 'resource'}.txt`;
+      // For now, return an error indicating the resource needs to be updated
+      return NextResponse.json({ 
+        error: 'This resource is not available for download using the legacy method. Please use the direct download link.'
+      }, { status: 404 });
       
-      // Determine file type from resource or use a default
-      const fileType = resource.type || 'document';
-      
-      // Generate different sample content based on the resource type
-      // This is a placeholder until actual file storage is implemented
-      if (fileType.toLowerCase() === 'pdf') {
-        fileContent = '%PDF-1.5\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n2 0 obj\n<</Type/Pages/Kids[3 0 R]/Count 1>>\nendobj\n3 0 obj\n<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<<>>>>\nendobj\nxref\n0 4\n0000000000 65535 f\n0000000010 00000 n\n0000000053 00000 n\n0000000102 00000 n\ntrailer\n<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF';
-        contentType = 'application/pdf';
-        fileName = `${resource.title || 'resource'}.pdf`;
-      } else if (fileType.toLowerCase() === 'docx') {
-        // This is not a real DOCX file, just a placeholder
-        fileContent = 'This is a sample DOCX file content for ' + resource.title;
-        contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        fileName = `${resource.title || 'resource'}.docx`;
-      } else if (fileType.toLowerCase() === 'pptx') {
-        fileContent = 'This is a sample PPTX file content for ' + resource.title;
-        contentType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-        fileName = `${resource.title || 'resource'}.pptx`;
-      } else {
-        // Default to text file
-        fileContent = `This is a sample text file for ${resource.title}\n\nThis is a placeholder until actual file storage is implemented.\n\nResource ID: ${resource.id}\nClass: ${resource.classId}\nUploaded by: Teacher`;
-        contentType = 'text/plain';
-        fileName = `${resource.title || 'resource'}.txt`;
-      }
-      
-      // Return the file with appropriate headers
-      return new NextResponse(fileContent, {
-        status: 200,
-        headers: {
-          'Content-Type': contentType,
-          'Content-Disposition': `attachment; filename="${fileName}"`,
-        }
-      });
-      
-      // In a real implementation with actual files, you would use something like:
-      /*
-      const fileContent = fs.readFileSync(filePath);
-      const fileName = path.basename(filePath);
-      const contentType = determineContentType(fileName);
-      
-      return new NextResponse(fileContent, {
-        status: 200,
-        headers: {
-          'Content-Type': contentType,
-          'Content-Disposition': `attachment; filename="${fileName}"`,
-        }
-      });
-      */
+      // With Vercel Blob, we should never reach here if there's a blobUrl
+      // This is a fallback for legacy files
     } catch (fileError) {
       console.error('Error reading file:', fileError);
       return NextResponse.json({ error: 'Error reading file' }, { status: 500 });

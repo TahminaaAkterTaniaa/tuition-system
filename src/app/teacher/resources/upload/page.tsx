@@ -104,13 +104,23 @@ function ResourceUploadContent() {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[Upload] Starting upload process');
     
     if (!title || !selectedClassId || !file) {
+      console.error('[Upload] Missing required fields:', { title: !!title, selectedClassId: !!selectedClassId, file: !!file });
       setError('Please fill in all required fields and select a file.');
       return;
     }
     
     try {
+      console.log('[Upload] Form validation passed, preparing submission');
+      console.log('[Upload] File details:', {
+        name: file.name,
+        type: file.type,
+        size: `${Math.round(file.size / 1024)} KB`,
+        lastModified: new Date(file.lastModified).toISOString()
+      });
+      
       setIsSubmitting(true);
       setError(null);
       
@@ -121,17 +131,60 @@ function ResourceUploadContent() {
       formData.append('classId', selectedClassId);
       formData.append('file', file);
       
+      console.log('[Upload] FormData created with:', {
+        title,
+        description: description ? `${description.substring(0, 20)}...` : '(empty)',
+        classId: selectedClassId,
+        fileName: file.name
+      });
+      
+      // Start request timing
+      const startTime = performance.now();
+      console.log('[Upload] Sending request to API...');
+      
       // Send the data to the API
       const response = await fetch('/api/teacher/resources/upload', {
         method: 'POST',
         body: formData
+      }).catch(networkError => {
+        console.error('[Upload] Network error during fetch:', networkError);
+        throw new Error(`Network error: ${networkError.message}`);
       });
       
+      const endTime = performance.now();
+      console.log(`[Upload] API response received in ${Math.round(endTime - startTime)}ms`);
+      console.log('[Upload] Response status:', response.status);
+      
+      // Try to get the response content type
+      const contentType = response.headers.get('content-type');
+      console.log('[Upload] Response content-type:', contentType);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to upload resource');
+        console.error('[Upload] API returned error status:', response.status);
+        
+        // Try to parse error as JSON
+        let errorData;
+        try {
+          errorData = await response.json();
+          console.error('[Upload] Error details:', errorData);
+        } catch (parseErr) {
+          console.error('[Upload] Failed to parse error response as JSON:', parseErr);
+          const textResponse = await response.text();
+          console.error('[Upload] Raw error response:', textResponse);
+        }
+        
+        throw new Error((errorData && errorData.error) || `Server error: ${response.status}`);
       }
       
+      // Parse successful response
+      try {
+        const responseData = await response.json();
+        console.log('[Upload] Success response:', responseData);
+      } catch (parseErr) {
+        console.warn('[Upload] Failed to parse success response as JSON:', parseErr);
+      }
+      
+      console.log('[Upload] Upload completed successfully!');
       setSuccess(true);
       
       // Reset form
@@ -140,14 +193,23 @@ function ResourceUploadContent() {
       setSelectedClassId('');
       setFile(null);
       
-      // Redirect after a short delay
+      // Redirect to resources list after a short delay
       setTimeout(() => {
-        router.push('/teacher/resources?uploaded=true');
+        console.log('[Upload] Redirecting to resources page');
+        router.push('/teacher/resources');
       }, 2000);
       
     } catch (err) {
-      console.error('Error uploading resource:', err);
-      setError('Failed to upload resource. Please try again.');
+      console.error('[Upload] Error in upload process:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred during upload');
+      
+      // Log additional browser info for debugging
+      console.log('[Upload] Browser info:', {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        vendor: navigator.vendor,
+        cookiesEnabled: navigator.cookieEnabled
+      });
     } finally {
       setIsSubmitting(false);
     }

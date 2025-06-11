@@ -2,8 +2,10 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import Link from 'next/link';
+import { Dialog, Transition } from '@headlessui/react';
+import toast from 'react-hot-toast';
 
 interface Resource {
   id: string;
@@ -14,6 +16,9 @@ interface Resource {
   uploadDate: string;
   classId: string;
   className: string;
+  url?: string;
+  blobUrl?: string;
+  blobId?: string;
 }
 
 interface ClassData {
@@ -30,7 +35,99 @@ export default function TeacherResources() {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  
+  // Delete confirmation modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [resourceToDelete, setResourceToDelete] = useState<Resource | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Fetch teacher's classes
+      const classesResponse = await fetch('/api/teacher/classes');
+      
+      if (!classesResponse.ok) {
+        throw new Error('Failed to fetch classes');
+      }
+      
+      const classesData = await classesResponse.json();
+      console.log('Classes data from API:', classesData);
+      
+      // Format classes data - handle both array format and object with classes property
+      let formattedClasses = [];
+      if (Array.isArray(classesData)) {
+        formattedClasses = classesData.map((cls: any) => ({
+          id: cls.id,
+          name: cls.name,
+          subject: cls.subject
+        }));
+      } else if (classesData.classes && Array.isArray(classesData.classes)) {
+        formattedClasses = classesData.classes.map((cls: any) => ({
+          id: cls.id,
+          name: cls.name,
+          subject: cls.subject
+        }));
+      } else {
+        console.warn('Unexpected classes data format:', classesData);
+      }
+      
+      setClasses(formattedClasses);
+      
+      // Fetch resources
+      const resourcesResponse = await fetch('/api/teacher/resources');
+      
+      if (!resourcesResponse.ok) {
+        throw new Error('Failed to fetch resources');
+      }
+      
+      const resourcesData = await resourcesResponse.json();
+      
+      // Format resources data
+      let formattedResources = [];
+      if (resourcesData.resources && Array.isArray(resourcesData.resources)) {
+        formattedResources = resourcesData.resources.map((resource: any) => ({
+          id: resource.id,
+          title: resource.title || 'Untitled Resource',
+          description: resource.description || 'No description available',
+          fileType: resource.type || 'Unknown',
+          fileSize: resource.fileSize || 'Unknown',
+          uploadDate: resource.createdAt || new Date().toISOString(),
+          classId: resource.classId,
+          className: formattedClasses.find((cls: ClassData) => cls.id === resource.classId)?.name || 'Unknown Class',
+          url: resource.url,
+          blobUrl: resource.blobUrl,
+          blobId: resource.blobId
+        }));
+      } else if (Array.isArray(resourcesData)) {
+        formattedResources = resourcesData.map((resource: any) => ({
+          id: resource.id,
+          title: resource.title || 'Untitled Resource',
+          description: resource.description || 'No description available',
+          fileType: resource.type || 'Unknown',
+          fileSize: resource.fileSize || 'Unknown',
+          uploadDate: resource.createdAt || new Date().toISOString(),
+          classId: resource.classId,
+          className: formattedClasses.find((cls: ClassData) => cls.id === resource.classId)?.name || 'Unknown Class',
+          url: resource.url,
+          blobUrl: resource.blobUrl,
+          blobId: resource.blobId
+        }));
+      } else {
+        console.warn('Unexpected resources data format:', resourcesData);
+      }
+      
+      setResources(formattedResources);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   useEffect(() => {
     if (status === 'loading') {
       return;
@@ -45,90 +142,64 @@ export default function TeacherResources() {
       router.push('/');
       return;
     }
-
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        // Fetch teacher's classes
-        const classesResponse = await fetch('/api/teacher/classes');
-        
-        if (!classesResponse.ok) {
-          throw new Error('Failed to fetch classes');
-        }
-        
-        const classesData = await classesResponse.json();
-        console.log('Classes data from API:', classesData);
-        
-        // Format classes data - handle both array format and object with classes property
-        let formattedClasses = [];
-        if (Array.isArray(classesData)) {
-          formattedClasses = classesData.map((cls: any) => ({
-            id: cls.id,
-            name: cls.name,
-            subject: cls.subject
-          }));
-        } else if (classesData.classes && Array.isArray(classesData.classes)) {
-          formattedClasses = classesData.classes.map((cls: any) => ({
-            id: cls.id,
-            name: cls.name,
-            subject: cls.subject
-          }));
-        } else {
-          console.warn('Unexpected classes data format:', classesData);
-        }
-        
-        setClasses(formattedClasses);
-        
-        // Fetch resources
-        const resourcesResponse = await fetch('/api/teacher/resources');
-        
-        if (!resourcesResponse.ok) {
-          throw new Error('Failed to fetch resources');
-        }
-        
-        const resourcesData = await resourcesResponse.json();
-        
-        // Format resources data
-        let formattedResources = [];
-        if (resourcesData.resources && Array.isArray(resourcesData.resources)) {
-          formattedResources = resourcesData.resources.map((resource: any) => ({
-            id: resource.id,
-            title: resource.title || 'Untitled Resource',
-            description: resource.description || 'No description available',
-            fileType: resource.fileType || 'Unknown',
-            fileSize: resource.fileSize || 'Unknown',
-            uploadDate: resource.uploadDate || new Date().toISOString(),
-            classId: resource.classId,
-            className: formattedClasses.find((cls: ClassData) => cls.id === resource.classId)?.name || 'Unknown Class'
-          }));
-        } else if (Array.isArray(resourcesData)) {
-          formattedResources = resourcesData.map((resource: any) => ({
-            id: resource.id,
-            title: resource.title || 'Untitled Resource',
-            description: resource.description || 'No description available',
-            fileType: resource.fileType || 'Unknown',
-            fileSize: resource.fileSize || 'Unknown',
-            uploadDate: resource.uploadDate || new Date().toISOString(),
-            classId: resource.classId,
-            className: formattedClasses.find((cls: ClassData) => cls.id === resource.classId)?.name || 'Unknown Class'
-          }));
-        } else {
-          console.warn('Unexpected resources data format:', resourcesData);
-        }
-        
-        setResources(formattedResources);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load resources. Please try again later.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
     
     fetchData();
   }, [session, status, router]);
+  
+  const handleClassFilter = (classId: string | null) => {
+    setActiveFilter(classId);
+  };
+  
+  // Open confirmation modal for deleting a resource
+  const confirmDelete = (resource: Resource) => {
+    setResourceToDelete(resource);
+    setIsDeleteModalOpen(true);
+  };
+  
+  // Close delete confirmation modal
+  const cancelDelete = () => {
+    setIsDeleteModalOpen(false);
+    setResourceToDelete(null);
+  };
+  
+  // Handle resource deletion
+  const handleDelete = async () => {
+    if (!resourceToDelete) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      const response = await fetch(`/api/teacher/resources/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resourceId: resourceToDelete.id,
+          blobId: resourceToDelete.blobId
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete resource');
+      }
+      
+      // Remove the deleted resource from state
+      setResources(resources => resources.filter(r => r.id !== resourceToDelete.id));
+      
+      // Close modal and reset state
+      setIsDeleteModalOpen(false);
+      setResourceToDelete(null);
+      
+      toast.success('Resource deleted successfully');
+    } catch (error) {
+      console.error('Error deleting resource:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete resource');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const filteredResources = activeFilter 
     ? resources.filter(resource => resource.classId === activeFilter)
@@ -223,18 +294,32 @@ export default function TeacherResources() {
                 <span className="text-gray-500 text-sm">
                   {resource.fileType.toUpperCase()}
                 </span>
-                <a 
-                  href={`/api/teacher/resources/${resource.id}/download`}
-                  download={resource.title}
-                  className="text-indigo-600 hover:text-indigo-800 flex items-center text-sm font-medium"
-                  title={`Download ${resource.title}`}
-                  aria-label={`Download ${resource.title}`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Download
-                </a>
+                <div className="flex items-center">
+                  <a 
+                    href={resource.blobUrl || `/api/teacher/resources/${resource.id}/download`}
+                    download={resource.title}
+                    className="text-indigo-600 hover:text-indigo-800 flex items-center text-sm font-medium mr-4"
+                    title={`Download ${resource.title}`}
+                    aria-label={`Download ${resource.title}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download
+                  </a>
+                  
+                  <button
+                    onClick={() => confirmDelete(resource)}
+                    className="text-red-600 hover:text-red-800 flex items-center text-sm font-medium"
+                    title={`Delete ${resource.title}`}
+                    aria-label={`Delete ${resource.title}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           ))
@@ -296,6 +381,81 @@ export default function TeacherResources() {
           </Link>
         </div>
       )}
+      
+      {/* Delete Confirmation Modal */}
+      <Transition appear show={isDeleteModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-10" onClose={cancelDelete}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                  <Dialog.Title
+                    as="h3"
+                    className="text-lg font-medium leading-6 text-gray-900"
+                  >
+                    Delete Resource
+                  </Dialog.Title>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      Are you sure you want to delete the resource "<span className="font-medium">{resourceToDelete?.title}</span>"? 
+                      This action cannot be undone.
+                    </p>
+                  </div>
+
+                  <div className="mt-4 flex justify-end space-x-3">
+                    <button
+                      type="button"
+                      className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                      onClick={cancelDelete}
+                      disabled={isDeleting}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete'
+                      )}
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 }
