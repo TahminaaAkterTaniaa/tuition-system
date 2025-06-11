@@ -23,30 +23,6 @@ interface EnrollmentReceiptProps {
 export default function EnrollmentReceipt({ enrollmentId, receipt }: EnrollmentReceiptProps) {
   const router = useRouter();
   const [isPrinting, setIsPrinting] = useState(false);
-  const [countdown, setCountdown] = useState(30);
-  
-  // Redirect to dashboard after 30 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      router.push('/student');
-    }, 30000);
-    
-    // Update countdown every second
-    const countdownInterval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    
-    return () => {
-      clearTimeout(timer);
-      clearInterval(countdownInterval);
-    };
-  }, [router]);
 
   const handlePrint = () => {
     setIsPrinting(true);
@@ -62,8 +38,7 @@ export default function EnrollmentReceipt({ enrollmentId, receipt }: EnrollmentR
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 max-w-3xl mx-auto print:shadow-none print:p-0">
-      {/* Non-print instruction */}
-      <p className="text-sm text-indigo-600 mb-4 print:hidden">Redirecting to dashboard in {countdown} seconds...</p>
+
       
       {/* Header Section with Logo and Company Info */}
       <div className="flex justify-between items-start mb-8 pb-4">

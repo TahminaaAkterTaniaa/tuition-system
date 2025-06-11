@@ -6,6 +6,18 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
+import ReceiptModal from '@/components/ReceiptModal';
+
+interface ReceiptData {
+  receiptNumber: string;
+  transactionId: string;
+  date: string;
+  studentName: string;
+  className: string;
+  amount: number;
+  paymentMethod: string;
+  status: string;
+}
 
 interface Class {
   id: string;
@@ -44,6 +56,11 @@ export default function StudentClasses() {
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [withdrawalReason, setWithdrawalReason] = useState('');
   const [classToWithdraw, setClassToWithdraw] = useState<{id: string, name: string} | null>(null);
+  
+  // Receipt state
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+  const [isLoadingReceipt, setIsLoadingReceipt] = useState(false);
 
   // Function to open the withdrawal modal
   const openWithdrawalModal = (enrollmentId: string | undefined, className: string) => {
@@ -56,6 +73,40 @@ export default function StudentClasses() {
     setClassToWithdraw({ id: enrollmentId, name: className });
     setWithdrawalReason(''); // Reset reason field
     setIsWithdrawalModalOpen(true);
+  };
+  
+  // Function to display receipt for a class with static data
+  const handleViewReceipt = (enrollmentId: string | undefined, className: string) => {
+    if (!enrollmentId) {
+      setError("Cannot view receipt: Missing enrollment information");
+      return;
+    }
+    
+    // Generate a receipt ID based on enrollment ID
+    const receiptId = enrollmentId.substring(0, 8).toUpperCase();
+    
+    // Set isLoading briefly to show loading state
+    setIsLoadingReceipt(true);
+    setReceiptData(null);
+    setIsReceiptModalOpen(true);
+    
+    // Create static receipt data
+    const mockReceipt = {
+      receiptNumber: `RCPT-${receiptId}`,
+      transactionId: enrollmentId,
+      date: new Date().toISOString().split('T')[0] || '2025-06-12',  // Today's date with fallback
+      studentName: session?.user?.name || 'Student',
+      className: className,
+      amount: 250.00, // Static amount
+      paymentMethod: 'Credit Card',
+      status: 'Paid'
+    };
+    
+    // Short timeout to simulate loading
+    setTimeout(() => {
+      setReceiptData(mockReceipt);
+      setIsLoadingReceipt(false);
+    }, 500);
   };
   
   // Function to handle class withdrawal submission
@@ -261,13 +312,24 @@ export default function StudentClasses() {
               
               <div className="mt-6 flex justify-end space-x-2">
                 {classItem.enrollmentStatus === 'enrolled' && (
-                  <button 
-                    onClick={() => openWithdrawalModal(classItem.enrollmentId, classItem.name)}
-                    disabled={withdrawingClassId === classItem.enrollmentId}
-                    className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {withdrawingClassId === classItem.enrollmentId ? 'Processing...' : 'Request Withdrawal'}
-                  </button>
+                  <>
+                    <button 
+                      onClick={() => openWithdrawalModal(classItem.enrollmentId, classItem.name)}
+                      disabled={withdrawingClassId === classItem.enrollmentId}
+                      className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {withdrawingClassId === classItem.enrollmentId ? 'Processing...' : 'Request Withdrawal'}
+                    </button>
+                    <button
+                      onClick={() => handleViewReceipt(classItem.enrollmentId, classItem.name)}
+                      className="bg-green-100 text-green-700 px-4 py-2 rounded hover:bg-green-200 transition-colors flex items-center"
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      View Receipt
+                    </button>
+                  </>
                 )}
                 {classItem.enrollmentStatus === 'withdrawal_pending' && (
                   <span className="bg-orange-50 text-orange-700 px-4 py-2 rounded inline-flex items-center">
@@ -395,6 +457,14 @@ export default function StudentClasses() {
           </div>
         </Dialog>
       </Transition>
+      
+      {/* Receipt Modal */}
+      <ReceiptModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        receipt={receiptData}
+        isLoading={isLoadingReceipt}
+      />
       
       {/* Class Details Modal */}
       <Transition appear show={isModalOpen} as={Fragment}>

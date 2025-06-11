@@ -38,11 +38,13 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
       fileName: string;
       url: string;
       blobId?: string;
+      fileSize?: string;
     };
     transcript?: {
       fileName: string;
       url: string;
       blobId?: string;
+      fileSize?: string;
     };
   }>({});
 
@@ -167,12 +169,20 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
         // Safely access file name (we already checked file exists at the top of the function)
         const fileName = file ? file.name : 'file';
         
+        // Format file size for display
+        const formatFileSize = (bytes: number): string => {
+          if (bytes < 1024) return bytes + ' B';
+          else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+          else return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        };
+        
         setUploadedFiles(prevState => ({
           ...prevState,
           [fileType]: {
             fileName,
             url: data.url,
-            blobId: data.blobId
+            blobId: data.blobId,
+            fileSize: formatFileSize(file.size)
           }
         }));
         console.log(`Set ${fileType} with fileName: ${fileName}`);
@@ -396,88 +406,132 @@ export default function EnrollmentForm({ classId, className, onSuccess, userId }
         </form>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-6">
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Upload ID Document (Required)
+          <div className="bg-white rounded-lg shadow p-6 space-y-6">
+            <h2 className="text-xl font-semibold text-center mb-4">Upload Documents</h2>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                ID Document <span className="text-red-500">*</span>
               </label>
-              <div className="mt-1">
-                <label htmlFor="idDocumentInput" className="sr-only">Upload ID Document</label>
-                <input
-                  id="idDocumentInput"
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.pdf"
-                  onChange={(e) => handleFileChange(e, 'idDocument')}
-                  aria-label="Upload ID Document"
-                  className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-md file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-primary-50 file:text-primary-700
-                    hover:file:bg-primary-100"
-                />
-              </div>
-              {uploadedFiles.idDocument && (
-                <div className="mt-3 max-w-sm mx-auto">
-                  <DocumentPreview
-                    fileName={uploadedFiles.idDocument.fileName}
-                    fileUrl={uploadedFiles.idDocument.url}
-                    onRemove={() => handleRemoveFile('idDocument')}
-                  />
+              
+              {!uploadedFiles.idDocument ? (
+                <div>
+                  <label 
+                    htmlFor="idDocumentInput"
+                    className="cursor-pointer border-2 border-dashed border-gray-300 rounded-md p-4 flex flex-col items-center justify-center w-full hover:border-indigo-500 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span className="text-sm text-gray-500">Choose File</span>
+                    <input
+                      id="idDocumentInput"
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.pdf"
+                      onChange={(e) => handleFileChange(e, 'idDocument')}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div className="border border-gray-300 rounded-md p-4 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="mr-3 text-gray-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm text-gray-900">{uploadedFiles.idDocument.fileName}</div>
+                      <div className="text-xs text-gray-500">
+                        {uploadedFiles.idDocument.fileSize ? `${uploadedFiles.idDocument.fileSize}` : ''}
+                      </div>
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => handleRemoveFile('idDocument')} 
+                    className="text-gray-500 hover:text-red-500"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
                 </div>
               )}
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Upload Academic Transcript (Optional)
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Academic Transcript <span className="text-gray-500">(Optional)</span>
               </label>
-              <div className="mt-1">
-                <label htmlFor="transcriptInput" className="sr-only">Upload Academic Transcript</label>
-                <input
-                  id="transcriptInput"
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.pdf"
-                  onChange={(e) => handleFileChange(e, 'transcript')}
-                  aria-label="Upload Academic Transcript"
-                  className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-md file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-primary-50 file:text-primary-700
-                    hover:file:bg-primary-100"
-                />
-              </div>
-              {uploadedFiles.transcript && (
-                <div className="mt-3 max-w-sm mx-auto">
-                  <DocumentPreview
-                    fileName={uploadedFiles.transcript.fileName}
-                    fileUrl={uploadedFiles.transcript.url}
-                    onRemove={() => handleRemoveFile('transcript')}
-                  />
+              
+              {!uploadedFiles.transcript ? (
+                <div>
+                  <label 
+                    htmlFor="transcriptInput"
+                    className="cursor-pointer border-2 border-dashed border-gray-300 rounded-md p-4 flex flex-col items-center justify-center w-full hover:border-indigo-500 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span className="text-sm text-gray-500">Choose File</span>
+                    <input
+                      id="transcriptInput"
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.pdf"
+                      onChange={(e) => handleFileChange(e, 'transcript')}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div className="border border-gray-300 rounded-md p-4 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="mr-3 text-gray-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm text-gray-900">{uploadedFiles.transcript.fileName}</div>
+                      <div className="text-xs text-gray-500">
+                        {uploadedFiles.transcript.fileSize ? `${uploadedFiles.transcript.fileSize}` : ''}
+                      </div>
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => handleRemoveFile('transcript')} 
+                    className="text-gray-500 hover:text-red-500"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
                 </div>
               )}
             </div>
           </div>
           
-          <div className="flex justify-between">
+          <div className="flex justify-between pt-4">
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium"
             >
               Back
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !uploadedFiles.idDocument}
-              className={`px-6 py-2 ${
+              className={`px-5 py-2 ${
                 isSubmitting || !uploadedFiles.idDocument
                   ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-indigo-600 hover:bg-indigo-700'
-              } text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+                  : 'bg-blue-500 hover:bg-blue-600'
+              } text-white rounded-md font-medium`}
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Application'}
+              {isSubmitting ? 'Submitting...' : 'Continue'}
             </button>
           </div>
         </form>
