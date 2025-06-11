@@ -35,6 +35,7 @@ export default function StudentGrades() {
   const [classSummaries, setClassSummaries] = useState<ClassGradeSummary[]>([]);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [noGradesFound, setNoGradesFound] = useState<boolean>(false);
 
   useEffect(() => {
     if (status === 'loading') {
@@ -54,160 +55,52 @@ export default function StudentGrades() {
     // Fetch student's grades
     const fetchGrades = async () => {
       try {
-        // In a real app, this would be an API call
-        // const response = await fetch('/api/student/grades');
-        // if (!response.ok) throw new Error('Failed to fetch grades');
-        // const data = await response.json();
+        console.log('Fetching student grades from the database...');
         
-        // For demo purposes, using sample data
-        const sampleGrades: Grade[] = [
-          {
-            id: '1',
-            assessmentName: 'Midterm Exam',
-            assessmentType: 'exam',
-            score: 85,
-            maxScore: 100,
-            weight: 0.3,
-            feedback: 'Good work on the problem-solving section!',
-            gradedDate: '2025-03-15T00:00:00.000Z',
-            class: {
-              name: 'Mathematics 101',
-              subject: 'Mathematics'
-            }
-          },
-          {
-            id: '2',
-            assessmentName: 'Homework 1',
-            assessmentType: 'assignment',
-            score: 18,
-            maxScore: 20,
-            weight: 0.1,
-            feedback: null,
-            gradedDate: '2025-02-10T00:00:00.000Z',
-            class: {
-              name: 'Mathematics 101',
-              subject: 'Mathematics'
-            }
-          },
-          {
-            id: '3',
-            assessmentName: 'Quiz 1',
-            assessmentType: 'quiz',
-            score: 9,
-            maxScore: 10,
-            weight: 0.1,
-            feedback: 'Perfect!',
-            gradedDate: '2025-02-20T00:00:00.000Z',
-            class: {
-              name: 'Mathematics 101',
-              subject: 'Mathematics'
-            }
-          },
-          {
-            id: '4',
-            assessmentName: 'Lab Report 1',
-            assessmentType: 'assignment',
-            score: 42,
-            maxScore: 50,
-            weight: 0.2,
-            feedback: 'Good analysis, but conclusion needs more detail.',
-            gradedDate: '2025-02-25T00:00:00.000Z',
-            class: {
-              name: 'Physics Fundamentals',
-              subject: 'Physics'
-            }
-          },
-          {
-            id: '5',
-            assessmentName: 'Midterm Exam',
-            assessmentType: 'exam',
-            score: 78,
-            maxScore: 100,
-            weight: 0.3,
-            feedback: 'Review thermodynamics concepts.',
-            gradedDate: '2025-03-18T00:00:00.000Z',
-            class: {
-              name: 'Physics Fundamentals',
-              subject: 'Physics'
-            }
-          },
-          {
-            id: '6',
-            assessmentName: 'Historical Essay',
-            assessmentType: 'assignment',
-            score: 92,
-            maxScore: 100,
-            weight: 0.25,
-            feedback: 'Excellent research and analysis!',
-            gradedDate: '2025-03-05T00:00:00.000Z',
-            class: {
-              name: 'World History',
-              subject: 'History'
-            }
-          },
-          {
-            id: '7',
-            assessmentName: 'Quiz 1',
-            assessmentType: 'quiz',
-            score: 18,
-            maxScore: 20,
-            weight: 0.1,
-            feedback: null,
-            gradedDate: '2025-02-15T00:00:00.000Z',
-            class: {
-              name: 'World History',
-              subject: 'History'
-            }
-          }
-        ];
+        // Make API call to get real grades data
+        const response = await fetch('/api/student/grades');
+        console.log('API response status:', response.status);
         
-        // Group grades by class and calculate averages
-        const gradesByClass: Record<string, Grade[]> = {};
-        sampleGrades.forEach(grade => {
-          const className = grade.class.name;
-          if (!gradesByClass[className]) {
-            gradesByClass[className] = [];
-          }
-          gradesByClass[className].push(grade);
-        });
+        // For debugging response
+        const responseText = await response.text();
+        console.log('Raw API response:', responseText);
         
-        // Calculate class summaries
-        const summaries: ClassGradeSummary[] = Object.keys(gradesByClass).map(className => {
-          const classGrades = gradesByClass[className];
-          let totalWeightedScore = 0;
-          let totalWeight = 0;
-          
-          classGrades.forEach(grade => {
-            const weightedScore = (grade.score / grade.maxScore) * grade.weight;
-            totalWeightedScore += weightedScore;
-            totalWeight += grade.weight;
-          });
-          
-          const averageGrade = totalWeight > 0 
-            ? (totalWeightedScore / totalWeight) * 100 
-            : 0;
-          
-          // Determine letter grade
-          let letterGrade = 'N/A';
-          if (averageGrade >= 90) letterGrade = 'A';
-          else if (averageGrade >= 80) letterGrade = 'B';
-          else if (averageGrade >= 70) letterGrade = 'C';
-          else if (averageGrade >= 60) letterGrade = 'D';
-          else if (averageGrade > 0) letterGrade = 'F';
-          
-          return {
-            className,
-            subject: classGrades[0].class.subject,
-            averageGrade,
-            letterGrade,
-            grades: classGrades
-          };
-        });
-        
-        setClassSummaries(summaries);
-        if (summaries.length > 0 && !selectedClass) {
-          setSelectedClass(summaries[0].className);
+        // Try to parse the response as JSON
+        let classSummaries = [];
+        try {
+          classSummaries = JSON.parse(responseText);
+          console.log('Parsed grade data:', classSummaries);
+        } catch (parseError) {
+          console.error('Error parsing JSON response:', parseError);
+          throw new Error('Invalid response format from server');
         }
+        
+        if (!response.ok) {
+          const errorMessage = classSummaries?.error || 'Server returned error status ' + response.status;
+          throw new Error(errorMessage);
+        }
+        
+        // Check if response is an array and has expected structure
+        if (!Array.isArray(classSummaries)) {
+          console.error('API response is not an array:', classSummaries);
+          throw new Error('Invalid data format from server');
+        }
+        
+        // Handle empty grades case
+        if (classSummaries.length === 0) {
+          console.log('No grades found in database');
+          setClassSummaries([]);
+          setNoGradesFound(true);
+        } else {
+          setClassSummaries(classSummaries);
+          setNoGradesFound(false);
+        }
+        
+        // Set selected class if we have data
+        if (classSummaries.length > 0 && !selectedClass) {
+          setSelectedClass(classSummaries[0].className);
+        }
+        
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching grades:', err);
@@ -267,13 +160,138 @@ export default function StudentGrades() {
     }
   };
 
-  if (isLoading) {
+  const renderGradesContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center my-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="text-center my-20 text-red-600">
+          <div className="text-3xl mb-4">😕</div>
+          <p>{error}</p>
+        </div>
+      );
+    }
+    
+    if (noGradesFound || classSummaries.length === 0) {
+      return (
+        <div className="text-center my-20 text-gray-600">
+          <div className="text-3xl mb-4">📝</div>
+          <h3 className="text-lg font-semibold mb-2">No Grades Available</h3>
+          <p>You don't have any grades yet. This could be because:</p>
+          <ul className="list-disc list-inside mt-2 text-left max-w-md mx-auto">
+            <li>You haven't been enrolled in any classes</li>
+            <li>Your instructors haven't posted any grades yet</li>
+            <li>Your assessments haven't been graded</li>
+          </ul>
+          <p className="mt-4">Check back later or contact your instructors for more information.</p>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="bg-indigo-600 text-white px-4 py-3">
+              <h2 className="text-lg font-semibold">My Classes</h2>
+            </div>
+            <div className="divide-y">
+              {classSummaries.map(summary => (
+                <button
+                  key={summary.className}
+                  onClick={() => setSelectedClass(summary.className)}
+                  className={`w-full px-4 py-3 text-left hover:bg-indigo-50 transition-colors flex justify-between items-center ${
+                    selectedClass === summary.className ? 'bg-indigo-50' : ''
+                  }`}
+                >
+                  <div>
+                    <p className="font-medium">{summary.className}</p>
+                    <p className="text-sm text-gray-500">{summary.subject}</p>
+                  </div>
+                  <div className={`font-bold ${getGradeColor(summary.averageGrade)}`}>
+                    {summary.letterGrade}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-3">
+          {selectedClassSummary ? (
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold">{selectedClassSummary.className}</h2>
+                  <p className="text-indigo-100">{selectedClassSummary.subject}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-indigo-100">Overall Grade</p>
+                  <div className="flex items-center">
+                    <span className="text-2xl font-bold">{selectedClassSummary.letterGrade}</span>
+                    <span className="text-indigo-100 ml-2">
+                      ({selectedClassSummary.averageGrade.toFixed(1)}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Assessments</h3>
+                <div className="space-y-4">
+                  {selectedClassSummary.grades.map(grade => (
+                    <div key={grade.id} className="border rounded-lg overflow-hidden">
+                      <div className="bg-gray-50 px-4 py-3 flex justify-between items-center">
+                        <div className="flex items-center">
+                          {getAssessmentTypeIcon(grade.assessmentType)}
+                          <span className="ml-2 font-medium">{grade.assessmentName}</span>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {new Date(grade.gradedDate).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <div>
+                            <span className="text-gray-600 text-sm">Score: </span>
+                            <span className="font-medium">
+                              {grade.score} / {grade.maxScore}
+                            </span>
+                            <span className="text-sm text-gray-500 ml-2">
+                              ({((grade.score / grade.maxScore) * 100).toFixed(1)}%)
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            Weight: {(grade.weight * 100).toFixed(0)}%
+                          </div>
+                        </div>
+                        {grade.feedback && (
+                          <div className="mt-2 text-sm">
+                            <span className="font-medium text-gray-700">Feedback: </span>
+                            <span className="text-gray-600">{grade.feedback}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <p className="text-gray-500">Select a class to view grades.</p>
+            </div>
+          )}
+        </div>
       </div>
     );
-  }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -388,8 +406,15 @@ export default function StudentGrades() {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <h3 className="text-xl font-medium text-gray-700 mb-2">No Grades Found</h3>
-          <p className="text-gray-500">You don't have any grades recorded yet.</p>
+          <div className="text-5xl mb-4">📝</div>
+          <h3 className="text-xl font-medium text-gray-700 mb-4">No Grades Available</h3>
+          <p className="mb-2 text-gray-600">You don't have any grades yet. This could be because:</p>
+          <ul className="list-disc list-inside mt-2 text-left max-w-md mx-auto mb-4 text-gray-600">
+            <li>You haven't been enrolled in any classes</li>
+            <li>Your instructors haven't posted any grades yet</li>
+            <li>Your assessments haven't been graded</li>
+          </ul>
+          <p className="text-gray-600">Please check with your instructors or the administration for more information.</p>
         </div>
       )}
     </div>
