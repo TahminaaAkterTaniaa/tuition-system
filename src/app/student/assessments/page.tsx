@@ -68,9 +68,18 @@ export default function StudentAssessmentsPage() {
       
       if (data.success && Array.isArray(data.enrollments)) {
         const enrolledClasses = data.enrollments
-          .filter((enrollment: any) => enrollment.status === 'enrolled')
+          .filter((enrollment: any) => 
+            enrollment && 
+            enrollment.status === 'enrolled' && 
+            enrollment.class && 
+            typeof enrollment.class === 'object' &&
+            enrollment.class.id && 
+            enrollment.class.name && 
+            enrollment.class.subject
+          )
           .map((enrollment: any) => enrollment.class);
         
+        console.log('Filtered enrolled classes:', enrolledClasses);
         setClasses(enrolledClasses);
       }
     } catch (err) {
@@ -111,7 +120,12 @@ export default function StudentAssessmentsPage() {
       
       // Fetch assessments for enrolled classes
       const assessmentsPromises = classIds.map((classId: string) => 
-        fetch(`/api/student/assessments?classId=${classId}`).then(res => res.json())
+        fetch(`/api/student/assessments?classId=${classId}`)
+          .then(res => res.json())
+          .catch(err => {
+            console.error(`Error fetching assessments for class ${classId}:`, err);
+            return []; // Return empty array on error
+          })
       );
       
       const assessmentsResults = await Promise.all(assessmentsPromises);
@@ -119,7 +133,40 @@ export default function StudentAssessmentsPage() {
       // Flatten and combine all assessments
       const allAssessments = assessmentsResults
         .flat()
-        .filter(assessment => assessment && assessment.id);
+        .filter(assessment => {
+          // Add detailed validation to prevent TypeError
+          if (!assessment) {
+            console.warn('Filtering out undefined/null assessment');
+            return false;
+          }
+          
+          if (!assessment.id) {
+            console.warn('Filtering out assessment without id:', assessment);
+            return false;
+          }
+          
+          if (!assessment.class || typeof assessment.class !== 'object') {
+            console.warn('Filtering out assessment without class object:', assessment);
+            return false;
+          }
+          
+          // Ensure assessment has all required properties
+          const hasRequiredProps = 
+            assessment.title && 
+            assessment.type && 
+            assessment.dueDate && 
+            typeof assessment.maxScore === 'number' &&
+            assessment.class.id && 
+            assessment.class.name && 
+            assessment.class.subject;
+            
+          if (!hasRequiredProps) {
+            console.warn('Filtering out assessment with missing required properties:', assessment);
+            return false;
+          }
+          
+          return true;
+        });
       
       console.log('Assessments data:', allAssessments);
       
@@ -191,7 +238,14 @@ export default function StudentAssessmentsPage() {
   }, [session, status, router]);
   
   // Get unique assessment types
-  const assessmentTypes = Array.from(new Set(assessments.map(a => a.type)));
+  // Get unique assessment types with null safety
+  const assessmentTypes = Array.from(
+    new Set(
+      assessments
+        .filter(a => a && a.type) // Ensure assessment and type exist
+        .map(a => a.type)
+    )
+  );
   
   // Calculate days remaining for an assessment
   const getDaysRemaining = (dueDate: string) => {
@@ -237,11 +291,13 @@ export default function StudentAssessmentsPage() {
               onChange={(e) => setSelectedClass(e.target.value)}
             >
               <option value="all">All Classes</option>
-              {classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name} - {cls.subject}
-                </option>
-              ))}
+              {classes
+                .filter(cls => cls && cls.id && cls.name && cls.subject) // Ensure class objects have required properties
+                .map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name} - {cls.subject}
+                  </option>
+                ))}
             </select>
           </div>
           
@@ -290,12 +346,20 @@ export default function StudentAssessmentsPage() {
               const daysRemaining = getDaysRemaining(assessment.dueDate);
               const urgencyClass = getUrgencyClass(daysRemaining);
               
+              // Skip rendering if assessment or its class property is undefined
+              if (!assessment || !assessment.class) {
+                console.warn('Attempted to render invalid assessment:', assessment);
+                return null;
+              }
+              
               return (
                 <div key={assessment.id} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                     <div className="mb-4 md:mb-0">
                       <h3 className="text-lg font-semibold text-gray-900">{assessment.title}</h3>
-                      <p className="text-sm text-gray-600">{assessment.class.name} - {assessment.class.subject}</p>
+                      <p className="text-sm text-gray-600">
+                        {assessment.class?.name || 'Unknown Class'} - {assessment.class?.subject || 'Unknown Subject'}
+                      </p>
                       {assessment.description && (
                         <p className="text-sm text-gray-500 mt-1">{assessment.description}</p>
                       )}
