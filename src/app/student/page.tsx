@@ -24,6 +24,9 @@ interface ClassItem {
   enrollmentId?: string;
   enrollmentStatus?: string;
   enrollmentDate?: string;
+  // Enhanced display fields
+  schedulesDisplay?: string;
+  formattedRoom?: string;
 }
 
 interface AttendanceRecord {
@@ -130,53 +133,36 @@ export default function StudentDashboard() {
         return;
       }
       
-      // Direct database query approach
-      const userId = session.user.id;
-      const directResponse = await fetch(`/api/enrollment/direct-check?userId=${userId}`);
-      const directData = await directResponse.json();
+      // Use the same API endpoint as the classes page
+      const response = await fetch('/api/student/classes');
       
-      console.log('Direct enrollment check result:', directData);
-      
-      if (directData.success && directData.enrollments && directData.enrollments.length > 0) {
-        // Filter to only show enrolled classes (not pending)
-        const enrolledItems = directData.enrollments.filter((item: any) => 
-          item.status === 'enrolled' || item.status === 'completed'
-        );
-        
-        console.log('Enrolled items from direct check:', enrolledItems.length);
-        
-        if (enrolledItems.length > 0) {
-          // Get class details for each enrollment
-          const classPromises = enrolledItems.map((enrollment: any) => 
-            fetch(`/api/classes/${enrollment.classId}`).then(res => res.json())
-          );
-          
-          const classResults = await Promise.all(classPromises);
-          console.log('Class details fetched:', classResults.length);
-          
-          // Combine enrollment data with class details
-          const enrolledClasses = classResults.map((classData: any, index: number) => ({
-            ...classData,
-            enrollmentStatus: enrolledItems[index].status,
-            enrollmentId: enrolledItems[index].id,
-            enrollmentDate: enrolledItems[index].enrollmentDate
-          }));
-          
-          console.log('Final enrolled classes:', enrolledClasses.length);
-          setClasses(enrolledClasses);
-          setError(null);
-          setIsLoading(false);
-          return;
+      if (!response.ok) {
+        // Try to get more detailed error information
+        let errorMessage = 'Failed to fetch classes';
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          // If we can't parse the error response, use the default message
         }
+        
+        console.error('Error response:', errorMessage);
+        throw new Error(errorMessage);
       }
       
-      // Fallback to the regular API
-      const response = await fetch('/api/student/enrolled-classes');
       const data = await response.json();
-      console.log('Enrolled classes data from API:', data);
+      console.log('Classes fetched successfully:', data);
       
       if (Array.isArray(data) && data.length > 0) {
-        setClasses(data);
+        // Filter to only show enrolled classes
+        const enrolledClasses = data.filter((item: any) => 
+          item.enrollmentStatus === 'enrolled' || item.enrollmentStatus === 'completed'
+        );
+        
+        console.log('Filtered enrolled classes:', enrolledClasses);
+        setClasses(enrolledClasses);
         setError(null);
       } else {
         setClasses([]);
@@ -495,7 +481,7 @@ export default function StudentDashboard() {
         );
     }
   };
-
+console.log("class item data--->",classes)
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
@@ -533,10 +519,10 @@ export default function StudentDashboard() {
                       </div>
                       <div className="text-right">
                         <div className="text-sm text-gray-600">
-                          {classItem.schedule || 'Schedule not available'}
+                          {classItem.schedulesDisplay || classItem.schedule || 'Schedule not available'}
                         </div>
                         <div className="text-sm text-gray-600">
-                          Room: {classItem.room || 'Not assigned'}
+                          Room: {classItem.formattedRoom || classItem.room || 'Not assigned'}
                         </div>
                       </div>
                     </div>

@@ -249,9 +249,26 @@ export default function StudentClasses() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {classes.map((classItem) => (
           <div key={classItem.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+            {/* Header with class name and receipt icon */}
             <div className="bg-indigo-600 text-white px-4 py-2">
-              <h2 className="text-xl font-semibold">{classItem.name}</h2>
-              <p className="text-indigo-100">{classItem.subject}</p>
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold">{classItem.name}</h2>
+                  <p className="text-indigo-100">{classItem.subject}</p>
+                </div>
+                {classItem.enrollmentStatus === 'enrolled' && (
+                  <button
+                    onClick={() => handleViewReceipt(classItem.enrollmentId, classItem.name)}
+                    title="View Receipt"
+                    aria-label="View Receipt"
+                    className="p-2 hover:bg-indigo-500 rounded-full transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </button>
+                )}
+              </div>
               <div className="mt-1">
                 {classItem.enrollmentStatus === 'enrolled' && (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -285,22 +302,31 @@ export default function StudentClasses() {
                 )}
               </div>
             </div>
+
+            {/* Card body with class details */}
             <div className="p-4">
               <p className="text-gray-700 mb-2">{classItem.description}</p>
               
-              <div className="mt-4 space-y-2">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium">{classItem.name}</h3>
-                  <span className="text-gray-600">{classItem.schedulesDisplay || classItem.schedule || 'Not scheduled'}</span>
+              <div className="mt-4 space-y-4">
+                {/* Schedule */}
+                <div>
+                  <h3 className="text-lg font-medium mb-1">Schedule</h3>
+                  <p className="text-gray-600">{classItem.schedulesDisplay || classItem.schedule || 'Not scheduled'}</p>
                 </div>
+                
+                {/* Room */}
                 <div className="flex">
                   <span className="font-medium w-24">Room:</span>
                   <span className="text-gray-600">{classItem.formattedRoom || classItem.room || 'Not assigned'}</span>
                 </div>
+                
+                {/* Teacher */}
                 <div className="flex">
                   <span className="font-medium w-24">Teacher:</span>
                   <span className="text-gray-600">{classItem.teacher?.user.name || 'Not assigned'}</span>
                 </div>
+                
+                {/* Period */}
                 <div className="flex">
                   <span className="font-medium w-24">Period:</span>
                   <span className="text-gray-600">
@@ -310,26 +336,16 @@ export default function StudentClasses() {
                 </div>
               </div>
               
+              {/* Actions */}
               <div className="mt-6 flex justify-end space-x-2">
                 {classItem.enrollmentStatus === 'enrolled' && (
-                  <>
-                    <button 
-                      onClick={() => openWithdrawalModal(classItem.enrollmentId, classItem.name)}
-                      disabled={withdrawingClassId === classItem.enrollmentId}
-                      className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {withdrawingClassId === classItem.enrollmentId ? 'Processing...' : 'Request Withdrawal'}
-                    </button>
-                    <button
-                      onClick={() => handleViewReceipt(classItem.enrollmentId, classItem.name)}
-                      className="bg-green-100 text-green-700 px-4 py-2 rounded hover:bg-green-200 transition-colors flex items-center"
-                    >
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      View Receipt
-                    </button>
-                  </>
+                  <button 
+                    onClick={() => openWithdrawalModal(classItem.enrollmentId, classItem.name)}
+                    disabled={withdrawingClassId === classItem.enrollmentId}
+                    className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {withdrawingClassId === classItem.enrollmentId ? 'Processing...' : 'Request Withdrawal'}
+                  </button>
                 )}
                 {classItem.enrollmentStatus === 'withdrawal_pending' && (
                   <span className="bg-orange-50 text-orange-700 px-4 py-2 rounded inline-flex items-center">
