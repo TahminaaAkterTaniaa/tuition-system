@@ -1,7 +1,13 @@
 'use client';
 
-import { useState, Fragment } from 'react';
+import { useState, Fragment, useRef, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
+import dynamic from 'next/dynamic';
+
+// Import libraries directly (will only be used client-side)
+import { jsPDF } from 'jspdf';
+// We'll use direct PDF generation instead of html2canvas to avoid color parsing issues
+import Image from 'next/image';
 
 interface ReceiptData {
   receiptNumber: string;
@@ -10,8 +16,11 @@ interface ReceiptData {
   studentName: string;
   className: string;
   amount: number;
-  paymentMethod: string;
+  paymentMethod?: string;
+  studentId?: string;
+  paymentDate?: string;
   status: string;
+  subject?: string;
 }
 
 interface ReceiptModalProps {
@@ -23,6 +32,7 @@ interface ReceiptModalProps {
 
 export default function ReceiptModal({ isOpen, onClose, receipt, isLoading }: ReceiptModalProps) {
   const [isPrinting, setIsPrinting] = useState(false);
+  const [studentProfile, setStudentProfile] = useState<{idNumber?: string}>({});
 
   const handlePrint = () => {
     setIsPrinting(true);
@@ -30,10 +40,239 @@ export default function ReceiptModal({ isOpen, onClose, receipt, isLoading }: Re
     setTimeout(() => setIsPrinting(false), 500);
   };
 
+  // Reference to the receipt content div
+  const receiptRef = useRef<HTMLDivElement>(null);
+  
+  // Fetch student profile to get the correct studentId
+  useEffect(() => {
+    const fetchStudentProfile = async () => {
+      if (isOpen && receipt) {
+        try {
+          const response = await fetch('/api/student/profile');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.profile) {
+              setStudentProfile(data.profile);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching student profile:', error);
+        }
+      }
+    };
+    
+    fetchStudentProfile();
+  }, [isOpen, receipt]);
+
   const handleDownloadPDF = () => {
-    // In a real implementation, this would generate a PDF
-    // For this demo, we'll just show an alert
-    alert('PDF download functionality would be implemented here');
+    if (!receipt) {
+      console.error('Receipt content not available');
+      return;
+    }
+
+    try {
+      // Show loading message
+      const loadingToast = document.createElement('div');
+      loadingToast.innerText = 'Generating PDF...';
+      loadingToast.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded shadow-lg z-50';
+      document.body.appendChild(loadingToast);
+
+      // Create PDF document
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      const lineHeight = 7;
+      let yPos = 20;
+      
+      // ===== TOP HEADER SECTION =====
+      // Add NexStack logo with a purple N box exactly matching UI
+      doc.setFillColor(93, 63, 211); // NexStack purple
+      doc.roundedRect(margin, yPos, 16, 16, 1, 1, 'F');
+      
+      // Add white N to logo
+      doc.setTextColor(255, 255, 255); 
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('N', margin + 6, yPos + 10);
+      
+      // Left header section - institute name and location
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('NexStack Tuition', margin + 22, yPos + 6);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text('Singapore', margin + 22, yPos + 14);
+      doc.text('Singapore, 850801', margin + 22, yPos + 20);
+      
+      // Right header: RECEIPT text and details
+      const rightColumnX = pageWidth - margin;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('RECEIPT', rightColumnX, yPos + 5, { align: 'right' });
+      
+      // Add horizontal line
+      yPos += 20;
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      
+      // Receipt details on right
+      yPos += 12;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(`Receipt #${receipt.receiptNumber}`, rightColumnX, yPos, { align: 'right' });
+      yPos += lineHeight;
+      doc.text(`Receipt Date: ${receipt.date}`, rightColumnX, yPos, { align: 'right' });
+      yPos += lineHeight;
+      doc.text(`Payment Date: ${receipt.paymentDate || receipt.date}`, rightColumnX, yPos, { align: 'right' });
+      
+      // ===== BILLING INFO SECTION =====
+      // Reset position for left side billing info
+      yPos = yPos - (lineHeight * 2); // Align with receipt details
+      
+      doc.setFontSize(10);
+      doc.text('Bill To:', margin, yPos);
+      yPos += lineHeight;
+      doc.text('Student', margin, yPos);
+      yPos += lineHeight;
+      
+      // Use the actual student ID from the profile or fallback to receipt
+      const displayStudentId = studentProfile?.idNumber || receipt.studentId || 'ST341389';
+      doc.text(`Student ID: ${displayStudentId}`, margin, yPos);
+      yPos += lineHeight;
+      doc.text(`Class: ${receipt.className || 'Presentation Class'}`, margin, yPos);
+      
+      // Calculate table position and column widths for exact UI match
+      yPos = 95; // Adjust starting position to match UI spacing
+      const tableWidth = pageWidth - (margin * 2);
+      
+      // Define column widths to match UI proportions
+      const colWidths = {
+        subject: tableWidth * 0.25,   // Subject column (25%)
+        className: tableWidth * 0.5,  // Class Name column (50%)
+        fee: tableWidth * 0.25        // Fee column (25%)
+      };
+
+      // Define column positions
+      const col1 = margin;                    // Subject starts at left margin
+      const col2 = col1 + colWidths.subject;  // Class Name starts after Subject
+      const col3 = col2 + colWidths.className; // Fee starts after Class Name
+      
+      // ===== TABLE HEADER SECTION =====
+      // Header styling to match UI
+      doc.setDrawColor(220, 220, 220); // Light gray borders exactly like UI
+      doc.setLineWidth(0.5); // Thin borders like UI
+      doc.setFillColor(248, 248, 248); // Very light gray background for header
+      
+      // Create header cells with background
+      doc.setFillColor(248, 248, 248);
+      doc.rect(col1, yPos, colWidths.subject, 15, 'F'); // Subject header with fill
+      doc.rect(col2, yPos, colWidths.className, 15, 'F'); // Class Name header with fill
+      doc.rect(col3, yPos, colWidths.fee, 15, 'F'); // Fee header with fill
+      
+      // Add borders to header cells
+      doc.setDrawColor(220, 220, 220);
+      doc.rect(col1, yPos, colWidths.subject, 15); // Subject header border
+      doc.rect(col2, yPos, colWidths.className, 15); // Class Name header border
+      doc.rect(col3, yPos, colWidths.fee, 15); // Fee header border
+      
+      // Add header text
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text('Subject', col1 + 15, yPos + 10); // Left-aligned with padding
+      doc.text('Class Name', col2 + 15, yPos + 10); // Left-aligned with padding
+      doc.text('Fee', col3 + colWidths.fee - 15, yPos + 10, { align: 'right' }); // Right-aligned
+      
+      // ===== TABLE DATA SECTION =====
+      doc.setFont('helvetica', 'normal');
+      yPos += 15; // Move to data row
+      
+      // Data cells with borders
+      doc.rect(col1, yPos, colWidths.subject, 15);
+      doc.rect(col2, yPos, colWidths.className, 15);
+      doc.rect(col3, yPos, colWidths.fee, 15);
+      
+      // Add data content matching UI alignment
+      doc.text(receipt.subject || 'General', col1 + 15, yPos + 10); // Left-aligned with padding
+      doc.text(receipt.className || 'Presentation Class', col2 + 15, yPos + 10); // Left-aligned with padding
+      doc.text(`$${receipt.amount ? receipt.amount.toFixed(2) : '250.00'}`, col3 + colWidths.fee - 15, yPos + 10, { align: 'right' }); // Right-aligned
+      
+      // ===== PAYMENT SUMMARY SECTION =====
+      // Move down after table
+      yPos += 30;
+      
+      // Right-aligned summary section exactly matching UI
+      const summaryWidth = 100;
+      const summaryRight = pageWidth - margin;
+      const summaryLeft = summaryRight - summaryWidth;
+      
+      // Total row
+      doc.text('Total', summaryLeft, yPos);
+      doc.text(`$${receipt.amount ? receipt.amount.toFixed(2) : '250.00'}`, summaryRight, yPos, { align: 'right' });
+      
+      // Paid row
+      yPos += lineHeight + 3;
+      doc.text('Paid', summaryLeft, yPos);
+      doc.text(`$${receipt.amount ? receipt.amount.toFixed(2) : '250.00'}`, summaryRight, yPos, { align: 'right' });
+      
+      // Balance Due row - bold as shown in UI
+      yPos += lineHeight + 3;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Balance Due', summaryLeft, yPos);
+      doc.text('$0.00', summaryRight, yPos, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      
+      // ===== PAYMENT INFO SECTION =====
+      yPos += 25;
+      
+      // Payment Method on left
+      doc.text('Payment Method:', margin, yPos);
+      doc.text(receipt.paymentMethod || 'Credit Card', margin, yPos + lineHeight);
+      
+      // Payment Status on right with green 'Paid' text
+      doc.text('Payment Status:', summaryRight, yPos, { align: 'right' });
+      doc.setTextColor(0, 170, 0); // Bright green for 'Paid' status
+      doc.setFont('helvetica', 'bold');
+      doc.text('Paid', summaryRight, yPos + lineHeight, { align: 'right' });
+      
+      // Reset text color and font
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'normal');
+      
+      // ===== NOTES/TERMS SECTION =====
+      yPos += 25;
+      doc.text('Notes / Terms', margin, yPos);
+      
+      yPos += 8;
+      doc.setFontSize(9);
+      const notes = 'Thank you for enrolling in our class. This receipt confirms your payment and enrollment. Please refer to the class schedule for start dates and times. For any questions or assistance, contact our administration office.';
+      
+      // Word wrap for notes text
+      const splitNotes = doc.splitTextToSize(notes, pageWidth - (2 * margin));
+      doc.text(splitNotes, margin, yPos);
+      
+      // ===== FOOTER =====
+      yPos = pageHeight - 15;
+      doc.setFontSize(8);
+      doc.text('This is an official receipt for your enrollment payment.', pageWidth / 2, yPos, { align: 'center' });
+      doc.text('© 2025 Tuition System. All rights reserved.', pageWidth / 2, yPos + 4, { align: 'center' });
+
+      // Save the PDF with properly formatted name
+      doc.save(`NexStack-Receipt-${receipt.receiptNumber}.pdf`);
+
+      // Cleanup loading indicator
+      setTimeout(() => {
+        if (document.body.contains(loadingToast)) {
+          document.body.removeChild(loadingToast);
+        }
+      }, 1000);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
   };
 
   return (
@@ -69,36 +308,39 @@ export default function ReceiptModal({ isOpen, onClose, receipt, isLoading }: Re
                     <p className="mt-4 text-gray-600">Loading receipt...</p>
                   </div>
                 ) : receipt ? (
-                  <div className="print:shadow-none print:p-0">
+                  <div ref={receiptRef} className="print:shadow-none print:p-0">
                     <Dialog.Title as="div" className="flex justify-between items-center mb-6">
                       <h3 className="text-2xl font-bold text-gray-900">Payment Receipt</h3>
                       <button 
-                        onClick={onClose} 
-                        className="text-gray-500 hover:text-gray-700 print:hidden"
-                        aria-label="Close receipt modal"
-                        title="Close receipt modal"
+                        className="text-gray-400 hover:text-gray-500"
+                        onClick={onClose}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <span className="sr-only">Close</span>
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
                     </Dialog.Title>
-
-                    {/* Header Section with Logo and Company Info */}
-                    <div className="flex justify-between items-start mb-8 pb-4">
+                    
+                    <div className="flex justify-between items-start mt-2 mb-6 border-b pb-4">
                       <div className="flex items-center">
-                        <div className="bg-indigo-600 text-white p-3 rounded-lg h-16 w-16 flex items-center justify-center mr-3">
-                          <span className="text-2xl font-bold">TS</span>
+                        <div className="rounded-lg overflow-hidden">
+                          <Image 
+                            src="/images/nexstack-logo.svg" 
+                            alt="NexStack Logo" 
+                            width={50} 
+                            height={50} 
+                            className="object-cover" 
+                          />
                         </div>
-                        <div>
-                          <h2 className="text-xl font-bold text-gray-800">NexStack Tuition</h2>
-                          <p className="text-gray-600 text-sm">Singapore</p>
-                          <p className="text-gray-600 text-sm">Singapore, 90588146</p>
+                        <div className="ml-3">
+                          <p className="font-bold">NexStack Tuition</p>
+                          <p className="text-sm text-gray-500">Singapore</p>
+                          <p className="text-sm text-gray-500">Singapore, 850801</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <h1 className="text-2xl font-bold text-gray-500 uppercase">RECEIPT</h1>
-                        <div className="w-full h-0.5 bg-indigo-600 mt-1"></div>
+                      <div>
+                        <h4 className="text-xl font-bold text-gray-700">RECEIPT</h4>
                       </div>
                     </div>
 
@@ -107,7 +349,7 @@ export default function ReceiptModal({ isOpen, onClose, receipt, isLoading }: Re
                       <div>
                         <p className="text-gray-600 font-medium mb-1">Bill To:</p>
                         <p className="font-medium">{receipt.studentName}</p>
-                        <p className="text-gray-600">Student ID: {receipt.transactionId.substring(0, 8)}</p>
+                        <p className="text-gray-600">Student ID: {studentProfile?.idNumber || receipt.studentId || 'N/A'}</p>
                         <p className="text-gray-600">Class: {receipt.className}</p>
                       </div>
                       <div className="text-right">
@@ -125,26 +367,22 @@ export default function ReceiptModal({ isOpen, onClose, receipt, isLoading }: Re
                         </div>
                       </div>
                     </div>
-
+                    
                     {/* Table */}
                     <div className="mb-8">
                       <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="bg-gray-100">
-                            <th className="py-2 px-4 text-left border border-gray-300">Item</th>
-                            <th className="py-2 px-4 text-left border border-gray-300">Description</th>
-                            <th className="py-2 px-4 text-right border border-gray-300">Unit Price</th>
-                            <th className="py-2 px-4 text-center border border-gray-300">Quantity</th>
-                            <th className="py-2 px-4 text-right border border-gray-300">Subtotal</th>
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="py-2 px-4 text-left border border-gray-300">Subject</th>
+                            <th className="py-2 px-4 text-left border border-gray-300">Class Name</th>
+                            <th className="py-2 px-4 text-right border border-gray-300">Fee</th>
                           </tr>
                         </thead>
                         <tbody>
                           <tr>
-                            <td className="py-2 px-4 border border-gray-300">Tuition</td>
-                            <td className="py-2 px-4 border border-gray-300">{receipt.className} - Enrollment Fee</td>
-                            <td className="py-2 px-4 text-right border border-gray-300">${receipt.amount.toFixed(2)}</td>
-                            <td className="py-2 px-4 text-center border border-gray-300">1</td>
-                            <td className="py-2 px-4 text-right border border-gray-300">${receipt.amount.toFixed(2)}</td>
+                            <td className="py-2 px-4 border border-gray-300">{receipt?.subject || 'General'}</td>
+                            <td className="py-2 px-4 border border-gray-300">{receipt?.className}</td>
+                            <td className="py-2 px-4 text-right border border-gray-300">${receipt?.amount.toFixed(2)}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -192,7 +430,7 @@ export default function ReceiptModal({ isOpen, onClose, receipt, isLoading }: Re
                       </p>
                     </div>
 
-                    <div className="text-center mt-8 print:hidden">
+                    <div className="text-center mt-8 print:hidden receipt-actions">
                       <div className="flex justify-center space-x-4 mb-4">
                         <button
                           onClick={handlePrint}

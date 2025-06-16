@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background square with rounded corners -->
+  <rect x="10" y="10" width="180" height="180" rx="20" ry="20" fill="#5d3fd3" />
+  
+  <!-- 'N' letter -->
+  <path d="M50,50 L50,150 L70,150 L70,80 L110,150 L130,150 L130,50 L110,50 L110,120 L70,50 Z" fill="white"/>
+  
+  <!-- Small text below -->
+  <text x="100" y="175" font-family="Arial, sans-serif" font-size="20" fill="white" text-anchor="middle">NEXSTACK</text>
+</svg>
