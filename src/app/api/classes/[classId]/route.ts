@@ -26,7 +26,7 @@ export async function GET(
     // Get the authenticated user's session
     const session = await getServerSession(authOptions);
     
-    // Fetch the class details
+    // Fetch the class details with all necessary information including schedules
     const classInfo = await prisma.class.findUnique({
       where: { id: classId },
       include: {
@@ -37,6 +37,12 @@ export async function GET(
                 name: true
               }
             }
+          }
+        },
+        // Include class schedules with room details
+        schedules: {
+          include: {
+            room: true
           }
         },
         // Count current enrollments to check available seats
@@ -59,18 +65,50 @@ export async function GET(
     }
 
     // Transform the data to include available seats
-    const enrolledCount = classInfo.enrollments.length;
-    const availableSeats = classInfo.capacity - enrolledCount;
+    const enrolledCount = classInfo?.enrollments?.length || 0;
+    const availableSeats = classInfo ? classInfo.capacity - enrolledCount : 0;
     
-    // Remove the enrollments array from the response
-    const { enrollments, ...classWithoutEnrollments } = classInfo;
+    // Format the schedule information from class schedules
+    let formattedSchedule = classInfo?.schedule || null;
+    let roomDetails = null;
+    
+    // Process schedules into a readable format if available
+    if (classInfo && classInfo.schedules && classInfo.schedules.length > 0) {
+      // Group schedules by day
+      const scheduleByDay = classInfo.schedules.reduce((acc, schedule) => {
+        if (schedule && schedule.day) {
+          if (!acc[schedule.day]) {
+            acc[schedule.day] = [];
+          }
+          if (schedule.time) {
+            acc[schedule.day].push(schedule.time);
+          }
+        }
+        return acc;
+      }, {} as Record<string, string[]>);
+      
+      // Format as: "Monday: 9:00 AM - 11:00 AM, Wednesday: 2:00 PM - 4:00 PM"
+      formattedSchedule = Object.entries(scheduleByDay)
+        .map(([day, times]) => `${day}: ${times.join(', ')}`)
+        .join('; ');
+      
+      // Use the first schedule's room if available
+      if (classInfo.schedules[0] && classInfo.schedules[0].room) {
+        roomDetails = classInfo.schedules[0].room;
+      }
+    }
+    
+    // Remove the schedules and enrollments arrays from the response
+    const { enrollments, schedules, ...classWithoutArrays } = classInfo;
     
     let classWithAvailability: any = {
-      ...classWithoutEnrollments,
+      ...classWithoutArrays,
       enrolledCount,
       availableSeats,
       isFull: availableSeats <= 0,
-      enrollmentStatus: null
+      enrollmentStatus: null,
+      roomDetails: roomDetails,
+      formattedSchedule // Add the formatted schedule
     };
 
     // If the user is a student, check if they're already enrolled

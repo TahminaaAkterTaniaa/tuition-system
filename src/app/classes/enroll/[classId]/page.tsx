@@ -27,6 +27,15 @@ interface ClassDetails {
     } | null;
   } | null;
   enrollmentStatus: string | null;
+  roomDetails?: {
+    id: string;
+    name: string;
+    capacity: number | null;
+    building: string | null;
+    floor: string | null;
+    features: string | null;
+  } | null;
+  formattedSchedule?: string; // Added formatted schedule property
 }
 
 interface PaymentData {
@@ -504,10 +513,16 @@ export default function EnrollPage() {
                 <h3 className="text-lg font-medium mb-2">Class Information</h3>
                 <div className="bg-gray-50 p-4 rounded-md">
                   <div className="mb-2">
-                    <span className="font-medium">Schedule:</span> {classDetails.schedule || 'Not specified'}
+                    <span className="font-medium">Schedule:</span> {
+                      classDetails.formattedSchedule || classDetails.schedule || 'Not specified'
+                    }
                   </div>
                   <div className="mb-2">
-                    <span className="font-medium">Room:</span> {classDetails.room || 'Not assigned'}
+                    <span className="font-medium">Room:</span> {
+                      classDetails.roomDetails ? 
+                      `${classDetails.roomDetails.name} (${classDetails.roomDetails.building || 'Main Building'})` : 
+                      classDetails.room || 'Not assigned'
+                    }
                   </div>
                   <div className="mb-2">
                     <span className="font-medium">Teacher:</span> {classDetails.teacher?.user?.name || 'Not assigned'}
