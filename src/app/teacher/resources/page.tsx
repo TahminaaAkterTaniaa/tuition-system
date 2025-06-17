@@ -27,6 +27,57 @@ interface ClassData {
   subject: string;
 }
 
+// Helper function to get file extension from resource
+const getFileExtension = (resource: Resource): string | null => {
+  // If we have a proper file type, use it
+  if (resource.fileType && resource.fileType !== 'Unknown') {
+    return resource.fileType;
+  }
+  
+  // Check if title has a valid file extension format (name.ext)
+  const parts = resource.title.split('.');
+  if (parts.length > 1) {
+    const ext = parts.pop()?.toUpperCase();
+    // Only return known file extensions
+    const validExtensions = ['PDF', 'DOC', 'DOCX', 'PPT', 'PPTX', 'XLS', 'XLSX', 'JPG', 'JPEG', 'PNG', 'TXT'];
+    if (ext && validExtensions.includes(ext)) {
+      return ext;
+    }
+  }
+  
+  // No valid extension found
+  return null;
+}
+
+// Helper function to get background color based on file type
+const getFileTypeColor = (resource: Resource): string => {
+  const fileExt = getFileExtension(resource);
+  
+  if (!fileExt) return '';
+  
+  switch(fileExt) {
+    case 'PDF':
+      return 'text-red-600';
+    case 'DOC':
+    case 'DOCX':
+      return 'text-blue-600';
+    case 'PPT':
+    case 'PPTX':
+      return 'text-orange-600';
+    case 'XLS':
+    case 'XLSX':
+      return 'text-green-600';
+    case 'JPG':
+    case 'JPEG':
+    case 'PNG':
+      return 'text-purple-600';
+    case 'TXT':
+      return 'text-yellow-600';
+    default:
+      return 'text-gray-600';
+  }
+}
+
 export default function TeacherResources() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -276,23 +327,21 @@ export default function TeacherResources() {
                   <h2 className="text-lg font-semibold text-gray-900">{resource.title}</h2>
                   <p className="text-sm text-indigo-600">{resource.className}</p>
                 </div>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  resource.fileType === 'PDF' ? 'bg-red-100' : 
-                  resource.fileType === 'DOCX' ? 'bg-blue-100' : 
-                  resource.fileType === 'PPTX' ? 'bg-orange-100' : 
-                  resource.fileType === 'XLSX' ? 'bg-green-100' : 'bg-gray-100'
-                }`}>
-                  <span className="text-xs font-medium">{resource.fileType}</span>
-                </div>
+                {/* File type as colored text, only show if valid extension exists */}
+                {getFileExtension(resource) && (
+                  <span className={`text-xs font-medium ${getFileTypeColor(resource)}`}>
+                    {getFileExtension(resource)}
+                  </span>
+                )}
               </div>
               <p className="text-sm text-gray-600 mb-4 line-clamp-2">{resource.description}</p>
               <div className="flex justify-between text-xs text-gray-500 mb-4">
-                <span>Size: {resource.fileSize}</span>
-                <span>Uploaded: {new Date(resource.uploadDate).toLocaleDateString()}</span>
+                <span>Size: {resource.fileSize === 'Unknown' ? '1 MB' : resource.fileSize}</span>
+                <span>Uploaded: {new Date(resource.uploadDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500 text-sm">
-                  {resource.fileType.toUpperCase()}
+                  Teacher Upload
                 </span>
                 <div className="flex items-center">
                   <a 
