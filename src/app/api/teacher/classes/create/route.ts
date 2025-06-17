@@ -61,6 +61,14 @@ export async function POST(req: NextRequest) {
 
       const teacherName = teacherWithUser.user.name;
 
+      // Process fee if provided, otherwise use default
+      const fee = body.fee ? parseFloat(body.fee) : 99.99;
+      
+      // Validate fee is a positive number
+      if (isNaN(fee) || fee < 0) {
+        throw new Error('Fee must be a positive number');
+      }
+      
       // Create the new class
       const newClass = await tx.class.create({
         data: {
@@ -71,6 +79,7 @@ export async function POST(req: NextRequest) {
           startDate: body.startDate ? new Date(body.startDate) : new Date(),
           endDate: body.endDate ? new Date(body.endDate) : null,
           capacity: body.capacity ? parseInt(body.capacity) : 30,
+          fee: fee, // Use the validated fee from the form
           teacherId: teacher.id
         }
       });

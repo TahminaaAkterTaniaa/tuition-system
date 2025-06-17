@@ -29,6 +29,7 @@ interface ClassFormData {
   startDate: string;
   endDate: string;
   capacity: string;
+  fee: string;
   selectedDays: string[];
   selectedTime: string;
   selectedRoom: string;
@@ -50,6 +51,7 @@ export default function CreateClass() {
     startDate: '',
     endDate: '',
     capacity: '30',
+    fee: '99.99',
     selectedDays: [],
     selectedTime: '',
     selectedRoom: ''
@@ -262,6 +264,7 @@ export default function CreateClass() {
           startDate: formData.startDate,
           endDate: formData.endDate || null,
           capacity: formData.capacity,
+          fee: formData.fee, // Include the fee value in the request
           selectedDays: formData.selectedDays,
           selectedTimeSlot: formData.selectedTime, // Send as selectedTimeSlot to match backend
           selectedRoom: formData.selectedRoom
@@ -299,7 +302,7 @@ export default function CreateClass() {
         router.push('/teacher/classes');
       }, 1500);
       
-      // Reset form (though we're redirecting, this is good practice)
+      // Reset form
       setFormData({
         name: '',
         subject: '',
@@ -307,9 +310,10 @@ export default function CreateClass() {
         startDate: '',
         endDate: '',
         capacity: '30',
+        fee: '99.99',
         selectedDays: [],
         selectedTime: '',
-        selectedRoom: '',
+        selectedRoom: ''
       });
       
     } catch (error: unknown) {
@@ -443,12 +447,34 @@ export default function CreateClass() {
                 name="capacity"
                 value={formData.capacity}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="30"
                 min="1"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />
             </div>
-
+            
+            <div className="col-span-1">
+              <label className="block text-gray-700 font-medium mb-2" htmlFor="fee">
+                Class Fee (USD)*
+              </label>
+              <input
+                type="number"
+                id="fee"
+                name="fee"
+                value={formData.fee}
+                onChange={handleInputChange}
+                placeholder="Enter class fee"
+                min="0"
+                step="0.01"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                This will be the fee students must pay to enroll in this class.
+              </p>
+            </div>
+            
             <div className="col-span-1">
               <label className="block text-gray-700 font-medium mb-2" htmlFor="startDate">
                 Start Date*

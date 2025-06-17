@@ -186,12 +186,21 @@ export async function POST(req: NextRequest) {
 
     // Parse request body
     const body = await req.json();
-    const { name, subject, description, startDate, endDate, capacity, room } = body;
+    const { name, subject, description, startDate, endDate, capacity, room, fee } = body;
     
     // Validate required fields
-    if (!name || !subject || !startDate || !capacity) {
+    if (!name || !subject || !startDate || !capacity || !fee) {
       return NextResponse.json(
-        { error: 'Missing required fields: name, subject, startDate, and capacity are required' },
+        { error: 'Missing required fields: name, subject, startDate, capacity, and fee are required' },
+        { status: 400 }
+      );
+    }
+    
+    // Validate fee is a positive number
+    const parsedFee = parseFloat(fee);
+    if (isNaN(parsedFee) || parsedFee < 0) {
+      return NextResponse.json(
+        { error: 'Fee must be a positive number' },
         { status: 400 }
       );
     }
@@ -205,6 +214,7 @@ export async function POST(req: NextRequest) {
         startDate: new Date(startDate),
         endDate: endDate ? new Date(endDate) : null,
         capacity: parseInt(capacity),
+        fee: parsedFee, // Use the validated fee from the form
         room: room || null, // Using room field from the schema
         teacherId: teacher.id, // Automatically assign the logged-in teacher
       }
