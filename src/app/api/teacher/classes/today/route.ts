@@ -70,18 +70,6 @@ export async function GET(request: Request) {
       where: { 
         teacherId: teacher.id,
         status: 'active',
-        OR: [
-          {
-            // Classes with schedule containing today's day name
-            schedule: {
-              contains: todayName,
-            },
-          },
-          {
-            // Also include classes with no specific schedule as a fallback
-            schedule: null,
-          },
-        ],
       },
       include: {
         enrollments: {
@@ -90,8 +78,9 @@ export async function GET(request: Request) {
           },
         },
         schedules: {
-          where: {
-            day: todayName,
+          include: {
+            room: true,
+            timeSlot: true, // Include timeSlot relation for each schedule
           },
         },
         teacher: {
@@ -108,16 +97,74 @@ export async function GET(request: Request) {
       let schedule = classItem.schedule || 'Not scheduled';
       let startTime = null;
       let endTime = null;
-      let roomName = classItem.room || 'No room assigned';
+      let roomName = 'No room assigned';
       
-      // If we have schedules for today, use that information
+      // If we have schedules, use that information
       if (classItem.schedules && classItem.schedules.length > 0) {
-        const todaySchedule = classItem.schedules[0]; // We already filtered for today's day
-        startTime = todaySchedule.time;
-        endTime = null; // We don't have end time in the schema
-        schedule = `${todaySchedule.day} at ${todaySchedule.time}`;
-        roomName = todaySchedule.roomId || classItem.room || 'No room assigned';
+        // Find a schedule for today if possible
+        const todaySchedule = classItem.schedules.find((s: any) => s.day === todayName);
+        
+        if (todaySchedule) {
+          // Extract time from timeSlot relation
+          if (todaySchedule.timeSlot) {
+            startTime = todaySchedule.timeSlot.startTime || null;
+            endTime = todaySchedule.timeSlot.endTime || null;
+          }
+          
+          schedule = `${todayName} at ${startTime || 'Time not set'}`;
+          
+          // Get room information
+          if (todaySchedule.room && todaySchedule.room.name) {
+            roomName = todaySchedule.room.name;
+          }
+        } else {
+          // Use any schedule if no specific one for today
+          const anySchedule = classItem.schedules[0];
+          
+          // Extract time from timeSlot relation
+          if (anySchedule.timeSlot) {
+            startTime = anySchedule.timeSlot.startTime || null;
+            endTime = anySchedule.timeSlot.endTime || null;
+          }
+          
+          schedule = `${anySchedule.day || 'Day not set'} at ${startTime || 'Time not set'}`;
+          
+          // Get room information
+          if (anySchedule.room && anySchedule.room.name) {
+            roomName = anySchedule.room.name;
+          }
+        }
       }
+      
+      // Count enrolled students properly from enrollments with status = 'enrolled'
+      const studentCount = classItem.enrollments?.length || 0;
+      
+      // Format times from schedules for display
+      let formattedStartTime = 'Time not set';
+      let formattedEndTime = null;
+      
+      if (startTime && typeof startTime === 'string' && startTime.includes(':')) {
+        try {
+          // Format time to be more readable
+          const startDate = new Date(`1970-01-01T${startTime}Z`);
+          formattedStartTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch (e) {
+          console.error('Error formatting start time:', e);
+        }
+      }
+      
+      if (endTime && typeof endTime === 'string' && endTime.includes(':')) {
+        try {
+          // Format end time if available
+          const endDate = new Date(`1970-01-01T${endTime}Z`);
+          formattedEndTime = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch (e) {
+          console.error('Error formatting end time:', e);
+        }
+      }
+      
+      // Add console log to debug
+      console.log(`Class: ${classItem.name}, Students: ${studentCount}, Time: ${formattedStartTime}`);
       
       return {
         id: classItem.id,
@@ -125,9 +172,9 @@ export async function GET(request: Request) {
         subject: classItem.subject,
         schedule: schedule,
         room: roomName,
-        startTime: startTime,
-        endTime: endTime,
-        studentCount: classItem.enrollments.length,
+        startTime: formattedStartTime,
+        endTime: formattedEndTime,
+        studentCount: studentCount,
       };
     });
     

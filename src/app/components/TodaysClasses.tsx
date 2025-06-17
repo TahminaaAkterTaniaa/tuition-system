@@ -35,17 +35,31 @@ export default function TodaysClasses() {
         // Ensure we have a classes array, even if the API returns null or undefined
         const classesData = data?.classes || [];
         
-        // Make sure each class has the required properties with fallbacks
-        const formattedClasses = classesData.map((cls: any) => ({
-          id: cls.id || '',
-          name: cls.name || 'Unnamed Class',
-          subject: cls.subject || 'No Subject',
-          schedule: cls.schedule || 'Not Scheduled',
-          room: cls.room || 'No Room Assigned',
-          startTime: cls.startTime || 'Not Set',
-          endTime: cls.endTime || 'Not Set',
-          studentCount: cls.studentCount || 0
-        }));
+        // Use the data directly from the API without additional processing
+        // The API now properly formats the room, time, and student count
+        const formattedClasses = classesData.map((cls: any) => {
+          // Format time for display if it's available
+          let timeDisplay = 'Time not set';
+          if (cls.startTime && cls.startTime !== 'Time not set') {
+            if (cls.endTime) {
+              timeDisplay = `${cls.startTime} - ${cls.endTime}`;
+            } else {
+              timeDisplay = cls.startTime;
+            }
+          }
+          
+          return {
+            id: cls.id || '',
+            name: cls.name || 'Unnamed Class',
+            subject: cls.subject || 'No Subject',
+            schedule: cls.schedule || 'Not Scheduled',
+            room: cls.room || 'No room assigned',
+            startTime: timeDisplay,
+            endTime: cls.endTime || '',
+            // Ensure we get the student count from the API
+            studentCount: typeof cls.studentCount === 'number' ? cls.studentCount : 0
+          };
+        });
         
         setClasses(formattedClasses);
       } catch (err) {
@@ -94,57 +108,59 @@ export default function TodaysClasses() {
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
+    <div className="bg-white p-6 rounded-lg shadow-md h-[400px] flex flex-col">
       <h2 className="text-xl font-semibold mb-4">Today's Classes</h2>
-      <div className="w-full">
-        <table className="w-full table-fixed divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="w-1/4 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Class
-              </th>
-              <th scope="col" className="w-1/5 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Time
-              </th>
-              <th scope="col" className="w-1/5 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Room
-              </th>
-              <th scope="col" className="w-1/6 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Students
-              </th>
-              <th scope="col" className="w-1/5 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {classes.map((classItem) => (
-              <tr key={classItem.id}>
-                <td className="px-2 py-4 truncate">
-                  <div className="text-sm font-medium text-gray-900 truncate">{classItem.name}</div>
-                  <div className="text-sm text-gray-500 truncate">{classItem.subject}</div>
-                </td>
-                <td className="px-2 py-4 truncate">
-                  <div className="text-sm text-gray-500">
-                    {classItem.startTime || 'Not set'}
-                  </div>
-                </td>
-                <td className="px-2 py-4 truncate">
-                  <div className="text-sm text-gray-500 truncate">{classItem.room}</div>
-                </td>
-                <td className="px-2 py-4 text-center">
-                  <div className="text-sm text-gray-500">{classItem.studentCount}</div>
-                </td>
-                <td className="px-2 py-4 text-sm font-medium">
-                  <div className="flex space-x-2">
-                    <Link href={`/teacher/classes/${classItem.id}`} className="text-indigo-600 hover:text-indigo-900">View</Link>
-                    <Link href={`/teacher/attendance/mark/${classItem.id}`} className="text-green-600 hover:text-green-900">Attendance</Link>
-                  </div>
-                </td>
+      <div className="w-full flex-grow overflow-hidden">
+        <div className="h-full overflow-auto">
+          <table className="w-full table-fixed divide-y divide-gray-200">
+            <thead className="bg-gray-50 sticky top-0 z-10">
+              <tr>
+                <th scope="col" className="w-1/4 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Class
+                </th>
+                <th scope="col" className="w-1/5 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Time
+                </th>
+                <th scope="col" className="w-1/5 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Room
+                </th>
+                <th scope="col" className="w-1/6 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Students
+                </th>
+                <th scope="col" className="w-1/5 px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {classes.map((classItem) => (
+                <tr key={classItem.id}>
+                  <td className="px-2 py-4 truncate">
+                    <div className="text-sm font-medium text-gray-900 truncate">{classItem.name}</div>
+                    <div className="text-sm text-gray-500 truncate">{classItem.subject}</div>
+                  </td>
+                  <td className="px-2 py-4 truncate">
+                    <div className="text-sm text-gray-500">
+                      {classItem.startTime || 'Time not set'}
+                    </div>
+                  </td>
+                  <td className="px-2 py-4 truncate">
+                    <div className="text-sm text-gray-500 truncate">{classItem.room}</div>
+                  </td>
+                  <td className="px-2 py-4 text-center">
+                    <div className="text-sm text-gray-500">{classItem.studentCount}</div>
+                  </td>
+                  <td className="px-2 py-4 text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <Link href={`/teacher/classes/${classItem.id}`} className="text-indigo-600 hover:text-indigo-900">View</Link>
+                      <Link href={`/teacher/attendance/mark/${classItem.id}`} className="text-green-600 hover:text-green-900">Attendance</Link>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
