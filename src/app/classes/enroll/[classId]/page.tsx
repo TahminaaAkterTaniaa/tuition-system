@@ -646,7 +646,7 @@ export default function EnrollPage() {
       <div className="max-w-4xl mx-auto">
         {/* Enrollment Steps Progress */}
         {currentStep !== EnrollmentStep.ERROR && currentStep !== EnrollmentStep.LOADING && (
-          <div className="mb-8">
+          <div className="mb-8 print:hidden">
             <div className="flex items-center justify-between">
               <div className="flex flex-col items-center">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${

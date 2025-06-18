@@ -9,6 +9,9 @@ import { jsPDF } from 'jspdf';
 // We'll use direct PDF generation instead of html2canvas to avoid color parsing issues
 import Image from 'next/image';
 
+// Add print-specific styles to handle page formatting
+import './receipt-print.css';
+
 interface ReceiptData {
   receiptNumber: string;
   transactionId: string;
@@ -36,8 +39,17 @@ export default function ReceiptModal({ isOpen, onClose, receipt, isLoading }: Re
 
   const handlePrint = () => {
     setIsPrinting(true);
+    
+    // Add a class to the body to control print styling
+    document.body.classList.add('printing-receipt');
+    
     window.print();
-    setTimeout(() => setIsPrinting(false), 500);
+    
+    // Remove the class after printing
+    setTimeout(() => {
+      document.body.classList.remove('printing-receipt');
+      setIsPrinting(false);
+    }, 500);
   };
 
   // Reference to the receipt content div
@@ -287,7 +299,7 @@ export default function ReceiptModal({ isOpen, onClose, receipt, isLoading }: Re
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 backdrop-blur-sm bg-black/30" />
+          <div className="fixed inset-0 backdrop-blur-sm bg-black/30 print:hidden" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -303,18 +315,6 @@ export default function ReceiptModal({ isOpen, onClose, receipt, isLoading }: Re
             >
               <Dialog.Panel className="w-full max-w-3xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
                 {isLoading ? (
-                  <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
-                    <p className="mt-4 text-gray-600">Loading receipt...</p>
-                  </div>
-                ) : receipt ? (
-                  <div ref={receiptRef} className="print:shadow-none print:p-0">
-                    <Dialog.Title as="div" className="flex justify-between items-center mb-6">
-                      <h3 className="text-2xl font-bold text-gray-900">Payment Receipt</h3>
-                      <button 
-                        className="text-gray-400 hover:text-gray-500"
-                        onClick={onClose}
-                      >
                         <span className="sr-only">Close</span>
                         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

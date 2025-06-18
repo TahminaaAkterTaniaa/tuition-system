@@ -184,7 +184,7 @@ export default function TeacherGradebook() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Classes Overview</h2>
           </div>
-          <div className="space-y-4 max-h-[300 px] overflow-y-auto pr-2">
+          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
             {classes.map((classItem) => (
               <div key={classItem.id} className="border-l-4 border-indigo-500 pl-4 py-2">
                 <div className="flex justify-between">

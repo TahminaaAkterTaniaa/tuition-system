@@ -35,7 +35,7 @@ export default function RootLayout({
             <main className="flex-grow">
               {children}
             </main>
-            <footer className="bg-gray-800 text-white py-6">
+            <footer className="bg-gray-800 text-white py-6 print:hidden">
               <div className="container mx-auto text-center">
                 <p>© {new Date().getFullYear()} Tuition System. All rights reserved.</p>
               </div>
