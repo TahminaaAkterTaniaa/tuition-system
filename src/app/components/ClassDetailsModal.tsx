@@ -23,6 +23,8 @@ interface ClassItem {
   availableSeats: number;
   isFull: boolean;
   enrollmentStatus: string | null;
+  roomDisplay?: string;
+  schedulesDisplay?: string;
   roomDetails?: {
     id: string;
     name: string;
@@ -37,11 +39,12 @@ interface ClassDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   classData: ClassItem | null;
+  teacherName?: string;
 }
 
-const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({ isOpen, onClose, classData }) => {
+const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({ isOpen, onClose, classData, teacherName }) => {
   if (!isOpen || !classData) return null;
-
+  
   // Format date for display
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not specified';
@@ -53,7 +56,7 @@ const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({ isOpen, onClose, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto backdrop-blur-sm bg-black/30">
       <div className="relative w-full max-w-2xl mx-auto my-6">
         {/* Modal content */}
         <div className="relative flex flex-col w-full bg-white border-0 rounded-lg shadow-lg">
@@ -97,27 +100,20 @@ const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({ isOpen, onClose, 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Teacher</h4>
-                <p className="text-gray-700">{classData.teacher?.user?.name || 'Not assigned'}</p>
-              </div>
-              
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 mb-1">Room</h4>
                 <p className="text-gray-700">
-                  {classData.roomDetails ? (
-                    <>
-                      {classData.roomDetails.name}
-                      {classData.roomDetails.building && ` (${classData.roomDetails.building})`}
-                      {classData.roomDetails.floor && `, Floor ${classData.roomDetails.floor}`}
-                    </>
-                  ) : (
-                    'Not assigned'
-                  )}
+                  {/* Display teacher name from prop or fallback */}
+                  {teacherName || classData.teacher?.user?.name || 'Not assigned'}
                 </p>
               </div>
               
               <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-1">Room</h4>
+                <p className="text-gray-700">{classData.roomDisplay || 'Not assigned'}</p>
+              </div>
+              
+              <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Schedule</h4>
-                <p className="text-gray-700">{classData.schedule || 'Not scheduled'}</p>
+                <p className="text-gray-700">{classData.schedulesDisplay || 'Not scheduled'}</p>
               </div>
               
               <div>

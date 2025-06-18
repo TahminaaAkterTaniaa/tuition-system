@@ -238,7 +238,8 @@ export default function TeacherClasses() {
       <ClassDetailsModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        classData={selectedClass as any} 
+        classData={selectedClass as any}
+        teacherName={session?.user?.name || ''}
       />
     </div>
   );
