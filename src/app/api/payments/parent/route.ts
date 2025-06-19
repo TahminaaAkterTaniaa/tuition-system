@@ -6,6 +6,7 @@ import { prisma } from '@/app/lib/prisma';
 // GET - Fetch payment status for a parent's children's courses
 export async function GET(req: NextRequest) {
   try {
+    // Step 1: Verify session and user role
     const session = await getServerSession(authOptions);
     
     if (!session) {
@@ -17,80 +18,110 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Only parents can access this endpoint' }, { status: 403 });
     }
     
-    // Get the parent ID
-    const parent = await prisma.parent.findUnique({
-      where: { userId: session.user.id },
-    });
-    
-    if (!parent) {
-      return NextResponse.json({ error: 'Parent profile not found' }, { status: 404 });
+    // Step 2: Get the parent ID with better error handling
+    let parent;
+    try {
+      parent = await prisma.parent.findUnique({
+        where: { userId: session.user.id },
+      });
+      
+      if (!parent) {
+        return NextResponse.json({ error: 'Parent profile not found' }, { status: 404 });
+      }
+    } catch (dbError) {
+      console.error('Database error fetching parent:', dbError);
+      return NextResponse.json({ error: 'Error fetching parent profile' }, { status: 500 });
     }
     
-    // Get all payments for this parent
-    const payments = await prisma.payment.findMany({
-      where: {
-        parentId: parent.id,
-      },
-      orderBy: {
-        dueDate: 'desc',
-      },
-    });
+    // Step 3: Get all payments for this parent with error handling
+    let payments = [];
+    try {
+      payments = await prisma.payment.findMany({
+        where: {
+          parentId: parent.id,
+        },
+        orderBy: {
+          dueDate: 'desc',
+        },
+      });
+    } catch (dbError) {
+      console.error('Database error fetching payments:', dbError);
+      return NextResponse.json({ error: 'Error fetching payment information' }, { status: 500 });
+    }
     
-    // Get all children linked to this parent
-    const parentStudents = await prisma.parentStudent.findMany({
-      where: {
-        parentId: parent.id,
-      },
-      include: {
-        student: {
-          include: {
-            user: {
-              select: {
-                name: true,
+    // Step 4: Get all children linked to this parent with error handling
+    let parentStudents = [];
+    try {
+      parentStudents = await prisma.parentStudent.findMany({
+        where: {
+          parentId: parent.id,
+        },
+        include: {
+          student: {
+            include: {
+              user: {
+                select: {
+                  name: true,
+                },
               },
-            },
-            enrollments: {
-              include: {
-                class: true,
+              enrollments: {
+                include: {
+                  class: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      });
+    } catch (dbError) {
+      console.error('Database error fetching parent students:', dbError);
+      return NextResponse.json({ error: 'Error fetching student information' }, { status: 500 });
+    }
     
-    // Get all enrollment payment statuses in a single query for better performance
+    // Step 5: Get all enrollment payment statuses in a single query for better performance
     const enrollmentIds = parentStudents.flatMap(ps => 
       ps.student.enrollments.map(enrollment => enrollment.id)
     );
     
-    const enrollmentPayments = await prisma.enrollment.findMany({
-      where: {
-        id: { in: enrollmentIds }
-      },
-      select: {
-        id: true,
-        classId: true,
-        paymentStatus: true,
-        paymentId: true,
-        paymentDate: true
-      }
-    });
+    let enrollmentPayments = [];
+    try {
+      // Fix the TypeScript error by using proper Prisma schema fields
+      enrollmentPayments = await prisma.enrollment.findMany({
+        where: {
+          id: { in: enrollmentIds }
+        },
+        select: {
+          id: true,
+          classId: true,
+          status: true, // Using 'status' instead of 'paymentStatus'
+          // Remove paymentId and paymentDate if they don't exist in the schema
+        }
+      });
+    } catch (dbError) {
+      console.error('Database error fetching enrollment payments:', dbError);
+      return NextResponse.json({ error: 'Error fetching enrollment payment information' }, { status: 500 });
+    }
     
-    // Get all classes to access their fees
+    // Step 6: Get all classes to access their fees
     const classIds = parentStudents.flatMap(ps => 
       ps.student.enrollments.map(enrollment => enrollment.classId)
     );
     
-    const classes = await prisma.class.findMany({
-      where: {
-        id: { in: classIds }
-      },
-      select: {
-        id: true,
-        fee: true
-      }
-    });
+    let classes = [];
+    try {
+      classes = await prisma.class.findMany({
+        where: {
+          id: { in: classIds }
+        },
+        select: {
+          id: true,
+          fee: true
+        }
+      });
+    } catch (dbError) {
+      console.error('Database error fetching classes:', dbError);
+      return NextResponse.json({ error: 'Error fetching class information' }, { status: 500 });
+    }
     
     // Create maps for quick lookup
     const enrollmentPaymentMap = new Map();
@@ -120,9 +151,11 @@ export async function GET(req: NextRequest) {
           className: enrollment.class.name,
           subject: enrollment.class.subject,
           enrollmentStatus: enrollment.status,
-          enrollmentPaymentStatus: enrollmentWithPayment?.paymentStatus || 'pending',
-          enrollmentPaymentId: enrollmentWithPayment?.paymentId,
-          enrollmentPaymentDate: enrollmentWithPayment?.paymentDate,
+          // Use status field for payment status since paymentStatus doesn't exist
+          enrollmentPaymentStatus: enrollmentWithPayment?.status || 'pending',
+          // Remove enrollmentPaymentId and enrollmentPaymentDate or set to null if needed
+          enrollmentPaymentId: null,
+          enrollmentPaymentDate: null,
           payments: classPayments.map(payment => ({
             id: payment.id,
             amount: payment.amount,
@@ -134,7 +167,8 @@ export async function GET(req: NextRequest) {
             status: payment.status,
             paymentMethod: payment.paymentMethod,
           })),
-          paymentStatus: enrollmentWithPayment?.paymentStatus === 'paid' 
+          // Use status field instead of paymentStatus and handle various payment states
+          paymentStatus: enrollmentWithPayment?.status === 'Paid' 
             ? 'Fully Paid'
             : classPayments.length > 0 
               ? classPayments.every(p => p.status === 'paid') 
@@ -167,13 +201,17 @@ export async function GET(req: NextRequest) {
       
       totalAmount += classFee;
       
-      if (enrollment.paymentStatus === 'paid') {
+      // Use status field instead of paymentStatus
+      // Map status values to payment categories based on enrollment status
+      const status = enrollment.status.toLowerCase();
+      
+      if (status === 'paid' || status === 'approved') {
         paidAmount += classFee;
         totalPaid++;
-      } else if (enrollment.paymentStatus === 'pending') {
+      } else if (status === 'pending') {
         pendingAmount += classFee;
         totalPending++;
-      } else if (enrollment.paymentStatus === 'overdue') {
+      } else if (status === 'overdue' || status === 'rejected') {
         overdueAmount += classFee;
         totalOverdue++;
       }

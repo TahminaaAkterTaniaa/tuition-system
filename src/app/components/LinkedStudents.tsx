@@ -263,7 +263,7 @@ export default function LinkedStudents() {
           </div>
 
           {/* Attendance Records */}
-          <div className="mb-8">
+          <div className="mb-8 h-[400px] flex flex-col">
             <h3 className="text-lg font-semibold mb-4 flex items-center text-indigo-800">
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -271,8 +271,8 @@ export default function LinkedStudents() {
               Recent Attendance
             </h3>
             {activeStudent.attendances.length > 0 ? (
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+              <div className="bg-white rounded-lg shadow-sm overflow-hidden flex-1">
+                <div className="overflow-y-auto overflow-x-auto h-[300px]">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
@@ -307,9 +307,6 @@ export default function LinkedStudents() {
                     </tbody>
                   </table>
                 </div>
-                <div className="px-4 py-3 bg-gray-50 text-right text-sm">
-                  <button className="text-indigo-600 hover:text-indigo-900 font-medium">View All Attendance Records</button>
-                </div>
               </div>
             ) : (
               <div className="bg-white rounded-lg p-6 text-center border border-gray-200">
@@ -322,7 +319,7 @@ export default function LinkedStudents() {
           </div>
 
           {/* Recent Grades */}
-          <div className="mb-6">
+          <div className="mb-6 h-[350px] flex flex-col">
             <h3 className="text-lg font-semibold mb-4 flex items-center text-indigo-800">
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -330,8 +327,8 @@ export default function LinkedStudents() {
               Recent Grades
             </h3>
             {activeStudent.grades.length > 0 ? (
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+              <div className="bg-white rounded-lg shadow-sm overflow-hidden flex-1">
+                <div className="overflow-y-auto overflow-x-auto h-[250px]">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
@@ -375,9 +372,6 @@ export default function LinkedStudents() {
                       ))}
                     </tbody>
                   </table>
-                </div>
-                <div className="px-4 py-3 bg-gray-50 text-right text-sm">
-                  <button className="text-indigo-600 hover:text-indigo-900 font-medium">View All Grades</button>
                 </div>
               </div>
             ) : (
