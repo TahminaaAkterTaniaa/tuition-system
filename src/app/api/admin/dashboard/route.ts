@@ -17,9 +17,21 @@ export async function GET() {
 
     // Get enrollment statistics
     const totalEnrollments = await prisma.enrollmentRequest.count();
-    const activeEnrollments = await prisma.enrollmentRequest.count({
-      where: { status: 'ACTIVE' }
+    
+    // Fix 1: Count active classes properly - counting classes with status 'active', 'Active', or 'APPROVED'
+    const activeClasses = await prisma.class.count({
+      where: {
+        OR: [
+          { status: 'active' },
+          { status: 'Active' },
+          { status: 'ACTIVE' },
+          { status: 'APPROVED' },
+          { status: 'Approved' },
+          { status: 'approved' }
+        ]
+      }
     });
+    
     const pendingEnrollments = await prisma.enrollmentRequest.count({
       where: { status: 'PENDING' }
     });
@@ -48,23 +60,30 @@ export async function GET() {
 
     const monthlyRevenue = monthlyPayments.reduce((sum, payment) => sum + payment.amount, 0);
 
-    // Calculate approved enrollments for the current month
-    const approvedEnrollmentsThisMonth = await prisma.enrollmentRequest.count({
+    // Fix 2: Calculate enrollments for the current month (June 2025)
+    // Using enrollmentDate field instead of createdAt and using the correct date range
+    const currentDate = new Date();
+    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
+    
+    const approvedEnrollmentsThisMonth = await prisma.enrollment.count({
       where: {
-        status: 'APPROVED',
-        createdAt: {
-          gte: new Date(currentYear, currentMonth - 1, 1),
-          lt: new Date(currentYear, currentMonth, 1)
+        enrollmentDate: {
+          gte: firstDayOfMonth,
+          lte: lastDayOfMonth
         }
       }
     });
 
-    // Calculate withdrawn students for the current month
+    // Fix 3: Calculate withdrawn students for the current month with status 'Approved'
     const withdrawnStudentsThisMonth = await prisma.withdrawalRequest.count({
       where: {
+        status: {
+          in: ['Approved', 'APPROVED', 'approved']
+        },
         createdAt: {
-          gte: new Date(currentYear, currentMonth - 1, 1),
-          lt: new Date(currentYear, currentMonth, 1)
+          gte: firstDayOfMonth,
+          lte: lastDayOfMonth
         }
       }
     });
@@ -136,7 +155,7 @@ export async function GET() {
     return NextResponse.json({
       institution: {
         totalStudents: totalEnrollments,
-        activeClasses: activeEnrollments,
+        activeClasses: activeClasses, // Updated to use the correct active classes count
         enrolledThisMonth: approvedEnrollmentsThisMonth,
         withdrawnThisMonth: withdrawnStudentsThisMonth,
         graduationThisMonth: 0 // Placeholder for now
