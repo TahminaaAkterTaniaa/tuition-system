@@ -104,8 +104,8 @@ export default function FinancialManagement() {
     const values = Object.values(monthlyRevenue);
     if (values.length < 2) return 0;
     
-    const currentPeriod = values[values.length - 1];
-    const previousPeriod = values[values.length - 2];
+    const currentPeriod = values[values.length - 1] || 0;
+    const previousPeriod = values[values.length - 2] || 0;
     
     if (previousPeriod === 0) return 0;
     return Math.round(((currentPeriod - previousPeriod) / previousPeriod) * 100);
@@ -232,6 +232,7 @@ export default function FinancialManagement() {
           <div className="h-64 relative">
             {/* Y-axis labels */}
             <div className="absolute left-0 top-0 bottom-0 w-10 pr-2 flex flex-col justify-between text-right">
+              {/* Display percentages in reverse order: 100% at top, 0% at bottom */}
               {[100, 75, 50, 25, 0].map((percent) => (
                 <div key={percent} className="text-xs text-gray-400">
                   {percent}%
@@ -240,42 +241,55 @@ export default function FinancialManagement() {
             </div>
             
             <div className="h-full flex items-end pl-10">
-              {Object.entries(summary.monthlyRevenue).map(([month, amount], index) => {
-                const maxAmount = Math.max(...Object.values(summary.monthlyRevenue));
-                const height = (amount / maxAmount) * 100;
-                const isCurrentMonth = index === Object.keys(summary.monthlyRevenue).length - 1;
-                
-                return (
-                  <div 
-                    key={index} 
-                    className="relative flex-1 flex flex-col items-center group"
-                    style={{ height: '100%' }}
-                  >
-                    {/* Tooltip */}
-                    <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap">
-                      <div className="font-semibold">{formatCurrency(amount)}</div>
-                      <div className="text-gray-300">{month}</div>
-                    </div>
-                    {/* Bar */}
+              {/* Sort the months chronologically */}
+              {Object.entries(summary.monthlyRevenue)
+                // Convert entries to objects with month name and value
+                .map(([month, amount]) => ({ month, amount }))
+                // Sort chronologically (assuming month format like "Jan 2023")
+                .sort((a, b) => {
+                  const monthsOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                  const [aMonth, aYear] = a.month ? a.month.split(' ') : ['', ''];
+                  const [bMonth, bYear] = b.month ? b.month.split(' ') : ['', ''];
+                  
+                  if (aYear !== bYear) return Number(aYear) - Number(bYear);
+                  return monthsOrder.indexOf(aMonth) - monthsOrder.indexOf(bMonth);
+                })
+                .map(({ month, amount }, index, sortedEntries) => {
+                  const maxAmount = Math.max(...sortedEntries.map(entry => entry.amount));
+                  const height = (amount / maxAmount) * 100;
+                  const isCurrentMonth = index === sortedEntries.length - 1;
+                  
+                  return (
                     <div 
-                      className={`w-3/4 rounded-t-md transition-all duration-300 ease-out ${
-                        isCurrentMonth ? 'bg-gradient-to-t from-indigo-600 to-indigo-400' : 'bg-gradient-to-t from-indigo-500 to-indigo-300'
-                      }`}
-                      style={{
-                        height: `${height}%`,
-                        minHeight: '8px',
-                        boxShadow: isCurrentMonth ? '0 4px 6px -1px rgba(99, 102, 241, 0.3)' : 'none'
-                      }}
-                    ></div>
-                    {/* X-axis labels */}
-                    <div className="text-xs text-gray-500 mt-2">
-                      {month.split(' ').map((m, i) => (
-                        <div key={i} className="text-center">{m}</div>
-                      ))}
+                      key={index} 
+                      className="relative flex-1 flex flex-col items-center justify-end group"
+                      style={{ height: '100%' }}
+                    >
+                      {/* Tooltip */}
+                      <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap">
+                        <div className="font-semibold">{formatCurrency(amount)}</div>
+                        <div className="text-gray-300">{month}</div>
+                      </div>
+                      {/* Bar */}
+                      <div 
+                        className={`w-3/4 rounded-t-md transition-all duration-300 ease-out ${
+                          isCurrentMonth ? 'bg-gradient-to-t from-indigo-600 to-indigo-400' : 'bg-gradient-to-t from-indigo-500 to-indigo-300'
+                        }`}
+                        style={{
+                          height: `${height}%`,
+                          minHeight: '8px',
+                          boxShadow: isCurrentMonth ? '0 4px 6px -1px rgba(99, 102, 241, 0.3)' : 'none'
+                        }}
+                      ></div>
+                      {/* X-axis labels */}
+                      <div className="text-xs text-gray-500 mt-2">
+                        {month ? month.split(' ').map((m, i) => (
+                          <div key={i} className="text-center">{m}</div>
+                        )) : null}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </div>
           
