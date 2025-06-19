@@ -16,7 +16,8 @@ export async function GET() {
     }
 
     // Get enrollment statistics
-    const totalEnrollments = await prisma.enrollmentRequest.count();
+    // Get total students count from student table (not enrollment requests)
+    const totalStudents = await prisma.student.count();
     
     // Fix 1: Count active classes properly - counting classes with status 'active', 'Active', or 'APPROVED'
     const activeClasses = await prisma.class.count({
@@ -154,7 +155,7 @@ export async function GET() {
 
     return NextResponse.json({
       institution: {
-        totalStudents: totalEnrollments,
+        totalStudents: totalStudents,
         activeClasses: activeClasses, // Updated to use the correct active classes count
         enrolledThisMonth: approvedEnrollmentsThisMonth,
         withdrawnThisMonth: withdrawnStudentsThisMonth,
