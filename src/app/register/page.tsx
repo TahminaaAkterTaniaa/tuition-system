@@ -434,8 +434,6 @@ export default function RegisterPage() {
                       <option value="">Select Relationship</option>
                       <option value="Father">Father</option>
                       <option value="Mother">Mother</option>
-                      <option value="Guardian">Guardian</option>
-                      <option value="Other">Other</option>
                     </select>
                     {errors.relationship && (
                       <p className="text-red-500 text-xs mt-1">{errors.relationship.message}</p>

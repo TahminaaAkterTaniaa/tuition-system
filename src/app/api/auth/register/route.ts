@@ -26,7 +26,7 @@ const teacherSchema = baseSchema.extend({
 
 const parentSchema = baseSchema.extend({
   studentId: z.string().min(1, 'Student ID is required'),
-  relationship: z.enum(['Father', 'Mother', 'Guardian']).default('Guardian'),
+  relationship: z.enum(['Father', 'Mother']).default('Father'),
   occupation: z.string().optional(),
   alternatePhone: z.string().optional(),
 });
