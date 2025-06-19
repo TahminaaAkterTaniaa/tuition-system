@@ -40,21 +40,39 @@ export async function GET() {
     // Get financial statistics
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
+    const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1);
+    const lastDayOfMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59);
 
-    const allPayments = await prisma.payment.findMany({
+    // Get all active classes and their enrollments for revenue calculation
+    const classesWithEnrollments = await prisma.class.findMany({
       where: {
-        status: 'COMPLETED'
+        OR: [
+          { status: 'active' },
+          { status: 'Active' },
+          { status: 'ACTIVE' },
+          { status: 'APPROVED' },
+          { status: 'Approved' },
+          { status: 'approved' }
+        ]
+      },
+      include: {
+        enrollments: true
       }
     });
+    
+    // Calculate totalRevenueThisMonth: Sum of revenue from all classes (enrolled students × class fee)
+    const totalRevenueThisMonth = classesWithEnrollments.reduce((total, cls) => {
+      const classRevenue = cls.enrollments.length * (cls.fee || 0);
+      return total + classRevenue;
+    }, 0);
 
-    const totalRevenue = allPayments.reduce((sum, payment) => sum + payment.amount, 0);
-
+    // Get payments with status COMPLETED for the current month
     const monthlyPayments = await prisma.payment.findMany({
       where: {
         status: 'COMPLETED',
         createdAt: {
-          gte: new Date(currentYear, currentMonth - 1, 1),
-          lt: new Date(currentYear, currentMonth, 1)
+          gte: firstDayOfMonth,
+          lte: lastDayOfMonth
         }
       }
     });
@@ -63,9 +81,7 @@ export async function GET() {
 
     // Fix 2: Calculate enrollments for the current month (June 2025)
     // Using enrollmentDate field instead of createdAt and using the correct date range
-    const currentDate = new Date();
-    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
+    // Note: firstDayOfMonth and lastDayOfMonth are already declared above
     
     const approvedEnrollmentsThisMonth = await prisma.enrollment.count({
       where: {
@@ -93,31 +109,56 @@ export async function GET() {
     const totalRequests = await prisma.enrollmentRequest.count();
     const approvalRate = ((approvedEnrollmentsThisMonth / totalRequests) * 100).toFixed(2);
 
-    // For now, we don't have an expense model, so we'll set expenses to 0
-    const expenses = 0;
-
-    // Calculate net profit (this month)
-    const netProfit = monthlyRevenue - expenses;
-
-    // Find the top paying class
-    const topPayingClass = await prisma.class.findMany({
+    // Calculate expenses: Total of all teacher salaries
+    // For each teacher: salary = (salaryPerClass × numberOfAssignedClasses) + (extraPerSchedule × class schedules count)
+    // First get all teachers with their classes
+    const teachers = await prisma.teacher.findMany({
       include: {
-        enrollments: true
+        classes: true // Classes assigned to each teacher
       }
     });
+    
+    // Get all class schedules to calculate schedules per teacher
+    const allClassSchedules = await prisma.classSchedule.findMany();
+    
+    const expenses = teachers.reduce((total, teacher) => {
+      // Count classes assigned to this teacher
+      const classesCount = teacher.classes.length;
+      
+      // Count schedules for classes taught by this teacher
+      const teacherClassIds = teacher.classes.map(cls => cls.id);
+      const teacherSchedulesCount = allClassSchedules.filter(
+        schedule => teacherClassIds.includes(schedule.classId)
+      ).length;
+      
+      // Calculate teacher's salary - using type assertion since we know these fields exist in schema
+      // Even though TypeScript can't see them in the current Prisma client generation
+      const salaryPerClass = (teacher as any).salaryPerClass || 0;
+      const extraPerSchedule = (teacher as any).extraPerSchedule || 0;
+      
+      const teacherSalary = salaryPerClass * classesCount + 
+                           extraPerSchedule * teacherSchedulesCount;
+                          
+      return total + teacherSalary;
+    }, 0);
 
+    // Calculate net profit: Difference between totalRevenueThisMonth and expenses
+    const netProfit = totalRevenueThisMonth - expenses;
+
+    // Find the topEarningClass: Class with the highest total revenue
     let topClassName = 'N/A';
     let topClassRevenue = 0;
     
-    if (topPayingClass && topPayingClass.length > 0) {
-      const classRevenues = topPayingClass.map(cls => {
+    if (classesWithEnrollments.length > 0) {
+      const classRevenues = classesWithEnrollments.map(cls => {
         const revenue = cls.enrollments.length * (cls.fee || 0);
         return { name: cls.name, revenue };
       });
       
       if (classRevenues.length > 0) {
         const topClass = classRevenues.reduce((prev, current) => 
-          current.revenue > prev.revenue ? current : prev
+          current.revenue > prev.revenue ? current : prev,
+          { name: 'N/A', revenue: 0 }
         );
         
         topClassName = topClass.name;
@@ -125,10 +166,12 @@ export async function GET() {
       }
     }
 
-    // Calculate pending payments
-    const pendingPayments = await prisma.payment.aggregate({
+    // Calculate outstandingPayments: Sum of all payments where status is 'Pending' or 'Unpaid'
+    const outstandingPayments = await prisma.payment.aggregate({
       where: {
-        status: 'PENDING'
+        status: {
+          in: ['PENDING', 'Pending', 'pending', 'UNPAID', 'Unpaid', 'unpaid']
+        }
       },
       _sum: {
         amount: true
@@ -162,10 +205,10 @@ export async function GET() {
         graduationThisMonth: 0 // Placeholder for now
       },
       financial: {
-        monthlyRevenue: monthlyRevenue,
-        outstandingPayments: pendingPayments._sum.amount || 0,
-        expenses: expenses,
-        netProfit: netProfit,
+        monthlyRevenue: totalRevenueThisMonth,  // Updated to use the new calculation
+        outstandingPayments: outstandingPayments._sum.amount || 0,
+        expenses: expenses,  // Now calculated from teacher salaries
+        netProfit: netProfit, // Updated: totalRevenueThisMonth - expenses
         topPayingClass: topClassName,
         topPayingClassRevenue: topClassRevenue
       },

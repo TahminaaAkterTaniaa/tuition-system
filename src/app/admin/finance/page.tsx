@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import TeacherSalaryTable from '@/app/components/TeacherSalaryTable';
+import './styles.css';
 
 type Payment = {
   id: string;
@@ -304,8 +306,11 @@ export default function FinancialManagement() {
         </div>
       </div>
 
+      {/* Teacher Salary Management */}
+      <TeacherSalaryTable />
+
       {/* Payment Listing */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-lg shadow-md p-6 mt-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <h2 className="text-xl font-semibold mb-4 md:mb-0">Payment History</h2>
           <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
@@ -347,7 +352,7 @@ export default function FinancialManagement() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="scrollable-table-container">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>

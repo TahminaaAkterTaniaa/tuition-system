@@ -97,6 +97,8 @@ model Teacher {
   experience            Int?
   dateOfJoining         DateTime               @default(now())
   status                String                 @default("active")
+  salaryPerClass        Float                  @default(0)
+  extraPerSchedule      Float                  @default(0)
   classes               Class[]
   classCreationRequests ClassCreationRequest[]
   resources             Resource[]
