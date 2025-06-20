@@ -41,7 +41,9 @@ type Student = {
     title: string;
     score: number;
     maxScore: number;
-    date: string;
+    gradedDate: string;  // Changed from date to gradedDate
+    assessmentType: string;  // Added assessmentType
+    weight: number;  // Added weight for percentage calculation
     class: {
       name: string;
       subject: string;
@@ -342,25 +344,29 @@ export default function LinkedStudents() {
                       {activeStudent.grades.map((grade) => (
                         <tr key={grade.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
-                            {new Date(grade.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {grade.gradedDate ? new Date(grade.gradedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Invalid Date'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-indigo-700">{grade.class.name}</div>
                             <div className="text-xs text-gray-500">{grade.class.subject}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                            {grade.title}
+                            {grade.assessmentType || grade.title}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="mr-2">
+                                {/* Calculate percentage based on weight if available */}
                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                   (grade.score / grade.maxScore) >= 0.9 ? 'bg-green-100 text-green-800' :
                                   (grade.score / grade.maxScore) >= 0.7 ? 'bg-blue-100 text-blue-800' :
                                   (grade.score / grade.maxScore) >= 0.6 ? 'bg-yellow-100 text-yellow-800' :
                                   'bg-red-100 text-red-800'
                                 }`}>
-                                  {Math.round((grade.score / grade.maxScore) * 100)}%
+                                  {/* Apply weight to percentage if available */}
+                                  {grade.weight ? 
+                                    Math.round((grade.score / grade.maxScore) * grade.weight * 100) : 
+                                    Math.round((grade.score / grade.maxScore) * 100)}%
                                 </span>
                               </div>
                               <div className="text-sm text-gray-500">

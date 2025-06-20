@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
             grades: {
               take: 10,
               orderBy: {
-                createdAt: 'desc',
+                gradedDate: 'desc',  // Order by gradedDate instead of createdAt
               },
               include: {
                 class: {
