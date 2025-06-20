@@ -11,7 +11,4 @@
 - use next/image for image handling
 - use next/router for routing
 
--please use the todo.md file as a reference for the project structure. And After Finish Update the todo.md file.
--please use the project.md file as a reference for the project overview
--please use the WindsurfRules.md file as a reference for the project rules
--
+-please use the todo.md file as a reference for the project structure. And After Finish Update the todo.md file. 

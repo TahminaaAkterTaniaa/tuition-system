@@ -61,8 +61,15 @@ export async function GET() {
     });
     
     // Calculate totalRevenueThisMonth: Sum of revenue from all classes (enrolled students × class fee)
+    // But properly filter to only include enrollments from current month
     const totalRevenueThisMonth = classesWithEnrollments.reduce((total, cls) => {
-      const classRevenue = cls.enrollments.length * (cls.fee || 0);
+      // Filter enrollments to only include those from the current month
+      const currentMonthEnrollments = cls.enrollments.filter(enrollment => {
+        const enrollmentDate = new Date(enrollment.enrollmentDate);
+        return enrollmentDate >= firstDayOfMonth && enrollmentDate <= lastDayOfMonth;
+      });
+      
+      const classRevenue = currentMonthEnrollments.length * (cls.fee || 0);
       return total + classRevenue;
     }, 0);
 
@@ -145,13 +152,19 @@ export async function GET() {
     // Calculate net profit: Difference between totalRevenueThisMonth and expenses
     const netProfit = totalRevenueThisMonth - expenses;
 
-    // Find the topEarningClass: Class with the highest total revenue
+    // Find the topEarningClass: Class with the highest revenue for current month only
     let topClassName = 'N/A';
     let topClassRevenue = 0;
     
     if (classesWithEnrollments.length > 0) {
       const classRevenues = classesWithEnrollments.map(cls => {
-        const revenue = cls.enrollments.length * (cls.fee || 0);
+        // Filter enrollments to only include those from the current month
+        const currentMonthEnrollments = cls.enrollments.filter(enrollment => {
+          const enrollmentDate = new Date(enrollment.enrollmentDate);
+          return enrollmentDate >= firstDayOfMonth && enrollmentDate <= lastDayOfMonth;
+        });
+        
+        const revenue = currentMonthEnrollments.length * (cls.fee || 0);
         return { name: cls.name, revenue };
       });
       

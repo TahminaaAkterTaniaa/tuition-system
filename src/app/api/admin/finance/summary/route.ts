@@ -15,38 +15,47 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    // Fetch all enrollments with class information
-    // Explicitly select only the fields that exist in the database
-    const enrollments = await prisma.enrollment.findMany({
+    // Get all classes with their enrolled students for revenue calculations
+    const classesWithEnrollments = await prisma.class.findMany({
       select: {
         id: true,
-        status: true,
-        enrollmentDate: true,
-        class: {
+        name: true,
+        fee: true,
+        enrollments: {
+          where: {
+            status: 'enrolled' // Only count enrolled students
+          },
           select: {
             id: true,
-            name: true,
-            fee: true
+            enrollmentDate: true
           }
         }
       }
     });
     
-    // Calculate total revenue (sum of class fees for enrolled students)
-    const completedEnrollments = enrollments.filter(e => e.status === 'enrolled');
-    const totalRevenue = completedEnrollments.reduce((sum, enrollment) => sum + (enrollment.class?.fee || 0), 0);
+    // Count enrollments by status for payment stats
+    const enrollmentCounts = await prisma.$transaction([
+      prisma.enrollment.count({ where: { status: 'enrolled' } }),
+      prisma.enrollment.count({ where: { status: 'pending' } }),
+      prisma.enrollment.count({ where: { status: 'rejected' } })
+    ]);
     
-    // Count enrollments by status (map to payment status)
-    const completedPayments = enrollments.filter(e => e.status === 'enrolled').length;
-    const pendingPayments = enrollments.filter(e => e.status === 'pending').length;
-    const failedPayments = enrollments.filter(e => e.status === 'rejected').length;
+    const completedPayments = enrollmentCounts[0];
+    const pendingPayments = enrollmentCounts[1];
+    const failedPayments = enrollmentCounts[2];
+    
+    // Calculate total revenue: sum of (fee × enrollment count) for each class
+    const totalRevenue = classesWithEnrollments.reduce((sum, cls) => {
+      const classRevenue = (cls.fee || 0) * cls.enrollments.length;
+      return sum + classRevenue;
+    }, 0);
     
     // Calculate monthly revenue for the last 6 months
     const today = new Date();
     const sixMonthsAgo = new Date(today);
     sixMonthsAgo.setMonth(today.getMonth() - 6);
     
-    // Initialize monthly revenue object
+    // Initialize monthly revenue object with all months set to 0
     const monthlyRevenue: Record<string, number> = {};
     for (let i = 0; i < 6; i++) {
       const month = new Date(today);
@@ -55,39 +64,40 @@ export async function GET(request: NextRequest) {
       monthlyRevenue[monthName] = 0;
     }
     
-    // Calculate monthly revenue based on enrollments
-    completedEnrollments.forEach(enrollment => {
-      // Use the enrollment date as the payment date
-      const enrollmentDate = enrollment.enrollmentDate;
-      const monthName = new Date(enrollmentDate).toLocaleString('default', { month: 'short' });
-      if (monthlyRevenue[monthName] !== undefined && enrollmentDate >= sixMonthsAgo) {
-        monthlyRevenue[monthName] += enrollment.class?.fee || 0;
-      }
+    // Calculate revenue per month based on class enrollments
+    classesWithEnrollments.forEach(cls => {
+      const fee = cls.fee || 0;
+      
+      // For each enrollment in this class, add its revenue to the appropriate month
+      cls.enrollments.forEach(enrollment => {
+        // Type assertion since we know enrollmentDate exists but TypeScript may not see it
+        const enrollmentDate = (enrollment as unknown as { enrollmentDate: Date }).enrollmentDate;
+        
+        if (enrollmentDate && enrollmentDate >= sixMonthsAgo) {
+          const monthName = new Date(enrollmentDate).toLocaleString('default', { month: 'short' });
+          if (monthlyRevenue[monthName] !== undefined) {
+            // Add this student's class fee to the month's revenue
+            monthlyRevenue[monthName] += fee;
+          }
+        }
+      });
     });
     
-    // Get top paying classes
-    // Group enrollments by class and calculate revenue for each class
+    // Calculate revenue for each class (fee × number of enrolled students)
     const classRevenueMap = new Map<string, { className: string, revenue: number }>();
     
-    completedEnrollments.forEach(enrollment => {
-      const classId = enrollment.class.id;
-      const className = enrollment.class.name || 'Unknown Class';
-      const fee = enrollment.class.fee || 0;
+    classesWithEnrollments.forEach(cls => {
+      const classId = cls.id;
+      const className = cls.name || 'Unknown Class';
+      const classRevenue = (cls.fee || 0) * cls.enrollments.length;
       
-      if (classRevenueMap.has(classId)) {
-        const current = classRevenueMap.get(classId)!;
-        classRevenueMap.set(classId, {
-          className,
-          revenue: current.revenue + fee
-        });
-      } else {
-        classRevenueMap.set(classId, {
-          className,
-          revenue: fee
-        });
-      }
+      classRevenueMap.set(classId, {
+        className,
+        revenue: classRevenue
+      });
     });
     
+    // Sort classes by revenue and get top 5
     const topPayingClasses = Array.from(classRevenueMap.values())
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
@@ -102,6 +112,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error generating financial summary:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal Server Error', 
+      message: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
