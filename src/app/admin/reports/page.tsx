@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -76,6 +78,9 @@ export default function StudentReportsPage() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [studentReport, setStudentReport] = useState<StudentReport | null>(null);
   const [previewMode, setPreviewMode] = useState(true);
+  
+  // Reference to the report container for PDF generation
+  const reportContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -129,32 +134,241 @@ export default function StudentReportsPage() {
     }
   };
 
+  // Helper function to create a cleaned version of the report for PDF export
+  const createPdfReport = (student: StudentReport) => {
+    // Create a new div that will be used for PDF generation
+    const container = document.createElement('div');
+    container.style.padding = '20px';
+    container.style.fontFamily = 'Arial, sans-serif';
+    container.style.backgroundColor = '#ffffff';
+    container.style.color = '#000000';
+
+    // Add report header
+    const header = document.createElement('div');
+    header.style.marginBottom = '20px';
+    
+    const title = document.createElement('h1');
+    title.textContent = 'Student Progress Report';
+    title.style.fontSize = '24px';
+    title.style.color = '#000000';
+    title.style.marginBottom = '10px';
+    header.appendChild(title);
+    
+    // Student info section
+    const studentInfo = document.createElement('div');
+    studentInfo.style.marginBottom = '20px';
+    studentInfo.style.padding = '10px';
+    studentInfo.style.border = '1px solid #cccccc';
+    
+    const studentName = document.createElement('p');
+    studentName.innerHTML = `<strong>Name:</strong> ${student.studentInfo.name}`;
+    studentInfo.appendChild(studentName);
+    
+    const studentId = document.createElement('p');
+    studentId.innerHTML = `<strong>Student ID:</strong> ${student.studentInfo.studentId}`;
+    studentInfo.appendChild(studentId);
+    
+    const studentEmail = document.createElement('p');
+    studentEmail.innerHTML = `<strong>Email:</strong> ${student.studentInfo.email}`;
+    studentInfo.appendChild(studentEmail);
+    
+    const studentLevel = document.createElement('p');
+    studentLevel.innerHTML = `<strong>Academic Level:</strong> ${student.studentInfo.academicLevel || 'Not specified'}`;
+    studentInfo.appendChild(studentLevel);
+    
+    // Overall performance section
+    const overallSection = document.createElement('div');
+    overallSection.style.marginBottom = '20px';
+    
+    const overallTitle = document.createElement('h2');
+    overallTitle.textContent = 'Overall Performance';
+    overallTitle.style.fontSize = '18px';
+    overallTitle.style.marginBottom = '10px';
+    overallSection.appendChild(overallTitle);
+    
+    const performanceGrid = document.createElement('div');
+    performanceGrid.style.display = 'grid';
+    performanceGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+    performanceGrid.style.gap = '10px';
+    
+    const enrolledClasses = document.createElement('div');
+    enrolledClasses.style.padding = '10px';
+    enrolledClasses.style.border = '1px solid #cccccc';
+    enrolledClasses.innerHTML = `<p style='margin:0;color:#555'>Enrolled Classes</p>
+                              <p style='margin:0;font-size:18px;font-weight:bold'>${student.overallPerformance.enrolledClasses}</p>`;
+    performanceGrid.appendChild(enrolledClasses);
+    
+    const avgAttendance = document.createElement('div');
+    avgAttendance.style.padding = '10px';
+    avgAttendance.style.border = '1px solid #cccccc';
+    avgAttendance.innerHTML = `<p style='margin:0;color:#555'>Average Attendance</p>
+                            <p style='margin:0;font-size:18px;font-weight:bold'>${student.overallPerformance.averageAttendance}%</p>`;
+    performanceGrid.appendChild(avgAttendance);
+    
+    const avgGrade = document.createElement('div');
+    avgGrade.style.padding = '10px';
+    avgGrade.style.border = '1px solid #cccccc';
+    avgGrade.innerHTML = `<p style='margin:0;color:#555'>Average Grade</p>
+                       <p style='margin:0;font-size:18px;font-weight:bold'>${student.overallPerformance.averageGrade}%</p>`;
+    performanceGrid.appendChild(avgGrade);
+    
+    const avgGPA = document.createElement('div');
+    avgGPA.style.padding = '10px';
+    avgGPA.style.border = '1px solid #cccccc';
+    avgGPA.innerHTML = `<p style='margin:0;color:#555'>Average GPA</p>
+                     <p style='margin:0;font-size:18px;font-weight:bold'>${student.overallPerformance.averageGPA}</p>`;
+    performanceGrid.appendChild(avgGPA);
+    
+    overallSection.appendChild(performanceGrid);
+    
+    // Class performance table
+    const classSection = document.createElement('div');
+    classSection.style.marginBottom = '20px';
+    
+    const classTitle = document.createElement('h2');
+    classTitle.textContent = 'Class Performance Summary';
+    classTitle.style.fontSize = '18px';
+    classTitle.style.marginBottom = '10px';
+    classSection.appendChild(classTitle);
+    
+    const table = document.createElement('table');
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    
+    // Table header
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr style='background-color:#f3f3f3'>
+        <th style='padding:8px;text-align:left;border:1px solid #ddd'>Class</th>
+        <th style='padding:8px;text-align:left;border:1px solid #ddd'>Subject</th>
+        <th style='padding:8px;text-align:left;border:1px solid #ddd'>Grade</th>
+        <th style='padding:8px;text-align:left;border:1px solid #ddd'>Attendance</th>
+      </tr>
+    `;
+    table.appendChild(thead);
+    
+    // Table body
+    const tbody = document.createElement('tbody');
+    student.grades.forEach(grade => {
+      const attendanceRecord = student.attendance.find(a => a.className === grade.className);
+      
+      const row = document.createElement('tr');
+      row.style.borderBottom = '1px solid #ddd';
+      
+      const classNameCell = document.createElement('td');
+      classNameCell.style.padding = '8px';
+      classNameCell.style.border = '1px solid #ddd';
+      classNameCell.textContent = grade.className;
+      row.appendChild(classNameCell);
+      
+      const subjectCell = document.createElement('td');
+      subjectCell.style.padding = '8px';
+      subjectCell.style.border = '1px solid #ddd';
+      subjectCell.textContent = grade.subject;
+      row.appendChild(subjectCell);
+      
+      const gradeCell = document.createElement('td');
+      gradeCell.style.padding = '8px';
+      gradeCell.style.border = '1px solid #ddd';
+      
+      let gradeColor = '#000000';
+      switch(grade.overallGrade.letter) {
+        case 'A': gradeColor = '#047857'; break; // green
+        case 'B': gradeColor = '#1d4ed8'; break; // blue
+        case 'C': gradeColor = '#b45309'; break; // yellow
+        case 'D': gradeColor = '#c2410c'; break; // orange
+        default: gradeColor = '#b91c1c'; break;   // red
+      }
+      
+      const gradeSpan = document.createElement('span');
+      gradeSpan.style.padding = '2px 8px';
+      gradeSpan.style.borderRadius = '9999px';
+      gradeSpan.style.fontSize = '12px';
+      gradeSpan.style.fontWeight = 'bold';
+      gradeSpan.style.color = gradeColor;
+      gradeSpan.textContent = `${grade.overallGrade.letter} (${grade.overallGrade.percentage}%)`;
+      gradeCell.appendChild(gradeSpan);
+      row.appendChild(gradeCell);
+      
+      const attendanceCell = document.createElement('td');
+      attendanceCell.style.padding = '8px';
+      attendanceCell.style.border = '1px solid #ddd';
+      attendanceCell.textContent = attendanceRecord 
+        ? `${attendanceRecord.percentage}% (${attendanceRecord.present}/${attendanceRecord.total})`
+        : 'N/A';
+      row.appendChild(attendanceCell);
+      
+      tbody.appendChild(row);
+    });
+    table.appendChild(tbody);
+    classSection.appendChild(table);
+    
+    // Assemble the final container
+    container.appendChild(header);
+    container.appendChild(studentInfo);
+    container.appendChild(overallSection);
+    container.appendChild(classSection);
+    
+    return container;
+  };
+
   const downloadReport = async () => {
     if (!selectedStudentId) {
       toast.error('Please select a student');
       return;
     }
+    
+    if (!studentReport) {
+      toast.error('Please generate the report first');
+      return;
+    }
+    
+    if (reportFormat !== 'pdf') {
+      toast.error('Only PDF format is currently supported');
+      return;
+    }
 
     setIsGeneratingReport(true);
+    
     try {
-      const response = await fetch(`/api/reports/student/${selectedStudentId}?format=${reportFormat}`);
-      if (!response.ok) throw new Error('Failed to download report');
+      // Dynamically import html2pdf only on client side
+      const html2pdf = (await import('html2pdf.js')).default;
       
-      // Handle file download
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `student-report-${reportFormat === 'pdf' ? 'pdf' : 'xlsx'}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const studentName = studentReport.studentInfo.name.replace(/\s+/g, '-').toLowerCase();
+      const fileName = `student-progress-report-${studentName}-${new Date().toISOString().slice(0, 10)}.pdf`;
       
-      toast.success(`Report downloaded as ${reportFormat.toUpperCase()}`);
+      // Create a clean version of the report with basic HTML/CSS that won't have oklch colors
+      const cleanReportElement = createPdfReport(studentReport);
+      
+      // Add the element to the DOM temporarily for PDF generation
+      document.body.appendChild(cleanReportElement);
+      
+      // Configure html2pdf options with simpler settings
+      const opt = {
+        margin: [10, 10, 10, 10] as [number, number, number, number],
+        filename: fileName,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait' as const
+        }
+      };
+
+      // Generate PDF from the clean report element
+      await html2pdf()
+        .set(opt)
+        .from(cleanReportElement)
+        .save();
+      
+      // Remove the temporary element
+      document.body.removeChild(cleanReportElement);
+      
+      toast.success('Report downloaded as PDF');
     } catch (error) {
-      console.error('Error downloading report:', error);
-      toast.error('Failed to download report');
+      console.error('Error generating PDF report:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to generate PDF report');
     } finally {
       setIsGeneratingReport(false);
     }
@@ -299,7 +513,7 @@ export default function StudentReportsPage() {
               </div>
             </div>
             
-            <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+            <div className="bg-gray-50 p-6 rounded-lg border border-gray-200" ref={reportContainerRef}>
               {/* Student Info */}
               <div className="mb-6">
                 <h4 className="text-md font-semibold mb-2">Student Information</h4>

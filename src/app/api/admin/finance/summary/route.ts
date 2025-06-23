@@ -86,14 +86,22 @@ export async function GET(request: NextRequest) {
     // Calculate revenue for each class (fee × number of enrolled students)
     const classRevenueMap = new Map<string, { className: string, revenue: number }>();
     
+    // Debug log enrollment counts
+    console.log('Classes with enrollments:', classesWithEnrollments.map(cls => ({
+      name: cls.name,
+      fee: cls.fee,
+      enrollmentCount: cls.enrollments.length
+    })));
+    
     classesWithEnrollments.forEach(cls => {
       const classId = cls.id;
       const className = cls.name || 'Unknown Class';
-      const classRevenue = (cls.fee || 0) * cls.enrollments.length;
+      const classRevenue = Math.round(((cls.fee || 0) * cls.enrollments.length) * 100) / 100;
       
+      // Ensure we have accurate numeric values with 2 decimal places
       classRevenueMap.set(classId, {
         className,
-        revenue: classRevenue
+        revenue: parseFloat(classRevenue.toFixed(2))
       });
     });
     
@@ -101,6 +109,9 @@ export async function GET(request: NextRequest) {
     const topPayingClasses = Array.from(classRevenueMap.values())
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
+      
+    // Debug log the final top paying classes
+    console.log('Final topPayingClasses:', topPayingClasses);
     
     return NextResponse.json({
       totalRevenue,

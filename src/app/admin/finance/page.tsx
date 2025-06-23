@@ -76,6 +76,11 @@ export default function FinancialManagement() {
       const summaryResponse = await fetch('/api/admin/finance/summary');
       if (!summaryResponse.ok) throw new Error('Failed to fetch financial summary');
       const summaryData = await summaryResponse.json();
+      
+      // Debug logs
+      console.log('Financial Summary API Response:', summaryData);
+      console.log('Top Paying Classes from API:', summaryData.topPayingClasses);
+      
       setSummary(summaryData);
     } catch (error) {
       console.error('Error fetching financial data:', error);

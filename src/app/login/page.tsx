@@ -184,6 +184,18 @@ export default function LoginPage() {
               )}
             </button>
           </div>
+          
+          {/* Demo Credentials Box */}
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
+            <h3 className="font-medium text-blue-800 mb-2">Demo Credentials:</h3>
+            <ul className="space-y-1 text-blue-700">
+              <li><span className="font-semibold">Student User:</span> student@gmail.com</li>
+              <li><span className="font-semibold">Teacher User:</span> teacher@gmail.com</li>
+              <li><span className="font-semibold">Parent User:</span> parent@gmail.com</li>
+              <li><span className="font-semibold">Admin User:</span> admin@gmail.com</li>
+              <li><span className="font-semibold">Password:</span> test123</li>
+            </ul>
+          </div>
         </form>
       </div>
     </div>
