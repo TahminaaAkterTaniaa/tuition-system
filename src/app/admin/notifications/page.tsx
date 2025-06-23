@@ -243,7 +243,23 @@ export default function AdminNotificationsPage() {
             {notifications.map((notification) => (
               <li
                 key={notification.id}
-                className={`px-6 py-4 hover:bg-gray-50 ${!notification.read ? 'bg-blue-50' : ''}`}
+                className={`px-6 py-4 hover:bg-gray-50 ${!notification.read ? 'bg-blue-50' : ''} cursor-pointer`}
+                onClick={() => {
+                  // Determine redirect destination based on notification type
+                  const type = notification.title.toLowerCase();
+                  if (
+                    type.includes('enrollment request') || 
+                    type.includes('new enrollment request') || 
+                    type.includes('withdrawal request')
+                  ) {
+                    router.push('/admin/approvals');
+                  } else if (
+                    type.includes('class request') || 
+                    type.includes('new class request')
+                  ) {
+                    router.push('/admin/pending-classes');
+                  }
+                }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
