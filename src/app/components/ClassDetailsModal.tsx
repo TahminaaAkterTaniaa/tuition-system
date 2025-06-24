@@ -54,6 +54,49 @@ const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({ isOpen, onClose, 
       day: 'numeric'
     });
   };
+  
+  // Helper function to get room display from various property formats
+  const getRoomDisplay = (classItem: any): string => {
+    // Option 1: roomDisplay property (from student classes API)
+    if (classItem.roomDisplay) {
+      return classItem.roomDisplay;
+    }
+    
+    // Option 2: formattedRoom property (from student classes page)
+    if (classItem.formattedRoom) {
+      return classItem.formattedRoom;
+    }
+    
+    // Option 3: roomDetails object (from general classes API)
+    if (classItem.roomDetails) {
+      const room = classItem.roomDetails;
+      return room.building ? `${room.name} (${room.building})` : room.name;
+    }
+    
+    // Option 4: Legacy room property
+    if (classItem.room && typeof classItem.room === 'string') {
+      return classItem.room;
+    }
+    
+    // Fallback
+    return 'Not assigned';
+  };
+  
+  // Helper function to get schedule display from various property formats
+  const getScheduleDisplay = (classItem: any): string => {
+    // Option 1: schedulesDisplay property (from student classes API)
+    if (classItem.schedulesDisplay) {
+      return classItem.schedulesDisplay;
+    }
+    
+    // Option 2: schedule property (from general classes API)
+    if (classItem.schedule) {
+      return classItem.schedule;
+    }
+    
+    // Fallback
+    return 'Not scheduled';
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto backdrop-blur-sm bg-black/30">
@@ -108,12 +151,12 @@ const ClassDetailsModal: React.FC<ClassDetailsModalProps> = ({ isOpen, onClose, 
               
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Room</h4>
-                <p className="text-gray-700">{classData.roomDisplay || 'Not assigned'}</p>
+                <p className="text-gray-700">{getRoomDisplay(classData)}</p>
               </div>
               
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Schedule</h4>
-                <p className="text-gray-700">{classData.schedulesDisplay || 'Not scheduled'}</p>
+                <p className="text-gray-700">{getScheduleDisplay(classData)}</p>
               </div>
               
               <div>
