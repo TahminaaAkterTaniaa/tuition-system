@@ -3,6 +3,90 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
 
+// Helper function to get monthly calendar data
+async function getMonthlyCalendarData(teacherId: string, year: number, month: number) {
+  try {
+    // Get the start and end dates for the month
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59);
+
+    // Get classes with their schedules for the teacher
+    const classes = await prisma.class.findMany({
+      where: {
+        teacherId: teacherId,
+        status: { in: ['active', 'Active', 'ACTIVE', 'APPROVED', 'Approved', 'approved'] }
+      },
+      include: {
+        schedules: {
+          include: {
+            room: true,
+            timeSlot: true
+          }
+        }
+      }
+    });
+
+    // Generate calendar entries based on class schedules
+    const calendarClasses = [];
+    
+    for (const classItem of classes) {
+      for (const schedule of classItem.schedules) {
+        // Get the day of week for this schedule
+        const dayOfWeek = getDayOfWeekNumber(schedule.day);
+        
+        // Generate all occurrences of this class in the month
+        const current = new Date(startDate);
+        while (current <= endDate) {
+          if (current.getDay() === dayOfWeek) {
+            // Format time
+            let timeDisplay = schedule.time || 'Time not set';
+            if (schedule.timeSlot) {
+              if (schedule.timeSlot.label) {
+                timeDisplay = schedule.timeSlot.label;
+              } else if (schedule.timeSlot.startTime && schedule.timeSlot.endTime) {
+                timeDisplay = `${schedule.timeSlot.startTime} - ${schedule.timeSlot.endTime}`;
+              }
+            }
+
+            calendarClasses.push({
+              id: classItem.id,
+              name: classItem.name,
+              subject: classItem.subject,
+              startTime: timeDisplay.split(' - ')[0] || timeDisplay,
+              endTime: timeDisplay.split(' - ')[1] || '',
+              room: schedule.room?.name || 'Room not assigned',
+              date: current.toISOString()
+            });
+          }
+          current.setDate(current.getDate() + 1);
+        }
+      }
+    }
+
+    return NextResponse.json({ classes: calendarClasses });
+  } catch (error) {
+    console.error('Error fetching monthly calendar data:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch calendar data' },
+      { status: 500 }
+    );
+  }
+}
+
+// Helper function to convert day name to day number (0 = Sunday, 1 = Monday, etc.)
+function getDayOfWeekNumber(dayName: string): number {
+  const days = {
+    'Sunday': 0,
+    'Monday': 1,
+    'Tuesday': 2,
+    'Wednesday': 3,
+    'Thursday': 4,
+    'Friday': 5,
+    'Saturday': 6
+  };
+  return days[dayName as keyof typeof days] ?? 1; // Default to Monday if not found
+}
+
 // GET handler for fetching classes assigned to the logged-in teacher
 export async function GET(req: NextRequest) {
   try {
@@ -30,6 +114,15 @@ export async function GET(req: NextRequest) {
         { error: 'Teacher profile not found.' },
         { status: 404 }
       );
+    }
+
+    // Check if this is a calendar request with year and month parameters
+    const year = req.nextUrl.searchParams.get('year');
+    const month = req.nextUrl.searchParams.get('month');
+    
+    if (year && month) {
+      // Return calendar data for the specific month
+      return getMonthlyCalendarData(teacher.id, parseInt(year), parseInt(month));
     }
 
     // Get all classes for the teacher

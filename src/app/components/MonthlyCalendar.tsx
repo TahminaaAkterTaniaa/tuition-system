@@ -1,0 +1,294 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+
+type CalendarClass = {
+  id: string;
+  name: string;
+  subject: string;
+  startTime: string;
+  endTime?: string;
+  room: string;
+  date: string;
+};
+
+type CalendarDay = {
+  date: number;
+  isCurrentMonth: boolean;
+  classes: CalendarClass[];
+};
+
+export default function MonthlyCalendar() {
+  const { data: session } = useSession();
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
+  const [allClasses, setAllClasses] = useState<CalendarClass[]>([]);
+  const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  useEffect(() => {
+    const fetchMonthlyClasses = async () => {
+      try {
+        setLoading(true);
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth() + 1;
+        
+        const response = await fetch(`/api/teacher/classes?year=${year}&month=${month}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch monthly classes');
+        }
+        
+        const data = await response.json();
+        const classesData = data?.classes || [];
+        
+        setAllClasses(classesData);
+        generateCalendarDays(classesData, year, month);
+      } catch (err) {
+        console.error('Error fetching monthly classes:', err);
+        setError('Failed to load calendar. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (session?.user?.id) {
+      fetchMonthlyClasses();
+    }
+  }, [session, currentDate]);
+
+  // Regenerate calendar when filter changes
+  useEffect(() => {
+    if (allClasses.length > 0) {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth() + 1;
+      generateCalendarDays(allClasses, year, month);
+    }
+  }, [selectedFilter, allClasses, currentDate]);
+
+  const generateCalendarDays = (classesData: CalendarClass[], year: number, month: number) => {
+    // Filter classes based on selected filter
+    const filteredClasses = selectedFilter === 'all' 
+      ? classesData 
+      : classesData.filter((cls) => {
+          return cls.subject === selectedFilter || cls.name === selectedFilter;
+        });
+
+    // Generate calendar days
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const firstDayOfWeek = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    
+    const days: CalendarDay[] = [];
+    
+    // Previous month's trailing days
+    const prevMonth = new Date(year, month - 2, 0);
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      days.push({
+        date: prevMonth.getDate() - i,
+        isCurrentMonth: false,
+        classes: []
+      });
+    }
+    
+    // Current month's days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayClasses = filteredClasses.filter((cls: any) => {
+        const classDate = new Date(cls.date);
+        return classDate.getDate() === day && 
+               classDate.getMonth() === month - 1 && 
+               classDate.getFullYear() === year;
+      });
+      
+      days.push({
+        date: day,
+        isCurrentMonth: true,
+        classes: dayClasses
+      });
+    }
+    
+    // Next month's leading days
+    const remainingDays = 42 - days.length; // 6 rows × 7 days
+    for (let day = 1; day <= remainingDays; day++) {
+      days.push({
+        date: day,
+        isCurrentMonth: false,
+        classes: []
+      });
+    }
+    
+    setCalendarDays(days);
+  };
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      if (direction === 'prev') {
+        newDate.setMonth(prev.getMonth() - 1);
+      } else {
+        newDate.setMonth(prev.getMonth() + 1);
+      }
+      return newDate;
+    });
+  };
+
+  const getFilterOptions = () => {
+    const uniqueSubjects = Array.from(new Set(allClasses.map(cls => cls.subject)));
+    const uniqueClasses = Array.from(new Set(allClasses.map(cls => cls.name)));
+    
+    const options = [
+      { value: 'all', label: 'All Subjects' }
+    ];
+    
+    // Add subjects
+    uniqueSubjects.forEach(subject => {
+      options.push({ value: subject, label: subject });
+    });
+    
+    return options;
+  };
+
+  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedFilter(e.target.value);
+  };
+
+  const getClassColor = (subject: string) => {
+    const colors = {
+      'Mathematics': 'bg-blue-500',
+      'Physics': 'bg-purple-500',
+      'Chemistry': 'bg-green-500',
+      'English': 'bg-indigo-500',
+      'Biology': 'bg-emerald-500',
+      'History': 'bg-orange-500',
+      'Geography': 'bg-teal-500',
+    };
+    return colors[subject as keyof typeof colors] || 'bg-gray-500';
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <span className="block sm:inline">{error}</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      {/* Calendar Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold text-gray-900">
+          {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+        </h2>
+        <div className="flex items-center space-x-1">
+          <button
+            type="button"
+            onClick={() => navigateMonth('prev')}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Previous month"
+          >
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <div className="relative">
+            <select
+              value={selectedFilter}
+              onChange={handleFilterChange}
+              title="Filter classes by subject"
+              className="appearance-none bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 min-w-[120px]"
+            >
+              {getFilterOptions().map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigateMonth('next')}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Next month"
+          >
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {/* Day Headers */}
+        {dayNames.map((day) => (
+          <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
+            {day}
+          </div>
+        ))}
+        
+        {/* Calendar Days */}
+        {calendarDays.map((day, index) => (
+          <div
+            key={index}
+            className={`min-h-[80px] p-1 border border-gray-100 ${
+              day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'
+            }`}
+          >
+            <div className={`text-sm font-medium mb-1 ${
+              day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
+            }`}>
+              {day.date}
+            </div>
+            
+            {/* Classes for this day */}
+            <div className="space-y-1">
+              {day.classes.slice(0, 2).map((cls, clsIndex) => (
+                <div
+                  key={clsIndex}
+                  className={`${getClassColor(cls.subject)} text-white text-xs p-1 rounded truncate`}
+                  title={`${cls.name} - ${cls.startTime}`}
+                >
+                  <div className="font-medium">{cls.name}</div>
+                  <div className="text-xs opacity-90">{cls.startTime}</div>
+                </div>
+              ))}
+              {day.classes.length > 2 && (
+                <div className="text-xs text-gray-500 pl-1">
+                  +{day.classes.length - 2} more
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

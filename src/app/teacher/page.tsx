@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import TodaysClasses from '../components/TodaysClasses';
+import MonthlyCalendar from '../components/MonthlyCalendar';
 import TeacherAttendance from '../components/TeacherAttendance';
 import TeacherMessages from '../components/TeacherMessages';
-import RecentActivities from '../components/RecentActivities';
 import PendingRequests from '../components/PendingRequests';
 import CreateGradeModal from '../components/CreateGradeModal';
 
@@ -135,12 +135,12 @@ export default function TeacherDashboard() {
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2 h-96">
-          <TodaysClasses />
+        <div className="lg:col-span-2">
+          <MonthlyCalendar />
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-md h-96 flex flex-col">
-          <RecentActivities />
+        <div className="lg:col-span-1">
+          <TodaysClasses />
         </div>
       </div>
       
@@ -160,9 +160,7 @@ export default function TeacherDashboard() {
       </div>
       
       <div className="mb-8">
-        <div className="h-96">
-          <TeacherAttendance />
-        </div>
+        <TeacherAttendance />
       </div>
       
       {/* Grade Creation Modal */}

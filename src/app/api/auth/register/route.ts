@@ -13,27 +13,27 @@ const baseSchema = z.object({
 
 // Role-specific schema extensions
 const studentSchema = baseSchema.extend({
-  academicLevel: z.string().optional(),
+  academicLevel: z.string().min(1, 'Academic level is required'),
   dateOfBirth: z.string().optional(),
   phoneNumber: z.string().optional(),
 });
 
 const teacherSchema = baseSchema.extend({
-  qualification: z.string().optional(),
-  specialization: z.string().optional(),
-  experience: z.number().optional().or(z.string().optional()),
+  qualification: z.string().min(1, 'Qualification is required'),
+  specialization: z.string().min(1, 'Specialization is required'),
+  experience: z.string().min(1, 'Experience is required'),
 });
 
 const parentSchema = baseSchema.extend({
   studentId: z.string().min(1, 'Student ID is required'),
-  relationship: z.enum(['Father', 'Mother']).default('Father'),
+  relationship: z.string().min(1, 'Relationship is required'),
   occupation: z.string().optional(),
   alternatePhone: z.string().optional(),
 });
 
 const adminSchema = baseSchema.extend({
-  department: z.string().optional(),
-  accessLevel: z.enum(['standard', 'elevated', 'super']).optional().default('standard'),
+  department: z.string().min(1, 'Department is required'),
+  accessLevel: z.enum(['standard', 'elevated', 'super']).default('standard'),
 });
 
 // Combined schema with validation based on role
@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
             dateOfJoining: new Date(),
             qualification: body.qualification || undefined,
             specialization: body.specialization || undefined,
-            experience: body.experience ? Number(body.experience) : undefined,
+            experience: body.experience ? parseInt(body.experience) : undefined,
           },
         });
       } else if (role === 'PARENT') {
