@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import PendingRequestsCard from './components/PendingRequestsCard';
+import StudentMonthlyCalendar from '../components/StudentMonthlyCalendar';
 
 interface ClassItem {
   id: string;
@@ -493,8 +494,11 @@ console.log("class item data--->",classes)
       
       {/* Main dashboard content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column - Classes and Attendance */}
+        {/* Left column - Calendar, Classes and Attendance */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Calendar Section */}
+          <StudentMonthlyCalendar />
+          
           {/* My Classes Section */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex justify-between items-center mb-4">
@@ -620,8 +624,38 @@ console.log("class item data--->",classes)
           </div>
         </div>
         
-        {/* Right column - Grades and Resources */}
+        {/* Right column - Quick Stats, Grades, Resources, Assessments, Pending Requests */}
         <div className="space-y-6">
+          {/* Quick Stats Card */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900">Quick Stats</h2>
+            {attendanceSummary && (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Attendance Rate</span>
+                  <span className="text-lg font-semibold text-blue-600">{attendanceSummary.attendanceRate}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Total Classes</span>
+                  <span className="text-lg font-semibold text-gray-900">{attendanceSummary.totalClasses}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Present</span>
+                  <span className="text-lg font-semibold text-green-600">{attendanceSummary.present}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Enrolled Classes</span>
+                  <span className="text-lg font-semibold text-indigo-600">{classes.length}</span>
+                </div>
+              </div>
+            )}
+            {!attendanceSummary && (
+              <div className="text-center py-4 text-gray-500">
+                No attendance data available
+              </div>
+            )}
+          </div>
+          
           {/* Grades Section */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex justify-between items-center mb-4">
@@ -668,7 +702,7 @@ console.log("class item data--->",classes)
           </div>
           
           {/* Resources Section */}
-          <div className="bg-white rounded-lg shadow-md p-6 h-[300px] flex flex-col">
+          <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Resources</h2>
               <Link href="/student/resources" className="text-sm text-indigo-600 hover:text-indigo-800">
@@ -677,96 +711,86 @@ console.log("class item data--->",classes)
             </div>
             
             {resourcesLoading ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+              <div className="py-4 text-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
               </div>
             ) : resources.length > 0 ? (
-              <div className="flex-1 overflow-y-auto pr-2 -mr-2">
-                <div className="space-y-3 pr-2">
-                  {resources.slice(0, 5).map((resource) => (
-                    <div key={resource.id} className="flex items-start p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                      <div className="flex-shrink-0 mr-3">
-                        {getResourceIcon(resource.type)}
-                      </div>
-                      <div className="flex-grow min-w-0">
-                        <h3 className="text-sm font-medium truncate">{resource.title}</h3>
-                        <p className="text-xs text-gray-500 truncate">{resource.class.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {formatDate(resource.publishDate || new Date().toISOString())}
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0 ml-2">
-                        <Link 
-                          href={resource.url || '#'} 
-                          className="text-indigo-600 hover:text-indigo-800"
-                          target={resource.url ? "_blank" : undefined}
-                          download={resource.title}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                          </svg>
-                        </Link>
-                      </div>
+              <div className="space-y-3">
+                {resources.slice(0, 3).map((resource) => (
+                  <div key={resource.id} className="flex items-start p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="flex-shrink-0 mr-2">
+                      {getResourceIcon(resource.type)}
                     </div>
-                  ))}
-                </div>
+                    <div className="flex-grow min-w-0">
+                      <h3 className="text-sm font-medium truncate">{resource.title}</h3>
+                      <p className="text-xs text-gray-500 truncate">{resource.class.name}</p>
+                    </div>
+                    <div className="flex-shrink-0 ml-2">
+                      <Link 
+                        href={resource.url || '#'} 
+                        className="text-indigo-600 hover:text-indigo-800"
+                        target={resource.url ? "_blank" : undefined}
+                        download={resource.title}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-500">
+              <div className="text-center py-4 text-gray-500 text-sm">
                 No resources available.
               </div>
             )}
           </div>
           
           {/* Assessments Section */}
-          <div className="bg-white rounded-lg shadow-md p-6 h-[300px] flex flex-col">
+          <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Upcoming Assessments</h2>
               <Link href="/student/assessments" className="text-sm text-indigo-600 hover:text-indigo-800">
-                View All Assessments
+                View All
               </Link>
             </div>
             
             {assessmentsLoading ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+              <div className="py-4 text-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
               </div>
             ) : assessments.length > 0 ? (
-              <div className="flex-1 overflow-y-auto pr-2 -mr-2">
-                <div className="space-y-3 pr-2">
-                  {assessments.slice(0, 5).map((assessment) => {
-                    // Calculate days remaining
-                    const dueDate = new Date(assessment.dueDate);
-                    const today = new Date();
-                    const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                    
-                    // Determine border color based on urgency
-                    let borderColor = 'border-blue-500';
-                    if (daysRemaining <= 1) {
-                      borderColor = 'border-red-500';
-                    } else if (daysRemaining <= 3) {
-                      borderColor = 'border-yellow-500';
-                    }
-                    
-                    return (
-                      <div key={assessment.id} className={`border-l-4 ${borderColor} pl-4 py-2`}>
-                        <p className="text-sm text-gray-600 mb-1">
-                          {daysRemaining === 0 ? 'Due Today' : 
-                          daysRemaining === 1 ? 'Due Tomorrow' : 
-                          `Due in ${daysRemaining} days (${formatDate(assessment.dueDate)})`}
-                        </p>
-                        <h3 className="font-medium text-gray-900">{assessment.title}</h3>
-                        <p className="text-sm text-gray-600">{assessment.class.name} - {assessment.class.subject}</p>
-                        {assessment.description && (
-                          <p className="text-xs text-gray-500 mt-1 truncate">{assessment.description}</p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+              <div className="space-y-3">
+                {assessments.slice(0, 3).map((assessment) => {
+                  // Calculate days remaining
+                  const dueDate = new Date(assessment.dueDate);
+                  const today = new Date();
+                  const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                  
+                  // Determine border color based on urgency
+                  let borderColor = 'border-blue-500';
+                  if (daysRemaining <= 1) {
+                    borderColor = 'border-red-500';
+                  } else if (daysRemaining <= 3) {
+                    borderColor = 'border-yellow-500';
+                  }
+                  
+                  return (
+                    <div key={assessment.id} className={`border-l-4 ${borderColor} pl-3 py-2`}>
+                      <p className="text-xs text-gray-600 mb-1">
+                        {daysRemaining === 0 ? 'Due Today' : 
+                        daysRemaining === 1 ? 'Due Tomorrow' : 
+                        `Due in ${daysRemaining} days`}
+                      </p>
+                      <h3 className="font-medium text-sm text-gray-900">{assessment.title}</h3>
+                      <p className="text-xs text-gray-600">{assessment.class.name}</p>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-500">
+              <div className="text-center py-4 text-gray-500 text-sm">
                 No upcoming assessments.
               </div>
             )}

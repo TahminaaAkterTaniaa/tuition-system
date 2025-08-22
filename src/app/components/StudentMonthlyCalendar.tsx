@@ -19,7 +19,7 @@ type CalendarDay = {
   classes: CalendarClass[];
 };
 
-export default function MonthlyCalendar() {
+export default function StudentMonthlyCalendar() {
   const { data: session } = useSession();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
@@ -42,7 +42,7 @@ export default function MonthlyCalendar() {
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth() + 1;
         
-        const response = await fetch(`/api/teacher/classes?year=${year}&month=${month}`);
+        const response = await fetch(`/api/student/classes/calendar?year=${year}&month=${month}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch monthly classes');
@@ -144,7 +144,6 @@ export default function MonthlyCalendar() {
 
   const getFilterOptions = () => {
     const uniqueSubjects = Array.from(new Set(allClasses.map(cls => cls.subject)));
-    const uniqueClasses = Array.from(new Set(allClasses.map(cls => cls.name)));
     
     const options = [
       { value: 'all', label: 'All Subjects' }
