@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
+import { generateClassOccurrences, ClassScheduleData, getDayOfWeekNumber } from '@/app/lib/calendar-utils';
 
-// Helper function to get monthly calendar data
+// Helper function to get monthly calendar data using shared utilities
 async function getMonthlyCalendarData(teacherId: string, year: number, month: number) {
   try {
     // Get the start and end dates for the month
@@ -22,46 +23,47 @@ async function getMonthlyCalendarData(teacherId: string, year: number, month: nu
             room: true,
             timeSlot: true
           }
+        },
+        enrollments: {
+          where: {
+            status: 'enrolled',
+          },
         }
       }
     });
 
-    // Generate calendar entries based on class schedules
-    const calendarClasses = [];
-    
-    for (const classItem of classes) {
-      for (const schedule of classItem.schedules) {
-        // Get the day of week for this schedule
-        const dayOfWeek = getDayOfWeekNumber(schedule.day);
-        
-        // Generate all occurrences of this class in the month
-        const current = new Date(startDate);
-        while (current <= endDate) {
-          if (current.getDay() === dayOfWeek) {
-            // Format time
-            let timeDisplay = schedule.time || 'Time not set';
-            if (schedule.timeSlot) {
-              if (schedule.timeSlot.label) {
-                timeDisplay = schedule.timeSlot.label;
-              } else if (schedule.timeSlot.startTime && schedule.timeSlot.endTime) {
-                timeDisplay = `${schedule.timeSlot.startTime} - ${schedule.timeSlot.endTime}`;
-              }
-            }
+    // Transform to ClassScheduleData format
+    const classScheduleData: ClassScheduleData[] = classes.map((classItem: any) => ({
+      id: classItem.id,
+      name: classItem.name,
+      subject: classItem.subject,
+      startDate: new Date(classItem.startDate),
+      endDate: classItem.endDate ? new Date(classItem.endDate) : null,
+      schedules: classItem.schedules.map((schedule: any) => ({
+        id: schedule.id,
+        day: schedule.day,
+        time: schedule.time || 'Time not set',
+        timeSlot: schedule.timeSlot ? {
+          startTime: schedule.timeSlot.startTime,
+          endTime: schedule.timeSlot.endTime,
+          label: schedule.timeSlot.label,
+        } : null,
+        room: schedule.room ? {
+          name: schedule.room.name,
+          building: schedule.room.building,
+        } : null,
+      })),
+      enrollments: classItem.enrollments,
+    }));
 
-            calendarClasses.push({
-              id: classItem.id,
-              name: classItem.name,
-              subject: classItem.subject,
-              startTime: timeDisplay.split(' - ')[0] || timeDisplay,
-              endTime: timeDisplay.split(' - ')[1] || '',
-              room: schedule.room?.name || 'Room not assigned',
-              date: current.toISOString()
-            });
-          }
-          current.setDate(current.getDate() + 1);
-        }
-      }
+    // Use shared utility to generate calendar entries
+    const calendarClasses = [];
+    for (const classItem of classScheduleData) {
+      const classOccurrences = generateClassOccurrences(classItem, startDate, endDate);
+      calendarClasses.push(...classOccurrences);
     }
+
+    console.log(`Calendar: Generated ${calendarClasses.length} entries for ${year}-${month}`);
 
     return NextResponse.json({ classes: calendarClasses });
   } catch (error) {
@@ -73,19 +75,6 @@ async function getMonthlyCalendarData(teacherId: string, year: number, month: nu
   }
 }
 
-// Helper function to convert day name to day number (0 = Sunday, 1 = Monday, etc.)
-function getDayOfWeekNumber(dayName: string): number {
-  const days = {
-    'Sunday': 0,
-    'Monday': 1,
-    'Tuesday': 2,
-    'Wednesday': 3,
-    'Thursday': 4,
-    'Friday': 5,
-    'Saturday': 6
-  };
-  return days[dayName as keyof typeof days] ?? 1; // Default to Monday if not found
-}
 
 // GET handler for fetching classes assigned to the logged-in teacher
 export async function GET(req: NextRequest) {

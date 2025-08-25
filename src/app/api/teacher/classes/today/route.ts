@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/lib/auth';
 import { prisma } from '@/app/lib/prisma';
+import { getTodaysClasses, ClassScheduleData, debugClassValidation } from '@/app/lib/calendar-utils';
 
 // Type definitions for class data
 type ClassWithEnrollments = {
@@ -65,8 +66,8 @@ export async function GET(request: Request) {
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const todayName = daysOfWeek[dayOfWeek];
     
-    // Get classes taught by this teacher
-    const classes = await prisma.class.findMany({
+    // Get classes taught by this teacher with proper date validation
+    const allClasses = await prisma.class.findMany({
       where: { 
         teacherId: teacher.id,
         status: 'active',
@@ -80,126 +81,61 @@ export async function GET(request: Request) {
         schedules: {
           include: {
             room: true,
-            timeSlot: true, // Include timeSlot relation for each schedule
-          },
-        },
-        teacher: {
-          include: {
-            user: true,
+            timeSlot: true,
           },
         },
       },
     });
     
-    // Format the class data
-    const processedClasses = classes.map((classItem: any) => {
-      // Get schedule information
-      let schedule = classItem.schedule || 'Not scheduled';
-      let startTime = null;
-      let endTime = null;
-      let roomName = 'No room assigned';
-      
-      // If we have schedules, use that information
-      if (classItem.schedules && classItem.schedules.length > 0) {
-        // Find a schedule for today if possible
-        const todaySchedule = classItem.schedules.find((s: any) => s.day === todayName);
-        
-        if (todaySchedule) {
-          // Extract time from timeSlot relation
-          if (todaySchedule.timeSlot) {
-            startTime = todaySchedule.timeSlot.startTime || null;
-            endTime = todaySchedule.timeSlot.endTime || null;
-          }
-          
-          schedule = `${todayName} at ${startTime || 'Time not set'}`;
-          
-          // Get room information
-          if (todaySchedule.room && todaySchedule.room.name) {
-            roomName = todaySchedule.room.name;
-          }
-        } else {
-          // Use any schedule if no specific one for today
-          const anySchedule = classItem.schedules[0];
-          
-          // Extract time from timeSlot relation
-          if (anySchedule.timeSlot) {
-            startTime = anySchedule.timeSlot.startTime || null;
-            endTime = anySchedule.timeSlot.endTime || null;
-          }
-          
-          schedule = `${anySchedule.day || 'Day not set'} at ${startTime || 'Time not set'}`;
-          
-          // Get room information
-          if (anySchedule.room && anySchedule.room.name) {
-            roomName = anySchedule.room.name;
-          }
-        }
-      }
-      
-      // Count enrolled students properly from enrollments with status = 'enrolled'
-      const studentCount = classItem.enrollments?.length || 0;
-      
-      // Format times from schedules for display
-      let formattedStartTime = 'Time not set';
-      let formattedEndTime = null;
-      
-      if (startTime && typeof startTime === 'string' && startTime.includes(':')) {
-        try {
-          // Format time to be more readable
-          const startDate = new Date(`1970-01-01T${startTime}Z`);
-          formattedStartTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } catch (e) {
-          console.error('Error formatting start time:', e);
-        }
-      }
-      
-      if (endTime && typeof endTime === 'string' && endTime.includes(':')) {
-        try {
-          // Format end time if available
-          const endDate = new Date(`1970-01-01T${endTime}Z`);
-          formattedEndTime = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } catch (e) {
-          console.error('Error formatting end time:', e);
-        }
-      }
-      
-      // Add console log to debug
-      console.log(`Class: ${classItem.name}, Students: ${studentCount}, Time: ${formattedStartTime}`);
-      
-      return {
-        id: classItem.id,
-        name: classItem.name,
-        subject: classItem.subject,
-        schedule: schedule,
-        room: roomName,
-        startTime: formattedStartTime,
-        endTime: formattedEndTime,
-        studentCount: studentCount,
-      };
-    });
+    // Transform to ClassScheduleData format for the utility function
+    const classScheduleData: ClassScheduleData[] = allClasses.map((classItem: any) => ({
+      id: classItem.id,
+      name: classItem.name,
+      subject: classItem.subject,
+      startDate: new Date(classItem.startDate),
+      endDate: classItem.endDate ? new Date(classItem.endDate) : null,
+      schedules: classItem.schedules.map((schedule: any) => ({
+        id: schedule.id,
+        day: schedule.day,
+        time: schedule.time || 'Time not set',
+        timeSlot: schedule.timeSlot ? {
+          startTime: schedule.timeSlot.startTime,
+          endTime: schedule.timeSlot.endTime,
+          label: schedule.timeSlot.label,
+        } : null,
+        room: schedule.room ? {
+          name: schedule.room.name,
+          building: schedule.room.building,
+        } : null,
+      })),
+      enrollments: classItem.enrollments,
+    }));
     
-    // Sort classes by start time
-    processedClasses.sort((a: ProcessedClass, b: ProcessedClass) => {
-      if (a.startTime && b.startTime) {
-        return a.startTime.localeCompare(b.startTime);
-      }
-      return 0;
-    });
+    // Use the shared utility to get today's classes with proper date validation
+    const todaysClasses = getTodaysClasses(classScheduleData, today);
     
-    // Format times for display if needed
-    const formattedClasses = processedClasses.map((cls: ProcessedClass) => {
-      // Format time strings if needed
-      const formatTime = (time: string | null): string => {
-        if (!time) return 'Time not set';
-        return time; // Return as is or apply formatting as needed
-      };
-      
-      return {
-        ...cls,
-        startTime: formatTime(cls.startTime),
-        endTime: formatTime(cls.endTime),
-      };
-    });
+    // Debug logging for troubleshooting
+    console.log(`Today's date: ${today.toISOString().split('T')[0]} (${todayName})`);
+    console.log(`Found ${allClasses.length} total classes, ${todaysClasses.length} active today`);
+    
+    // Optional: Enable detailed debugging for each class
+    if (process.env.NODE_ENV === 'development') {
+      classScheduleData.forEach(classItem => {
+        debugClassValidation(classItem, today);
+      });
+    }
+    
+    // Convert CalendarEntry format back to the expected API response format
+    const formattedClasses = todaysClasses.map(entry => ({
+      id: entry.id,
+      name: entry.name,
+      subject: entry.subject,
+      schedule: `${todayName} at ${entry.startTime}`,
+      room: entry.room,
+      startTime: entry.startTime,
+      endTime: entry.endTime || null,
+      studentCount: entry.studentCount || 0,
+    }));
     
     return NextResponse.json({ classes: formattedClasses });
   } catch (error) {
