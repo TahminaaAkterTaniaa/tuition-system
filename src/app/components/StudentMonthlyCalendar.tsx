@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useCalendarStore } from '@/app/lib/store/calendarStore';
 
 type CalendarClass = {
   id: string;
@@ -27,6 +28,9 @@ export default function StudentMonthlyCalendar() {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Get selected date from global state
+  const { selectedDate, setSelectedDate } = useCalendarStore();
 
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -161,6 +165,45 @@ export default function StudentMonthlyCalendar() {
     setSelectedFilter(e.target.value);
   };
 
+  const handleDateClick = (day: CalendarDay) => {
+    if (!day.isCurrentMonth) return; // Don't allow clicking on dates from other months
+    
+    // Create date for the clicked day
+    const clickedDate = new Date(
+      currentDate.getFullYear(), 
+      currentDate.getMonth(), 
+      day.date
+    );
+    
+    // Update the selected date in global state
+    setSelectedDate(clickedDate);
+  };
+
+  const isDateSelected = (day: CalendarDay): boolean => {
+    if (!day.isCurrentMonth) return false;
+    
+    const dayDate = new Date(
+      currentDate.getFullYear(), 
+      currentDate.getMonth(), 
+      day.date
+    );
+    
+    return dayDate.toDateString() === selectedDate.toDateString();
+  };
+
+  const isToday = (day: CalendarDay): boolean => {
+    if (!day.isCurrentMonth) return false;
+    
+    const today = new Date();
+    const dayDate = new Date(
+      currentDate.getFullYear(), 
+      currentDate.getMonth(), 
+      day.date
+    );
+    
+    return dayDate.toDateString() === today.toDateString();
+  };
+
   const getClassColor = (className: string) => {
     // Generate a consistent color based on class name hash
     let hash = 0;
@@ -275,14 +318,39 @@ export default function StudentMonthlyCalendar() {
         {calendarDays.map((day, index) => (
           <div
             key={index}
-            className={`min-h-[80px] p-1 border border-gray-100 ${
-              day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'
+            onClick={() => handleDateClick(day)}
+            className={`min-h-[80px] p-1 border border-gray-100 transition-all duration-200 ${
+              day.isCurrentMonth 
+                ? `bg-white cursor-pointer hover:bg-blue-50 ${
+                    isDateSelected(day) 
+                      ? 'ring-2 ring-blue-500 bg-blue-50' 
+                      : isToday(day)
+                        ? 'ring-1 ring-blue-300 bg-blue-25'
+                        : ''
+                  }` 
+                : 'bg-gray-50'
             }`}
           >
             <div className={`text-sm font-medium mb-1 ${
-              day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
+              day.isCurrentMonth 
+                ? isDateSelected(day)
+                  ? 'text-blue-900'
+                  : isToday(day)
+                    ? 'text-blue-700'
+                    : 'text-gray-900'
+                : 'text-gray-400'
             }`}>
               {day.date}
+              {isToday(day) && (
+                <span className="ml-1 text-xs bg-blue-100 text-blue-800 px-1 rounded">
+                  Today
+                </span>
+              )}
+              {isDateSelected(day) && !isToday(day) && (
+                <span className="ml-1 text-xs bg-blue-500 text-white px-1 rounded">
+                  Selected
+                </span>
+              )}
             </div>
             
             {/* Classes for this day */}

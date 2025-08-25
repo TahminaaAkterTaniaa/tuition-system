@@ -44,6 +44,17 @@ async function getMonthlyCalendarData(studentId: string, year: number, month: nu
         const current = new Date(startDate);
         while (current <= endDate) {
           if (current.getDay() === dayOfWeek) {
+            // Check if the class is active on this specific date
+            const classStart = new Date(classItem.startDate);
+            const classEnd = classItem.endDate ? new Date(classItem.endDate) : new Date('2099-12-31');
+            classStart.setHours(0, 0, 0, 0);
+            classEnd.setHours(23, 59, 59, 999);
+            
+            const checkDate = new Date(current);
+            checkDate.setHours(0, 0, 0, 0);
+            
+            // Only include if current date is within class active period
+            if (checkDate >= classStart && checkDate <= classEnd) {
             // Format time
             let timeDisplay = schedule.time || 'Time not set';
             if (schedule.timeSlot) {
@@ -63,6 +74,7 @@ async function getMonthlyCalendarData(studentId: string, year: number, month: nu
               room: schedule.room?.name || 'Room not assigned',
               date: current.toISOString()
             });
+            }
           }
           current.setDate(current.getDate() + 1);
         }

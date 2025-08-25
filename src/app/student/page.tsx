@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import PendingRequestsCard from './components/PendingRequestsCard';
 import StudentMonthlyCalendar from '../components/StudentMonthlyCalendar';
+import StudentTodaysClasses from '../components/StudentTodaysClasses';
 
 interface ClassItem {
   id: string;
@@ -655,6 +656,9 @@ console.log("class item data--->",classes)
               </div>
             )}
           </div>
+          
+          {/* Today's Classes Card */}
+          <StudentTodaysClasses />
           
           {/* Grades Section */}
           <div className="bg-white rounded-lg shadow-md p-6">
