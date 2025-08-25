@@ -53,18 +53,34 @@ export async function GET(request: Request) {
       );
     }
     
-    // Get today's date
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Get the target date from query parameters or default to today
+    const { searchParams } = new URL(request.url);
+    const dateParam = searchParams.get('date');
     
-    // Get tomorrow's date
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    let targetDate: Date;
+    if (dateParam) {
+      // Parse the provided date (YYYY-MM-DD format) as local date to avoid timezone issues
+      const [year, month, day] = dateParam.split('-').map(Number);
+      targetDate = new Date(year, month - 1, day); // month is 0-indexed
+      // Ensure it's a valid date
+      if (isNaN(targetDate.getTime())) {
+        return NextResponse.json(
+          { error: 'Invalid date format. Please use YYYY-MM-DD.' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Default to today
+      targetDate = new Date();
+    }
+    
+    // Normalize the date to start of day
+    targetDate.setHours(0, 0, 0, 0);
     
     // Get day of week (0 = Sunday, 1 = Monday, etc.)
-    const dayOfWeek = today.getDay();
+    const dayOfWeek = targetDate.getDay();
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const todayName = daysOfWeek[dayOfWeek];
+    const dayName = daysOfWeek[dayOfWeek];
     
     // Get classes taught by this teacher with proper date validation
     const allClasses = await prisma.class.findMany({
@@ -111,26 +127,28 @@ export async function GET(request: Request) {
       enrollments: classItem.enrollments,
     }));
     
-    // Use the shared utility to get today's classes with proper date validation
-    const todaysClasses = getTodaysClasses(classScheduleData, today);
+    // Use the shared utility to get classes for the target date with proper date validation
+    const targetDateClasses = getTodaysClasses(classScheduleData, targetDate);
     
     // Debug logging for troubleshooting
-    console.log(`Today's date: ${today.toISOString().split('T')[0]} (${todayName})`);
-    console.log(`Found ${allClasses.length} total classes, ${todaysClasses.length} active today`);
+    console.log(`API: Received dateParam: ${dateParam}`);
+    console.log(`API: Parsed target date: ${targetDate.toString()} (${dayName})`);
+    console.log(`API: Target date local: ${targetDate.toISOString().split('T')[0]}`);
+    console.log(`Found ${allClasses.length} total classes, ${targetDateClasses.length} active on target date`);
     
     // Optional: Enable detailed debugging for each class
     if (process.env.NODE_ENV === 'development') {
       classScheduleData.forEach(classItem => {
-        debugClassValidation(classItem, today);
+        debugClassValidation(classItem, targetDate);
       });
     }
     
     // Convert CalendarEntry format back to the expected API response format
-    const formattedClasses = todaysClasses.map(entry => ({
+    const formattedClasses = targetDateClasses.map(entry => ({
       id: entry.id,
       name: entry.name,
       subject: entry.subject,
-      schedule: `${todayName} at ${entry.startTime}`,
+      schedule: `${dayName} at ${entry.startTime}`,
       room: entry.room,
       startTime: entry.startTime,
       endTime: entry.endTime || null,

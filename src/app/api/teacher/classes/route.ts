@@ -11,11 +11,11 @@ async function getMonthlyCalendarData(teacherId: string, year: number, month: nu
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
-    // Get classes with their schedules for the teacher
+    // Get classes with their schedules for the teacher (only active classes)
     const classes = await prisma.class.findMany({
       where: {
         teacherId: teacherId,
-        status: { in: ['active', 'Active', 'ACTIVE', 'APPROVED', 'Approved', 'approved'] }
+        status: 'active'
       },
       include: {
         schedules: {

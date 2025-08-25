@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useCalendarStore } from "@/app/lib/store/calendarStore";
 
 type ClassData = {
   id: string;
@@ -21,15 +22,25 @@ export default function TodaysClasses() {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Get selected date from global state
+  const { selectedDate } = useCalendarStore();
 
   useEffect(() => {
-    const fetchTodaysClasses = async () => {
+    const fetchSelectedDateClasses = async () => {
       try {
         setLoading(true);
-        const response = await fetch("/api/teacher/classes/today");
+        // Format the selected date for the API using local date (avoiding timezone issues)
+        const dateParam = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+        
+        // Debug logging to verify date consistency
+        console.log(`TodaysClasses: Selected date: ${selectedDate.toString()}`);
+        console.log(`TodaysClasses: API param: ${dateParam}`);
+        
+        const response = await fetch(`/api/teacher/classes/today?date=${dateParam}`);
 
         if (!response.ok) {
-          throw new Error("Failed to fetch today's classes");
+          throw new Error("Failed to fetch classes for selected date");
         }
 
         const data = await response.json();
@@ -61,25 +72,58 @@ export default function TodaysClasses() {
 
         setClasses(formattedClasses);
       } catch (err) {
-        console.error("Error fetching today's classes:", err);
-        setError("Failed to load today's classes. Please try again later.");
+        console.error("Error fetching classes for selected date:", err);
+        setError("Failed to load classes for selected date. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
 
     if (session?.user?.id) {
-      fetchTodaysClasses();
+      fetchSelectedDateClasses();
     }
-  }, [session]);
+  }, [session, selectedDate]); // Add selectedDate as dependency
+
+  // Helper function to format the selected date
+  const formatSelectedDate = (date: Date): string => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return "Today's Classes";
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return "Tomorrow's Classes";
+    } else {
+      return `Classes for ${date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'short', 
+        day: 'numeric' 
+      })}`;
+    }
+  };
+
+  const getSelectedDateSubtext = (date: Date): string => {
+    const today = new Date();
+    
+    if (date.toDateString() === today.toDateString()) {
+      return "Your scheduled classes for today";
+    } else {
+      return `Your scheduled classes for ${date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric' 
+      })}`;
+    }
+  };
 
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4 text-gray-900">
-          Today's Classes
+          {formatSelectedDate(selectedDate)}
         </h2>
-        <p className="text-sm text-gray-600 mb-6">Your scheduled classes</p>
+        <p className="text-sm text-gray-600 mb-6">{getSelectedDateSubtext(selectedDate)}</p>
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
         </div>
@@ -91,9 +135,9 @@ export default function TodaysClasses() {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4 text-gray-900">
-          Today's Classes
+          {formatSelectedDate(selectedDate)}
         </h2>
-        <p className="text-sm text-gray-600 mb-6">Your scheduled classes</p>
+        <p className="text-sm text-gray-600 mb-6">{getSelectedDateSubtext(selectedDate)}</p>
         <div
           className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative"
           role="alert"
@@ -106,12 +150,14 @@ export default function TodaysClasses() {
   }
 
   if (classes.length === 0) {
+    const isToday = selectedDate.toDateString() === new Date().toDateString();
+    
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4 text-gray-900">
-          Today's Classes
+          {formatSelectedDate(selectedDate)}
         </h2>
-        <p className="text-sm text-gray-600 mb-6">Your scheduled classes</p>
+        <p className="text-sm text-gray-600 mb-6">{getSelectedDateSubtext(selectedDate)}</p>
         <div className="text-center py-8">
           <svg
             className="w-12 h-12 text-gray-300 mx-auto mb-4"
@@ -128,9 +174,11 @@ export default function TodaysClasses() {
             />
           </svg>
           <h3 className="text-lg font-medium text-gray-500">
-            No classes scheduled for today
+            {isToday ? "No classes scheduled for today" : `No classes scheduled for this date`}
           </h3>
-          <p className="text-gray-500 mt-1">Enjoy your day off!</p>
+          <p className="text-gray-500 mt-1">
+            {isToday ? "Enjoy your day off!" : "Select another date to view classes"}
+          </p>
         </div>
       </div>
     );
@@ -139,9 +187,9 @@ export default function TodaysClasses() {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-semibold mb-2 text-gray-900">
-        Today's Classes
+        {formatSelectedDate(selectedDate)}
       </h2>
-      <p className="text-sm text-gray-600 mb-6">Your scheduled classes</p>
+      <p className="text-sm text-gray-600 mb-6">{getSelectedDateSubtext(selectedDate)}</p>
 
       <div className="space-y-4">
         {classes.map((classItem) => (
