@@ -86,7 +86,7 @@ export async function GET(request: Request) {
     const allClasses = await prisma.class.findMany({
       where: { 
         teacherId: teacher.id,
-        status: 'active',
+        status: { in: ['active', 'Approved'] }, // Handle both status values
       },
       include: {
         enrollments: {

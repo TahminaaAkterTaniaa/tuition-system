@@ -15,7 +15,7 @@ async function getMonthlyCalendarData(teacherId: string, year: number, month: nu
     const classes = await prisma.class.findMany({
       where: {
         teacherId: teacherId,
-        status: 'active'
+        status: { in: ['active', 'Approved'] } // Handle both status values
       },
       include: {
         schedules: {
