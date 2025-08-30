@@ -129,9 +129,11 @@ This is a comprehensive tuition management system built with Next.js 15, using P
 - File upload forms handle multiple storage backends
 
 ### State Management
-- Zustand for client-side state (see `src/lib/store/`)
-- Server state fetching with built-in React patterns
-- Session state managed by NextAuth
+- **Zustand**: Global state management (see `src/lib/store/`)
+  - `calendarStore.ts`: Manages selected date across calendar and today's classes components
+  - State is minimal and focused on cross-component synchronization
+- **Server State**: Built-in React patterns with useEffect for API calls
+- **Session State**: NextAuth manages authentication state automatically
 
 ### Database Patterns
 - Use `src/lib/prisma.ts` for database client
@@ -141,10 +143,11 @@ This is a comprehensive tuition management system built with Next.js 15, using P
 
 ### Environment Variables
 - `DATABASE_URL` - PostgreSQL connection string
+- `POSTGRES_PRISMA_URL` - Vercel PostgreSQL URL (for production)
 - `NEXTAUTH_SECRET` - JWT signing secret
 - `NEXTAUTH_URL` - Application URL for auth redirects
 - `BLOB_READ_WRITE_TOKEN` - Vercel Blob storage token
-- `CLOUDINARY_*` - Cloudinary configuration (fallback storage)
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` - Cloudinary configuration (fallback storage)
 
 ## Testing & Quality
 
@@ -179,6 +182,66 @@ This is a comprehensive tuition management system built with Next.js 15, using P
 - Return consistent JSON response formats
 
 ### File Upload Implementation
-- Use `src/lib/blob-storage.ts` for Vercel Blob
-- Fallback to `src/lib/cloudinary.ts` for images
+- Primary: Use `src/app/lib/blob-storage.ts` for Vercel Blob storage
+- Fallback: Use `src/app/lib/cloudinary.ts` for images and documents
+- Local fallback: `public/uploads/` directory structure
+- File organization: `{parentId}/{enrollmentId}/{document-type-timestamp-filename}`
 - Organize uploads by user context and purpose
+
+### Socket.io Real-time Features
+- WebSocket server integration via `src/app/lib/socket.ts`
+- Real-time notifications for enrollments, payments, grades, attendance
+- Socket endpoint: `/api/socket/route.ts`
+- Client-side Socket.io integration for live updates
+
+## Key Architectural Patterns
+
+### Calendar System
+- **Shared Utilities**: `src/app/lib/calendar-utils.ts` provides consistent date handling
+- **Global State**: `calendarStore.ts` synchronizes selected dates between calendar and today's classes
+- **Date Validation**: `isClassActiveOnDate()` checks both date range and day-of-week schedules
+- **Timezone Handling**: Local date formatting prevents offset issues (`YYYY-MM-DD` format)
+
+### Component Architecture
+- **Role-Specific Dashboards**: Each role has dedicated page components and API routes
+- **Shared Components**: `src/app/components/` contains reusable UI components
+- **Conditional Rendering**: Components check session role before rendering sensitive data
+- **Data Consistency**: Calendar and today's classes use same data filtering logic
+
+### API Route Patterns
+- **Role-Based Organization**: `/api/[role]/` structure for access control
+- **Consistent Error Handling**: Try-catch blocks with appropriate HTTP status codes  
+- **Authentication Guards**: Session validation at route level
+- **Data Filtering**: Filter responses based on user role and permissions
+
+### Database Query Optimization
+- **Include Relations**: Avoid N+1 queries by including necessary relations
+- **Conditional Queries**: Use `classIds.length > 0` checks before `{ in: classIds }`
+- **Status Filtering**: Consistent enrollment and class status filtering across endpoints
+- **Separate Queries**: Fetch schedules separately when direct relations aren't available
+
+## Demo Data & Testing
+
+### Test Credentials
+- Student: `student@gmail.com` / `test123`
+- Teacher: `teacher@gmail.com` / `test123`  
+- Parent: `parent@gmail.com` / `test123`
+- Admin: `admin@gmail.com` / `test123`
+
+### Sample Data Available
+- 7 active classes with schedules across different days
+- Demo student enrolled in 5 classes
+- Complete class schedules with day/time information
+- Multiple test students and teachers for comprehensive testing
+
+## Development Preferences (WindsurfRules)
+
+Based on the project's WindsurfRules.md, when working on this codebase:
+- Use npm (not bun) for package management despite WindsurfRules mentioning bun
+- Use Tailwind CSS with grid layouts for styling
+- Use Zustand for state management (see `src/app/lib/store/`)
+- Use Next.js App Router (pages in `src/app/`)
+- Use Prisma with PostgreSQL (not SQLite as mentioned in WindsurfRules)
+- Use NextAuth.js for authentication
+- Use React Hook Form with Zod validation
+- Reference `todo.md` for project structure and update it after completing features

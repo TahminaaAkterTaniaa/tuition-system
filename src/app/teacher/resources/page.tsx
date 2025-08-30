@@ -110,17 +110,21 @@ export default function TeacherResources() {
       // Format classes data - handle both array format and object with classes property
       let formattedClasses = [];
       if (Array.isArray(classesData)) {
-        formattedClasses = classesData.map((cls: any) => ({
-          id: cls.id,
-          name: cls.name,
-          subject: cls.subject
-        }));
+        formattedClasses = classesData
+          .filter((cls: any) => ['active', 'approved', 'Active', 'Approved'].includes(cls.status))
+          .map((cls: any) => ({
+            id: cls.id,
+            name: cls.name,
+            subject: cls.subject
+          }));
       } else if (classesData.classes && Array.isArray(classesData.classes)) {
-        formattedClasses = classesData.classes.map((cls: any) => ({
-          id: cls.id,
-          name: cls.name,
-          subject: cls.subject
-        }));
+        formattedClasses = classesData.classes
+          .filter((cls: any) => ['active', 'approved', 'Active', 'Approved'].includes(cls.status))
+          .map((cls: any) => ({
+            id: cls.id,
+            name: cls.name,
+            subject: cls.subject
+          }));
       } else {
         console.warn('Unexpected classes data format:', classesData);
       }
@@ -396,8 +400,8 @@ export default function TeacherResources() {
       {classes.length > 0 && (
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold mb-4">Quick Upload</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {classes.slice(0, 3).map(cls => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {classes.map(cls => (
             <Link 
               key={cls.id}
               href={`/teacher/resources/upload?classId=${cls.id}`}

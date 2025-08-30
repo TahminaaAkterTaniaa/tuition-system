@@ -26,15 +26,7 @@ interface ClassData {
   attendanceRate?: string;
 }
 
-interface CalendarDay {
-  date: Date;
-  isCurrentMonth: boolean;
-  isToday: boolean;
-}
-
-interface AttendanceDatesMap {
-  [key: string]: AttendanceRecord[];
-}
+// Remove unused calendar interfaces
 
 // Helper function to format date for display
 const formatDate = (dateString: string | undefined): string => {
@@ -54,10 +46,7 @@ function AttendanceContent() {
   const [recentAttendance, setRecentAttendance] = useState<AttendanceRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   
-  // Calendar state
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
-  const [attendanceDates, setAttendanceDates] = useState<AttendanceDatesMap>({});
+  // Remove unused calendar state
 
   // Function to fetch attendance data from API
   const fetchAttendanceData = async () => {
@@ -94,10 +83,7 @@ function AttendanceContent() {
         setRecentAttendance(records);
       }
       
-      // Set attendance dates map
-      if (data.attendanceDates) {
-        setAttendanceDates(data.attendanceDates);
-      }
+      // Remove unused attendance dates mapping
       
     } catch (err) {
       console.error('Error fetching attendance data:', err);
@@ -107,117 +93,9 @@ function AttendanceContent() {
     }
   };
   
-  // Function to generate calendar days for the current month
-  const generateCalendarDays = (month: Date) => {
-    const year = month.getFullYear();
-    const monthIndex = month.getMonth();
-    
-    // Get the first day of the month
-    const firstDay = new Date(year, monthIndex, 1);
-    const firstDayOfWeek = firstDay.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    
-    // Get the last day of the month
-    const lastDay = new Date(year, monthIndex + 1, 0);
-    const lastDate = lastDay.getDate();
-    
-    // Get the last day of the previous month
-    const prevMonthLastDay = new Date(year, monthIndex, 0);
-    const prevMonthLastDate = prevMonthLastDay.getDate();
-    
-    // Calculate days from previous month to display
-    const prevMonthDays: CalendarDay[] = [];
-    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-      const date = new Date(year, monthIndex - 1, prevMonthLastDate - i);
-      prevMonthDays.push({
-        date,
-        isCurrentMonth: false,
-        isToday: isToday(date)
-      });
-    }
-    
-    // Calculate days from current month
-    const currentMonthDays: CalendarDay[] = [];
-    for (let i = 1; i <= lastDate; i++) {
-      const date = new Date(year, monthIndex, i);
-      currentMonthDays.push({
-        date,
-        isCurrentMonth: true,
-        isToday: isToday(date)
-      });
-    }
-    
-    // Calculate days from next month to display
-    const nextMonthDays: CalendarDay[] = [];
-    const totalDays = prevMonthDays.length + currentMonthDays.length;
-    const remainingDays = 42 - totalDays; // 6 rows of 7 days
-    
-    for (let i = 1; i <= remainingDays; i++) {
-      const date = new Date(year, monthIndex + 1, i);
-      nextMonthDays.push({
-        date,
-        isCurrentMonth: false,
-        isToday: isToday(date)
-      });
-    }
-    
-    // Combine all days
-    const allDays = [...prevMonthDays, ...currentMonthDays, ...nextMonthDays];
-    setCalendarDays(allDays);
-    
-    // Helper function to check if a date is today
-    function isToday(date: Date): boolean {
-      const today = new Date();
-      return date.getDate() === today.getDate() && 
-             date.getMonth() === today.getMonth() && 
-             date.getFullYear() === today.getFullYear();
-    }
-  };
+  // Remove unused generateCalendarDays function
   
-  // Function to navigate to previous month
-  const goToPrevMonth = () => {
-    const prevMonth = new Date(currentMonth);
-    prevMonth.setMonth(prevMonth.getMonth() - 1);
-    setCurrentMonth(prevMonth);
-  };
-  
-  // Function to navigate to next month
-  const goToNextMonth = () => {
-    const nextMonth = new Date(currentMonth);
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    setCurrentMonth(nextMonth);
-  };
-  
-  // Function to format date as YYYY-MM-DD for comparison
-  const formatDateForComparison = (date: Date): string => {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  };
-  
-  // Function to get attendance status for a date
-  const getAttendanceStatus = (date: Date): string | null => {
-    const dateString = formatDateForComparison(date);
-    
-    // Add null check for attendanceDates[dateString]
-    if (!dateString || !attendanceDates[dateString]) return null;
-    
-    const records = attendanceDates[dateString];
-    
-    // Count statuses
-    let present = 0;
-    let absent = 0;
-    let late = 0;
-    
-    records.forEach(record => {
-      if (record.status === 'present') present++;
-      else if (record.status === 'absent') absent++;
-      else if (record.status === 'late') late++;
-    });
-    
-    const totalStudents = present + absent + late;
-    
-    if (present === 0) return 'missing';
-    if (present < totalStudents) return 'partial';
-    return 'complete';
-  };
+  // Remove unused calendar-related functions
   
   // Function to handle record deletion
   const handleDeleteRecord = async (recordId: string): Promise<void> => {
@@ -275,10 +153,7 @@ function AttendanceContent() {
     }
   }, [session, status, router, showUpdateMessage]);
   
-  // Update calendar when month changes
-  useEffect(() => {
-    generateCalendarDays(currentMonth);
-  }, [currentMonth]);
+  // Remove unused calendar effect
 
   if (isLoading) {
     return (
@@ -299,173 +174,173 @@ function AttendanceContent() {
         </div>
       )}
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Today's Classes</h2>
-            <div className="text-sm text-gray-500">{formatDate(new Date().toISOString().split('T')[0])}</div>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-sm">Quick Mark</p>
+              <p className="text-2xl font-bold">Today's Classes</p>
+            </div>
+            <div className="bg-blue-400 rounded-full p-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
           </div>
-          <div className="space-y-4">
+          <div className="mt-4 space-y-2">
+            {classes.length > 0 ? (
+              classes.slice(0, 2).map((cls) => (
+                <Link 
+                  key={cls.id}
+                  href={`/teacher/attendance/mark/${cls.id as string}`} 
+                  className="block bg-blue-400 rounded-md px-3 py-2 text-sm hover:bg-blue-300 transition-colors"
+                >
+                  {cls.name}
+                </Link>
+              ))
+            ) : (
+              <p className="text-blue-100 text-sm">No classes today</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-100 text-sm">Best Performing</p>
+              <p className="text-2xl font-bold">Class Rate</p>
+            </div>
+            <div className="bg-green-400 rounded-full p-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-4">
+            {classes.length > 0 ? (
+              <>
+                <p className="text-3xl font-bold">
+                  {Math.max(...classes.map(cls => parseInt(cls.attendanceRate || '0')))}%
+                </p>
+                <p className="text-green-100 text-sm">
+                  {classes.find(cls => parseInt(cls.attendanceRate || '0') === Math.max(...classes.map(c => parseInt(c.attendanceRate || '0'))))?.name || 'N/A'}
+                </p>
+              </>
+            ) : (
+              <p className="text-3xl font-bold">0%</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-sm">Active</p>
+              <p className="text-2xl font-bold">Classes</p>
+            </div>
+            <div className="bg-purple-400 rounded-full p-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="text-3xl font-bold">{classes.length}</p>
+            <p className="text-purple-100 text-sm">
+              {classes.reduce((sum, cls) => sum + cls.students, 0)} total students
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-orange-100 text-sm">Recent</p>
+              <p className="text-2xl font-bold">Records</p>
+            </div>
+            <div className="bg-orange-400 rounded-full p-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="text-3xl font-bold">{recentAttendance.length}</p>
+            <p className="text-orange-100 text-sm">in the last 30 days</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Class Management Section */}
+      <div className="bg-white rounded-lg shadow-md mb-8">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold">Class Attendance Overview</h2>
+          <p className="text-gray-600 mt-1">Manage attendance for all your classes</p>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {classes.length > 0 ? (
               classes.map((cls) => (
-                <div key={cls.id} className="border-l-4 border-indigo-500 pl-4 py-2">
-                  <h3 className="font-medium text-gray-900">{cls.name}</h3>
-                  <p className="text-sm text-gray-600">{cls.schedule} | {cls.room}</p>
-                  <div className="mt-2">
+                <div key={cls.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{cls.name}</h3>
+                      <p className="text-sm text-gray-600">{cls.schedule} | {cls.room}</p>
+                      <p className="text-sm text-gray-500">{cls.students} students enrolled</p>
+                    </div>
+                    <div className="text-right">
+                      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        cls.attendanceRate && parseInt(cls.attendanceRate) >= 90 ? 'bg-green-100 text-green-800' : 
+                        cls.attendanceRate && parseInt(cls.attendanceRate) >= 75 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {cls.attendanceRate || '0%'} attendance
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {cls.lastAttendance && (
+                    <p className="text-xs text-gray-500 mb-3">Last marked: {formatDate(cls.lastAttendance)}</p>
+                  )}
+                  
+                  <div className="flex justify-between items-center">
+                    <div className="w-full bg-gray-200 rounded-full h-2 mr-4">
+                      <div 
+                        className={`h-2 rounded-full ${
+                          cls.attendanceRate && parseInt(cls.attendanceRate) >= 90 ? 'bg-green-500' : 
+                          cls.attendanceRate && parseInt(cls.attendanceRate) >= 75 ? 'bg-yellow-500' : 'bg-red-500'
+                        }`} 
+                        className={`h-2 rounded-full ${
+                          cls.attendanceRate && parseInt(cls.attendanceRate) >= 90 ? 'bg-green-500' : 
+                          cls.attendanceRate && parseInt(cls.attendanceRate) >= 75 ? 'bg-yellow-500' : 'bg-red-500'
+                        } ${
+                          !cls.attendanceRate || parseInt(cls.attendanceRate) === 0 ? 'w-0' :
+                          parseInt(cls.attendanceRate) <= 10 ? 'w-[10%]' :
+                          parseInt(cls.attendanceRate) <= 25 ? 'w-1/4' :
+                          parseInt(cls.attendanceRate) <= 50 ? 'w-1/2' :
+                          parseInt(cls.attendanceRate) <= 75 ? 'w-3/4' :
+                          parseInt(cls.attendanceRate) <= 90 ? 'w-[90%]' : 'w-full'
+                        }`}
+                      ></div>
+                    </div>
                     <Link 
                       href={`/teacher/attendance/mark/${cls.id as string}`} 
-                      className="inline-flex items-center text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                      className="flex-shrink-0 bg-indigo-600 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-700 transition-colors"
                     >
                       Mark Attendance
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
                     </Link>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center py-4">
-                <p className="text-gray-500">No classes scheduled for today</p>
+              <div className="col-span-2 text-center py-8">
+                <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002 2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <h3 className="text-lg font-medium text-gray-500 mb-2">No Classes Found</h3>
+                <p className="text-gray-400">You don't have any classes assigned yet.</p>
               </div>
             )}
-          </div>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Class Statistics</h2>
-          <div className="space-y-4">
-            {classes.length > 0 ? (
-              classes.map((cls) => (
-                <div key={cls.id} className="border-b border-gray-200 pb-3 last:border-b-0 last:pb-0">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{cls.name}</h3>
-                      <p className="text-sm text-gray-500">{cls.students} Students</p>
-                      {cls.lastAttendance && (
-                        <p className="text-xs text-gray-500">Last attendance: {formatDate(cls.lastAttendance)}</p>
-                      )}
-                    </div>
-                    <div>
-                      <div className="text-right">
-                        <span className="text-sm font-medium text-gray-900">Attendance Rate</span>
-                        <div className="flex items-center mt-1">
-                          <div className="w-16 bg-gray-200 rounded-full h-2.5 mr-2 relative">
-                            <div 
-                              className={`h-2.5 rounded-full absolute top-0 left-0 ${
-                                cls.attendanceRate && parseInt(cls.attendanceRate) >= 90 ? 'bg-green-500' : 
-                                cls.attendanceRate && parseInt(cls.attendanceRate) >= 75 ? 'bg-yellow-500' : 'bg-red-500'
-                              } ${
-                                cls.attendanceRate && parseInt(cls.attendanceRate) <= 25 ? 'w-1/4' : 
-                                cls.attendanceRate && parseInt(cls.attendanceRate) <= 50 ? 'w-1/2' : 
-                                cls.attendanceRate && parseInt(cls.attendanceRate) <= 75 ? 'w-3/4' : 
-                                cls.attendanceRate && parseInt(cls.attendanceRate) <= 90 ? 'w-9/12' : 'w-full'
-                              }`} 
-                            ></div>
-                          </div>
-                          <span className="text-sm text-gray-500">{cls.attendanceRate || '0%'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-gray-500">No class data available</p>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Attendance Calendar</h2>
-            <div className="text-sm text-gray-500">
-              {currentMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-            </div>
-          </div>
-          <div className="mb-4">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-sm font-medium text-gray-700">
-                {currentMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-              </h3>
-              <div className="flex space-x-2">
-                <button 
-                  className="p-1 rounded-full hover:bg-gray-100"
-                  onClick={goToPrevMonth}
-                  aria-label="Previous month"
-                  title="Previous month"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <button 
-                  className="p-1 rounded-full hover:bg-gray-100"
-                  onClick={goToNextMonth}
-                  aria-label="Next month"
-                  title="Next month"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-gray-500 mb-1">
-              <div>Su</div>
-              <div>Mo</div>
-              <div>Tu</div>
-              <div>We</div>
-              <div>Th</div>
-              <div>Fr</div>
-              <div>Sa</div>
-            </div>
-            <div className="grid grid-cols-7 gap-1 text-center">
-              {calendarDays.map((day, index) => {
-                const dateString = formatDateForComparison(day.date);
-                const status = getAttendanceStatus(day.date);
-                let bgColorClass = '';
-                
-                if (status === 'complete') bgColorClass = 'bg-green-100';
-                else if (status === 'partial') bgColorClass = 'bg-yellow-100';
-                else if (status === 'missing') bgColorClass = 'bg-red-100';
-                
-                if (day.isToday) bgColorClass = 'bg-indigo-100';
-                
-                return (
-                  <div 
-                    key={index} 
-                    className={`${day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'} p-2 text-sm ${bgColorClass} ${day.isToday ? 'font-medium rounded-full' : ''}`}
-                    title={status ? `${formatDate(dateString)}: ${status}` : formatDate(dateString)}
-                  >
-                    {day.date.getDate()}
-                    {status && (
-                      <div className="mt-1 flex justify-center">
-                        <div 
-                          className={`w-1.5 h-1.5 rounded-full ${status === 'complete' ? 'bg-green-500' : status === 'partial' ? 'bg-yellow-500' : 'bg-red-500'}`}
-                        ></div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div className="flex items-center space-x-4 text-sm">
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full mr-1"></div>
-              <span className="text-gray-600">Complete</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></div>
-              <span className="text-gray-600">Partial</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
-              <span className="text-gray-600">Missing</span>
-            </div>
           </div>
         </div>
       </div>
@@ -512,6 +387,7 @@ function AttendanceContent() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
+                        type="button"
                         onClick={() => handleDeleteRecord(record.id)}
                         className="text-red-600 hover:text-red-900"
                       >

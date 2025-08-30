@@ -30,26 +30,53 @@ export async function GET(request: Request) {
     // Get all classes for this teacher
     const classes = await prisma.class.findMany({
       where: { 
-        teacherId: teacher.id
+        teacherId: teacher.id,
+        OR: [
+          { status: { equals: 'active', mode: 'insensitive' } },
+          { status: { equals: 'approved', mode: 'insensitive' } },
+          { status: { equals: 'Active', mode: 'insensitive' } },
+          { status: { equals: 'Approved', mode: 'insensitive' } }
+        ]
       },
       include: {
+        schedules: {
+          include: {
+            room: {
+              select: {
+                name: true,
+                building: true,
+                floor: true
+              }
+            },
+            timeSlot: {
+              select: {
+                startTime: true,
+                endTime: true,
+                label: true
+              }
+            }
+          }
+        },
         enrollments: {
           where: {
             status: 'enrolled',
+          }
+        },
+        attendances: {
+          where: {
+            class: {
+              teacherId: teacher.id
+            }
+          },
+          orderBy: {
+            date: 'desc'
           },
           include: {
             student: {
               include: {
-                attendances: {
-                  orderBy: {
-                    date: 'desc'
-                  },
-                  take: 10
-                },
                 user: {
                   select: {
-                    name: true,
-                    email: true
+                    name: true
                   }
                 }
               }
@@ -63,50 +90,73 @@ export async function GET(request: Request) {
     const classesWithAttendance = classes.map(classItem => {
       // Calculate attendance statistics for this class
       const studentCount = classItem.enrollments.length;
-      let totalAttendanceRecords = 0;
-      let totalPresentRecords = 0;
       
-      // Get the most recent attendance date for this class
-      let lastAttendanceDate: Date | null = null;
+      // Get attendance records for this specific class
+      const classAttendances = classItem.attendances || [];
       
-      // Process each student's attendance
-      classItem.enrollments.forEach(enrollment => {
-        if (enrollment.student?.attendances) {
-          enrollment.student.attendances.forEach(attendance => {
-            totalAttendanceRecords++;
-            if (attendance.status === 'present') {
-              totalPresentRecords++;
-            }
-            
-            // Check if this is the most recent attendance date
-            if (!lastAttendanceDate || new Date(attendance.date) > new Date(lastAttendanceDate)) {
-              lastAttendanceDate = attendance.date;
-            }
-          });
+      // Group attendance by date to calculate class session attendance rates
+      const attendanceByDate: Record<string, typeof classAttendances> = {};
+      classAttendances.forEach(attendance => {
+        const dateKey = attendance.date.toISOString().split('T')[0];
+        if (!attendanceByDate[dateKey]) {
+          attendanceByDate[dateKey] = [];
         }
+        attendanceByDate[dateKey].push(attendance);
       });
       
-      // Calculate attendance rate
-      const attendanceRate = totalAttendanceRecords > 0 
-        ? Math.round((totalPresentRecords / totalAttendanceRecords) * 100) 
+      // Calculate attendance rate based on class sessions
+      let totalSessionAttendanceRate = 0;
+      let sessionCount = 0;
+      
+      Object.entries(attendanceByDate).forEach(([, attendances]) => {
+        const presentCount = attendances.filter(a => a.status === 'present').length;
+        const sessionAttendanceRate = studentCount > 0 ? (presentCount / studentCount) * 100 : 0;
+        totalSessionAttendanceRate += sessionAttendanceRate;
+        sessionCount++;
+      });
+      
+      // Overall attendance rate for the class
+      const attendanceRate = sessionCount > 0 
+        ? Math.round(totalSessionAttendanceRate / sessionCount)
         : 0;
       
+      // Get the most recent attendance date for this class
+      const lastAttendanceDate = classAttendances.length > 0 
+        ? classAttendances[0]?.date || null
+        : null;
+      
+      // Format schedule display
+      const schedulesDisplay = classItem.schedules.length > 0 
+        ? classItem.schedules.map(schedule => {
+            let timeDisplay = schedule.time || 'Time not set';
+            if (schedule.timeSlot?.label) {
+              timeDisplay = schedule.timeSlot.label;
+            } else if (schedule.timeSlot?.startTime && schedule.timeSlot?.endTime) {
+              timeDisplay = `${schedule.timeSlot.startTime} - ${schedule.timeSlot.endTime}`;
+            }
+            return `${schedule.day} ${timeDisplay}`;
+          }).join(', ')
+        : 'No schedule set';
+      
+      // Format room display
+      const formattedRoom = classItem.schedules.length > 0 && classItem.schedules[0]?.room
+        ? `${classItem.schedules[0].room.name}${classItem.schedules[0].room.building ? ` (${classItem.schedules[0].room.building}${classItem.schedules[0].room.floor ? `, Floor ${classItem.schedules[0].room.floor}` : ''})` : ''}`
+        : classItem.room || 'No room assigned';
+
       // Format the class data
       return {
         id: classItem.id,
         name: classItem.name,
         subject: classItem.subject,
-        schedule: classItem.schedule,
-        room: classItem.room,
+        schedule: schedulesDisplay,
+        room: formattedRoom,
         students: studentCount,
         lastAttendance: lastAttendanceDate ? new Date(lastAttendanceDate).toISOString().split('T')[0] : null,
         attendanceRate: `${attendanceRate}%`,
+        totalSessions: sessionCount,
         enrollments: classItem.enrollments.map(enrollment => ({
           id: enrollment.id,
-          studentId: enrollment.studentId,
-          studentName: enrollment.student?.user?.name || 'Unknown',
-          studentEmail: enrollment.student?.user?.email || 'No email',
-          attendances: enrollment.student?.attendances || []
+          studentId: enrollment.studentId
         }))
       };
     });
@@ -169,7 +219,7 @@ export async function GET(request: Request) {
         classId,
         className,
         date: attendance.date.toISOString().split('T')[0],
-        time: attendance.date.toISOString().split('T')[1].substring(0, 5),
+        time: attendance.date.toISOString().split('T')[1]?.substring(0, 5) || '00:00',
         status: attendance.status,
         studentName: attendance.student?.user?.name || 'Unknown Student',
         studentId: attendance.studentId

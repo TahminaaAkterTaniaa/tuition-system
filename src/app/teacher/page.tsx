@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import TodaysClasses from '../components/TodaysClasses';
 import MonthlyCalendar from '../components/MonthlyCalendar';
-import TeacherAttendance from '../components/TeacherAttendance';
 import TeacherMessages from '../components/TeacherMessages';
 import PendingRequests from '../components/PendingRequests';
 import CreateGradeModal from '../components/CreateGradeModal';
@@ -157,10 +156,6 @@ export default function TeacherDashboard() {
             </div>
           </div>
         </div>
-      </div>
-      
-      <div className="mb-8">
-        <TeacherAttendance />
       </div>
       
       {/* Grade Creation Modal */}

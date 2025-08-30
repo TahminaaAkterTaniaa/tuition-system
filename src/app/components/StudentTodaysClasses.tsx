@@ -248,17 +248,6 @@ export default function StudentTodaysClasses() {
           </div>
         ))}
       </div>
-
-      {classes.length > 0 && (
-        <div className="mt-6 text-center">
-          <Link
-            href="/student/classes"
-            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-          >
-            View All Classes →
-          </Link>
-        </div>
-      )}
     </div>
   );
 }
