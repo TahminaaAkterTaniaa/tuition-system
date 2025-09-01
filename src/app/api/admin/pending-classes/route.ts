@@ -43,6 +43,15 @@ export async function GET(req: NextRequest) {
     // Create class requests for each pending class
     const pendingClassesWithDetails = await Promise.all(
       pendingClassesFromDB.map(async (classData) => {
+        // Fetch room information if room ID exists
+        let roomInfo = null;
+        if (classData.room) {
+          roomInfo = await prisma.room.findUnique({
+            where: { id: classData.room },
+            select: { id: true, name: true, capacity: true }
+          });
+        }
+
         // Try to find an existing class creation request
         let request = await prisma.classCreationRequest.findFirst({
           where: {
@@ -77,7 +86,7 @@ export async function GET(req: NextRequest) {
             status: 'pending',
             createdAt: classData.createdAt,
             updatedAt: classData.updatedAt,
-            teacher: classData.teacher,
+            teacher: classData.teacher || null,
             // Add other required fields with default values
             capacity: classData.capacity,
             fee: classData.fee || 99.99,
@@ -91,7 +100,10 @@ export async function GET(req: NextRequest) {
         
         return {
           ...request,
-          class: classData
+          class: {
+            ...classData,
+            roomInfo: roomInfo // Include room details for display
+          }
         };
       })
     );

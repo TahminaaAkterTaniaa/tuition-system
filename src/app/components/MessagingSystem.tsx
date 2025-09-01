@@ -53,6 +53,8 @@ export default function MessagingSystem() {
   const [sending, setSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   
+  // Remove reply mode - use simple approach like TeacherMessages
+  
   // Fetch messages
   useEffect(() => {
     const fetchMessages = async () => {
@@ -268,14 +270,27 @@ export default function MessagingSystem() {
                             <p className="text-xs text-indigo-700">{selectedMessage.sender.email}</p>
                           </div>
                         </div>
-                        <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded-md shadow-sm">
-                          {new Date(selectedMessage.createdAt).toLocaleString(undefined, {
-                            weekday: 'short',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => {
+                              setActiveTab('compose');
+                              setSelectedTeacher(selectedMessage.sender.id);
+                              setSubject(`Re: ${selectedMessage.subject || '(No Subject)'}`);
+                              setSelectedMessage(null);
+                            }}
+                            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium bg-white px-3 py-1 rounded-md shadow-sm border border-indigo-200 hover:bg-indigo-50 transition-colors"
+                          >
+                            Reply
+                          </button>
+                          <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded-md shadow-sm">
+                            {new Date(selectedMessage.createdAt).toLocaleString(undefined, {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
                         </div>
                       </div>
                       {selectedMessage.subject && (
@@ -285,7 +300,10 @@ export default function MessagingSystem() {
                     <div className="p-4 whitespace-pre-wrap text-gray-700">{selectedMessage.content}</div>
                     <div className="bg-gray-50 px-4 py-3 flex justify-end border-t border-gray-200">
                       <button
-                        onClick={() => setSelectedMessage(null)}
+                        onClick={() => {
+                          setSelectedMessage(null);
+                          setError(null);
+                        }}
                         className="flex items-center px-4 py-2 text-sm text-indigo-700 hover:text-indigo-900 bg-white rounded-md shadow-sm border border-indigo-200 hover:bg-indigo-50 transition-colors"
                       >
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -394,7 +412,10 @@ export default function MessagingSystem() {
                     <div className="p-4 whitespace-pre-wrap text-gray-700">{selectedMessage.content}</div>
                     <div className="bg-gray-50 px-4 py-3 flex justify-end border-t border-gray-200">
                       <button
-                        onClick={() => setSelectedMessage(null)}
+                        onClick={() => {
+                          setSelectedMessage(null);
+                          setError(null);
+                        }}
                         className="flex items-center px-4 py-2 text-sm text-indigo-700 hover:text-indigo-900 bg-white rounded-md shadow-sm border border-indigo-200 hover:bg-indigo-50 transition-colors"
                       >
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

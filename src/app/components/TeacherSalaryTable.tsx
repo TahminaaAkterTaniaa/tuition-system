@@ -49,6 +49,28 @@ export default function TeacherSalaryTable() {
     fetchTeachers();
   }, []);
 
+  // Handle escape key and scroll prevention for modal
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isModalOpen) {
+        setIsModalOpen(false);
+      }
+    };
+
+    if (isModalOpen) {
+      document.addEventListener('keydown', handleEscapeKey);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isModalOpen]);
+
   // Filter teachers based on search term
   const filteredTeachers = teachers.filter(
     (teacher) =>
@@ -191,8 +213,18 @@ export default function TeacherSalaryTable() {
 
       {/* Edit Modal */}
       {isModalOpen && currentTeacher && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 w-full max-w-md">
+        <div 
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 transition-all duration-300"
+          onClick={() => setIsModalOpen(false)}
+          style={{ 
+            backdropFilter: 'blur(8px)', 
+            WebkitBackdropFilter: 'blur(8px)' 
+          }}
+        >
+          <div 
+            className="bg-white rounded-lg p-8 w-full max-w-md transform transition-all duration-200 scale-100"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-lg font-medium mb-4">Update Teacher Salary</h3>
             <div className="mb-4">
               <p className="text-sm text-gray-500">Teacher: {currentTeacher.name}</p>

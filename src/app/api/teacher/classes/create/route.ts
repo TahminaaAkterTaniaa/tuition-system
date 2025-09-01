@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
           endDate: body.endDate ? new Date(body.endDate) : null,
           capacity: body.capacity ? parseInt(body.capacity) : 30,
           fee: fee, // Use the validated fee from the form
+          room: body.selectedRoom || null, // Store the room ID (to match admin pattern)
           teacherId: teacher.id
         }
       });

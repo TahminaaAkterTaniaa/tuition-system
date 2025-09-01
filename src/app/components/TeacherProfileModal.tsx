@@ -53,6 +53,28 @@ const TeacherProfileModal = ({ teacherId, isOpen, onClose }: TeacherProfileModal
     }
   }, [isOpen, teacherId]);
 
+  // Handle escape key to close modal
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscapeKey);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
+
   const fetchTeacherDetails = async () => {
     try {
       setIsLoading(true);
@@ -75,8 +97,18 @@ const TeacherProfileModal = ({ teacherId, isOpen, onClose }: TeacherProfileModal
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div 
+      className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4 transition-all duration-300"
+      onClick={onClose}
+      style={{ 
+        backdropFilter: 'blur(8px)', 
+        WebkitBackdropFilter: 'blur(8px)' 
+      }}
+    >
+      <div 
+        className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden transform transition-all duration-200 scale-100"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center border-b p-4">
           <h2 className="text-xl font-semibold">Teacher Profile</h2>
           <button 

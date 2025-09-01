@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface ClassRequest {
@@ -28,10 +29,17 @@ interface ClassRequest {
     capacity: number;
     fee: number;
     status: string;
+    room?: string;
+    roomInfo?: {
+      id: string;
+      name: string;
+      capacity: number | null;
+    };
   }
 }
 
 export default function PendingClassesPage() {
+  const router = useRouter();
   const [pendingClasses, setPendingClasses] = useState<ClassRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -105,6 +113,10 @@ export default function PendingClassesPage() {
         toast.success('Class request approved successfully');
         // Remove the approved request from the list
         setPendingClasses(pendingClasses.filter(req => req.id !== requestId));
+        // Navigate back to admin dashboard after a short delay
+        setTimeout(() => {
+          router.push('/admin');
+        }, 1500);
       } else {
         const errorMessage = typeof responseData === 'object' && responseData !== null 
           ? (responseData.message || responseData.error || 'Failed to approve class request')
@@ -160,6 +172,10 @@ export default function PendingClassesPage() {
         toast.success('Class request rejected successfully');
         // Remove the rejected request from the list
         setPendingClasses(pendingClasses.filter(req => req.id !== requestId));
+        // Navigate back to admin dashboard after a short delay
+        setTimeout(() => {
+          router.push('/admin');
+        }, 1500);
       } else {
         const errorMessage = typeof responseData === 'object' && responseData !== null 
           ? (responseData.message || responseData.error || 'Failed to reject class request')
@@ -186,7 +202,7 @@ export default function PendingClassesPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Pending Class Requests</h1>
         <Link 
-          href="/admin/dashboard" 
+          href="/admin" 
           className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
         >
           Back to Dashboard
@@ -238,6 +254,12 @@ export default function PendingClassesPage() {
                   <h3 className="text-sm font-medium text-gray-500">Start Date</h3>
                   <p className="text-base text-gray-900">{new Date(request.class?.startDate || '').toLocaleDateString()}</p>
                 </div>
+                {request.class?.roomInfo && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Room</h3>
+                    <p className="text-base text-gray-900">{request.class.roomInfo.name}</p>
+                  </div>
+                )}
               </div>
               
               {request.class?.description && (
