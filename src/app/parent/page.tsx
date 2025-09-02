@@ -8,14 +8,14 @@ import MessagingSystem from '../components/MessagingSystem';
 import PaymentStatus from '../components/PaymentStatus';
 
 export default function ParentDashboard() {
+  const router = useRouter();
+  
   const { data: session, status } = useSession({
     required: true,
     onUnauthenticated() {
-      useRouter().push('/login');
+      router.push('/login');
     },
   });
-
-  const router = useRouter();
 
   // Check if the user is a parent, if not redirect to appropriate dashboard
   useEffect(() => {

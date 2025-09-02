@@ -381,9 +381,10 @@ export default function CreateClass() {
           <ul className="list-disc pl-5 mt-2">
             {conflicts.map((conflict, index) => (
               <li key={index}>
-                {conflict.type === 'room' ? 'Room conflict' : 'Teacher conflict'}: 
-                {conflict.day} at {conflict.time} in {conflict.roomName || 'unknown room'}
-                {conflict.className && ` with class "${conflict.className}"`}
+                <strong>{conflict.type === 'room' ? 'Room conflict' : 'Teacher conflict'}:</strong> 
+                {' '}{conflict.day} at {conflict.timeSlot} in {conflict.room}
+                {conflict.conflictingClass && ` with class "${conflict.conflictingClass}"`}
+                {conflict.teacher && ` (taught by ${conflict.teacher})`}
               </li>
             ))}
           </ul>

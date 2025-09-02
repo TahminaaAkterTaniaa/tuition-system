@@ -2,9 +2,10 @@
 
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import ScheduleEditor from '@/app/components/admin/ScheduleEditor';
 
 interface TimeSlot {
   id: string;
@@ -76,17 +77,23 @@ export default function EditClass() {
   }
   
   // Fetch class data and teachers
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       
       // Fetch class details
+      console.log('Fetching class details for:', classId);
       const classResponse = await fetch(`/api/admin/classes/${classId}`);
+      console.log('Class response status:', classResponse.status);
+      
       if (!classResponse.ok) {
-        throw new Error('Failed to fetch class details');
+        const errorText = await classResponse.text();
+        console.error('Class fetch error:', errorText);
+        throw new Error('Failed to fetch class details: ' + classResponse.status);
       }
       
       const classData = await classResponse.json() as ClassApiResponse;
+      console.log('Fetched class data:', classData);
       
       // Fetch teachers for dropdown
       const teachersResponse = await fetch('/api/admin/teachers');
@@ -118,7 +125,7 @@ export default function EditClass() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [classId]);
 
   useEffect(() => {
     if (status === 'loading') {
@@ -137,7 +144,7 @@ export default function EditClass() {
     }
     
     fetchData();
-  }, [session, status, router, classId]);
+  }, [session, status, router, classId, fetchData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -219,7 +226,7 @@ export default function EditClass() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 relative">
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Edit Class</h1>
         <Link 
@@ -230,11 +237,11 @@ export default function EditClass() {
         </Link>
       </div>
       
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-lg shadow-md p-6" style={{ position: 'relative', zIndex: 0, overflow: 'visible' }}>
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Class Name */}
-            <div>
+            <div className="relative">
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                 Class Name *
               </label>
@@ -250,7 +257,7 @@ export default function EditClass() {
             </div>
             
             {/* Subject */}
-            <div>
+            <div className="relative">
               <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
                 Subject *
               </label>
@@ -266,7 +273,7 @@ export default function EditClass() {
             </div>
             
             {/* Description */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 relative">
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                 Description
               </label>
@@ -281,7 +288,7 @@ export default function EditClass() {
             </div>
             
             {/* Start Date */}
-            <div>
+            <div className="relative">
               <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
                 Start Date *
               </label>
@@ -291,13 +298,14 @@ export default function EditClass() {
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 relative"
+                style={{ position: 'relative', zIndex: 1 }}
                 required
               />
             </div>
             
             {/* End Date */}
-            <div>
+            <div className="relative">
               <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
                 End Date
               </label>
@@ -307,12 +315,13 @@ export default function EditClass() {
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 relative"
+                style={{ position: 'relative', zIndex: 1 }}
               />
             </div>
             
             {/* Capacity */}
-            <div>
+            <div className="relative">
               <label htmlFor="capacity" className="block text-sm font-medium text-gray-700 mb-1">
                 Capacity *
               </label>
@@ -329,7 +338,7 @@ export default function EditClass() {
             </div>
             
             {/* Teacher */}
-            <div>
+            <div className="relative">
               <label htmlFor="teacherId" className="block text-sm font-medium text-gray-700 mb-1">
                 Teacher
               </label>
@@ -338,7 +347,8 @@ export default function EditClass() {
                 name="teacherId"
                 value={formData.teacherId || ''}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 relative"
+                style={{ position: 'relative', zIndex: 1 }}
               >
                 <option value="">None</option>
                 {teachers.map(teacher => (
@@ -362,6 +372,14 @@ export default function EditClass() {
             </button>
           </div>
         </form>
+      </div>
+      
+      {/* Schedule Management Section */}
+      <div className="mt-8">
+        <ScheduleEditor 
+          classId={classId}
+          className={formData.name || 'Unknown Class'}
+        />
       </div>
     </div>
   );

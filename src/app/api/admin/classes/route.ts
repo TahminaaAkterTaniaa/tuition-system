@@ -84,6 +84,11 @@ export async function POST(req: NextRequest) {
         where: { id: teacherId },
         include: {
           classes: true,
+          user: {
+            select: {
+              name: true,
+            },
+          },
         },
       });
       
@@ -91,12 +96,21 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
       }
       
-      // Check teacher workload
-      if (teacher.classes.length >= 5) {
-        return NextResponse.json(
-          { error: 'Teacher has reached maximum workload (5 classes)' },
-          { status: 400 }
-        );
+      // Check teacher workload - Admin has higher authority but still check for reasonable limits
+      // TODO: Make this configurable in admin settings
+      const maxClassesPerTeacher = 8; // Reasonable limit for teacher workload
+      
+      if (teacher.classes.length >= maxClassesPerTeacher) {
+        console.warn(`Teacher ${teacher.user?.name || teacherId} has ${teacher.classes.length} classes, approaching workload limit`);
+        
+        // For admins, this is a warning but not a hard block
+        // Return a warning message but allow the creation
+        if (teacher.classes.length >= maxClassesPerTeacher + 2) { // Hard limit at 10
+          return NextResponse.json(
+            { error: `Teacher has reached maximum workload (${teacher.classes.length} classes). Please consider redistributing classes or hiring additional teachers.` },
+            { status: 400 }
+          );
+        }
       }
     }
     

@@ -6,7 +6,7 @@ import { prisma } from '@/app/lib/prisma';
 // GET - Fetch a specific schedule
 export async function GET(
   req: NextRequest,
-  { params }: { params: { classId: string; scheduleId: string } }
+  { params }: { params: Promise<{ classId: string; scheduleId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,7 +15,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const { classId, scheduleId } = params;
+    const { classId, scheduleId } = await params;
     
     // Fetch the specific schedule
     const schedule = await prisma.classSchedule.findUnique({
@@ -45,7 +45,7 @@ export async function GET(
 // PATCH - Update a specific schedule
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { classId: string; scheduleId: string } }
+  { params }: { params: Promise<{ classId: string; scheduleId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -59,7 +59,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Only admins can update schedules' }, { status: 403 });
     }
     
-    const { classId, scheduleId } = params;
+    const { classId, scheduleId } = await params;
     const body = await req.json();
     
     // Verify the schedule exists
@@ -80,41 +80,36 @@ export async function PATCH(
         where: {
           roomId: body.roomId,
           day: body.day || scheduleExists.day,
+          timeSlotId: body.timeSlotId || scheduleExists.timeSlotId,
           NOT: {
             id: scheduleId,
-          },
-          OR: [
-            {
-              // New schedule starts during an existing schedule
-              AND: [
-                { startTime: { lte: body.startTime || scheduleExists.startTime } },
-                { endTime: { gt: body.startTime || scheduleExists.startTime } }
-              ]
-            },
-            {
-              // New schedule ends during an existing schedule
-              AND: [
-                { startTime: { lt: body.endTime || scheduleExists.endTime } },
-                { endTime: { gte: body.endTime || scheduleExists.endTime } }
-              ]
-            },
-            {
-              // New schedule completely contains an existing schedule
-              AND: [
-                { startTime: { gte: body.startTime || scheduleExists.startTime } },
-                { endTime: { lte: body.endTime || scheduleExists.endTime } }
-              ]
-            }
-          ]
+          }
         }
       });
       
       if (conflictingSchedule) {
         return NextResponse.json(
-          { error: 'The room is already scheduled for this time' },
+          { error: 'The room is already scheduled for this time slot' },
           { status: 409 }
         );
       }
+    }
+    
+    // Get the new timeSlot information if timeSlotId is being updated
+    let timeString = scheduleExists.time;
+    if (body.timeSlotId && body.timeSlotId !== scheduleExists.timeSlotId) {
+      const timeSlot = await prisma.timeSlot.findUnique({
+        where: { id: body.timeSlotId }
+      });
+      
+      if (!timeSlot) {
+        return NextResponse.json(
+          { error: 'Invalid time slot ID' },
+          { status: 400 }
+        );
+      }
+      
+      timeString = `${timeSlot.startTime}-${timeSlot.endTime}`;
     }
     
     // Update the schedule
@@ -124,12 +119,13 @@ export async function PATCH(
       },
       data: {
         day: body.day,
-        startTime: body.startTime,
-        endTime: body.endTime,
+        time: timeString,
+        timeSlotId: body.timeSlotId,
         roomId: body.roomId,
       },
       include: {
         room: true,
+        timeSlot: true
       },
     });
     
@@ -143,11 +139,11 @@ export async function PATCH(
       await prisma.activityLog.create({
         data: {
           action: 'UPDATE',
-          entity: 'ClassSchedule',
+          entityType: 'ClassSchedule',
           entityId: scheduleId,
-          description: `Schedule updated for class ${classData?.name || classId} on ${updatedSchedule.day} at ${updatedSchedule.startTime}`,
-          performedById: session.user.id,
-          performedByRole: session.user.role,
+          description: `Schedule updated for class ${classData?.name || classId} on ${updatedSchedule.day} at ${updatedSchedule.time}`,
+          userId: session.user.id,
+          metadata: JSON.stringify({ role: session.user.role }),
         },
       });
     } catch (logError) {
@@ -168,7 +164,7 @@ export async function PATCH(
 // DELETE - Remove a specific schedule
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { classId: string; scheduleId: string } }
+  { params }: { params: Promise<{ classId: string; scheduleId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -182,7 +178,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Only admins can delete schedules' }, { status: 403 });
     }
     
-    const { classId, scheduleId } = params;
+    const { classId, scheduleId } = await params;
     
     // Verify the schedule exists and belongs to the specified class
     const scheduleExists = await prisma.classSchedule.findUnique({
@@ -205,7 +201,7 @@ export async function DELETE(
     
     // Store schedule data for logging before deletion
     const scheduleDay = scheduleExists.day;
-    const scheduleTime = scheduleExists.startTime;
+    const scheduleTime = scheduleExists.time;
     const className = scheduleExists.class?.name || classId;
     
     // Delete the schedule
@@ -220,11 +216,11 @@ export async function DELETE(
       await prisma.activityLog.create({
         data: {
           action: 'DELETE',
-          entity: 'ClassSchedule',
+          entityType: 'ClassSchedule',
           entityId: scheduleId,
           description: `Schedule removed for class ${className} on ${scheduleDay} at ${scheduleTime}`,
-          performedById: session.user.id,
-          performedByRole: session.user.role,
+          userId: session.user.id,
+          metadata: JSON.stringify({ role: session.user.role }),
         },
       });
     } catch (logError) {

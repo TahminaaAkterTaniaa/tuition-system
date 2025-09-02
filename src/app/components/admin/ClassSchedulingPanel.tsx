@@ -608,8 +608,8 @@ const UnifiedClassCreationCard = () => {
                 {conflicts.map((conflict, index) => (
                   <li key={index}>
                     {conflict.type === 'room' 
-                      ? `Room ${conflict.room} is already booked on ${conflict.day} at ${conflict.time} for ${conflict.conflictingClass}` 
-                      : `Teacher is already scheduled on ${conflict.day} at ${conflict.time} for ${conflict.conflictingClass}`}
+                      ? `Room ${conflict.room} is already booked on ${conflict.day} at ${conflict.timeSlot} for ${conflict.conflictingClass}` 
+                      : `Teacher is already scheduled on ${conflict.day} at ${conflict.timeSlot} for ${conflict.conflictingClass}`}
                   </li>
                 ))}
               </ul>

@@ -6,14 +6,14 @@ import { useEffect } from 'react';
 import ProfilePage from '../components/ProfilePage';
 
 export default function Profile() {
+  const router = useRouter();
+  
   const { data: session, status } = useSession({
     required: true,
     onUnauthenticated() {
-      useRouter().push('/login');
+      router.push('/login');
     },
   });
-
-  const router = useRouter();
 
   if (status === 'loading') {
     return (

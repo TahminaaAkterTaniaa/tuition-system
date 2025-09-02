@@ -213,7 +213,7 @@ export async function POST(req: NextRequest) {
         const notificationType = action === 'approve' ? 'class_approval' : 'class_rejection';
         const notificationMessage = action === 'approve' 
           ? `Your class "${request.name}" (${request.subject}) has been approved and is now active.` 
-          : `Your class "${request.name}" (${request.subject}) has been rejected. Please contact administration for more details.`;
+          : `Your class "${request.name}" (${request.subject}) has been rejected.\n\nReason: ${notes || 'No specific reason provided.'}\n\nPlease contact administration if you need further clarification.`;
         
         await createTeacherNotification(
           request.teacherId,

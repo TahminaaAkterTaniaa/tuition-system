@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import RejectionModal from '@/app/components/RejectionModal';
 
 interface ClassRequest {
   id: string;
@@ -44,6 +45,8 @@ export default function PendingClassesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingId, setProcessingId] = useState('');
+  const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState('');
   
   // Fetch pending class requests
   useEffect(() => {
@@ -132,16 +135,23 @@ export default function PendingClassesPage() {
     }
   };
   
-  const handleReject = async (requestId: string) => {
-    setProcessingId(requestId);
+  const handleRejectClick = (requestId: string) => {
+    setSelectedRequestId(requestId);
+    setIsRejectionModalOpen(true);
+  };
+
+  const handleRejectConfirm = async (rejectionReason: string) => {
+    if (!selectedRequestId) return;
+    
+    setProcessingId(selectedRequestId);
     setIsProcessing(true);
     try {
-      console.log('Rejecting request:', requestId);
+      console.log('Rejecting request:', selectedRequestId, 'with reason:', rejectionReason);
       
       const requestData = { 
-        requestId, 
+        requestId: selectedRequestId, 
         action: 'reject',
-        notes: 'Rejected by admin' 
+        notes: rejectionReason 
       };
       console.log('Request data:', requestData);
       
@@ -171,7 +181,10 @@ export default function PendingClassesPage() {
       if (response.ok) {
         toast.success('Class request rejected successfully');
         // Remove the rejected request from the list
-        setPendingClasses(pendingClasses.filter(req => req.id !== requestId));
+        setPendingClasses(pendingClasses.filter(req => req.id !== selectedRequestId));
+        // Close the modal
+        setIsRejectionModalOpen(false);
+        setSelectedRequestId('');
         // Navigate back to admin dashboard after a short delay
         setTimeout(() => {
           router.push('/admin');
@@ -189,6 +202,11 @@ export default function PendingClassesPage() {
       setProcessingId('');
       setIsProcessing(false);
     }
+  };
+
+  const handleRejectCancel = () => {
+    setIsRejectionModalOpen(false);
+    setSelectedRequestId('');
   };
   
   // Format date
@@ -285,7 +303,7 @@ export default function PendingClassesPage() {
                   {processingId === request.id ? 'Processing...' : 'Approve'}
                 </button>
                 <button
-                  onClick={() => handleReject(request.id)}
+                  onClick={() => handleRejectClick(request.id)}
                   className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded text-sm"
                   disabled={isProcessing || processingId === request.id}
                 >
@@ -296,6 +314,14 @@ export default function PendingClassesPage() {
           ))}
         </div>
       )}
+      
+      {/* Rejection Modal */}
+      <RejectionModal
+        isOpen={isRejectionModalOpen}
+        onClose={handleRejectCancel}
+        onConfirm={handleRejectConfirm}
+        isProcessing={isProcessing}
+      />
     </div>
   );
 }

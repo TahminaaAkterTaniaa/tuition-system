@@ -6,7 +6,7 @@ import { prisma } from '@/app/lib/prisma';
 // GET - Fetch schedules for a specific class
 export async function GET(
   req: NextRequest,
-  { params }: { params: { classId: string } }
+  { params }: { params: Promise<{ classId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,7 +15,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const { classId } = params;
+    const { classId } = await params;
     
     // Verify the class exists
     const classExists = await prisma.class.findUnique({
@@ -62,7 +62,7 @@ export async function GET(
 // POST - Create a new schedule for a class
 export async function POST(
   req: NextRequest,
-  { params }: { params: { classId: string } }
+  { params }: { params: Promise<{ classId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -76,7 +76,7 @@ export async function POST(
       return NextResponse.json({ error: 'Only admins can create class schedules' }, { status: 403 });
     }
     
-    const { classId } = params;
+    const { classId } = await params;
     const body = await req.json();
     
     // Validate required fields
