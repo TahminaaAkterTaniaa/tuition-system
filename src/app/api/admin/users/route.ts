@@ -16,8 +16,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    // Fetch all users with selected fields
+    // Fetch all users except admins
     const users = await prisma.user.findMany({
+      where: {
+        role: {
+          not: 'ADMIN'
+        }
+      },
       select: {
         id: true,
         name: true,

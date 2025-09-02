@@ -71,12 +71,6 @@ export default function ClassGradebook() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   
-  // New assessment state
-  const [showNewAssessment, setShowNewAssessment] = useState(false);
-  const [newAssessment, setNewAssessment] = useState({
-    name: '',
-    type: 'Quiz',
-  });
   
   useEffect(() => {
     if (status === 'loading') {
@@ -217,24 +211,6 @@ export default function ClassGradebook() {
     }
   };
   
-  const handleAddAssessment = async () => {
-    if (!newAssessment.name || !classData) return;
-    
-    setShowNewAssessment(false);
-    
-    // We don't need to create the assessment separately
-    // It will be created when the first grade is added
-    
-    // Reset form
-    setNewAssessment({
-      name: '',
-      type: 'Quiz',
-    });
-    
-    // Show success message
-    setSuccess('Assessment added! Now you can add grades for students.');
-    setTimeout(() => setSuccess(null), 3000);
-  };
   
   if (isLoading) {
     return (
@@ -300,148 +276,9 @@ export default function ClassGradebook() {
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">Class Grades</h2>
-          <button
-            onClick={() => setShowNewAssessment(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-          >
-            Add Assessment
-          </button>
         </div>
         
-        {showNewAssessment && (
-          <div className="mb-6 p-4 border border-gray-200 rounded-md bg-gray-50">
-            <h3 className="text-lg font-medium mb-3">New Assessment</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="assessmentName" className="block text-sm font-medium text-gray-700 mb-1">
-                  Assessment Name *
-                </label>
-                <input
-                  type="text"
-                  id="assessmentName"
-                  value={newAssessment.name}
-                  onChange={(e) => setNewAssessment({ ...newAssessment, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="e.g., Midterm Exam"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="assessmentType" className="block text-sm font-medium text-gray-700 mb-1">
-                  Assessment Type *
-                </label>
-                <select
-                  id="assessmentType"
-                  value={newAssessment.type}
-                  onChange={(e) => setNewAssessment({ ...newAssessment, type: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  required
-                >
-                  <option value="Quiz">Quiz</option>
-                  <option value="Test">Test</option>
-                  <option value="Exam">Exam</option>
-                  <option value="Assignment">Assignment</option>
-                  <option value="Project">Project</option>
-                  <option value="Homework">Homework</option>
-                  <option value="Participation">Participation</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex justify-end mt-4 space-x-3">
-              <button
-                onClick={() => setShowNewAssessment(false)}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddAssessment}
-                disabled={!newAssessment.name}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
-              >
-                Add Assessment
-              </button>
-            </div>
-          </div>
-        )}
         
-        {editMode && selectedStudent && selectedAssessment && (
-          <div className="mb-6 p-4 border border-gray-200 rounded-md bg-gray-50">
-            <h3 className="text-lg font-medium mb-3">
-              Edit Grade: {classData.students.find(s => s.id === selectedStudent)?.name} - {selectedAssessment}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="score" className="block text-sm font-medium text-gray-700 mb-1">
-                  Score *
-                </label>
-                <input
-                  type="number"
-                  id="score"
-                  value={editGrade.score}
-                  onChange={(e) => setEditGrade({ ...editGrade, score: Number(e.target.value) })}
-                  min="0"
-                  max={editGrade.maxScore}
-                  step="0.1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="maxScore" className="block text-sm font-medium text-gray-700 mb-1">
-                  Max Score *
-                </label>
-                <input
-                  type="number"
-                  id="maxScore"
-                  value={editGrade.maxScore}
-                  onChange={(e) => setEditGrade({ ...editGrade, maxScore: Number(e.target.value) })}
-                  min="1"
-                  step="0.1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="percentage" className="block text-sm font-medium text-gray-700 mb-1">
-                  Percentage
-                </label>
-                <div className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 sm:text-sm">
-                  {editGrade.maxScore > 0 ? Math.round((editGrade.score / editGrade.maxScore) * 100) : 0}%
-                </div>
-              </div>
-            </div>
-            <div className="mt-4">
-              <label htmlFor="feedback" className="block text-sm font-medium text-gray-700 mb-1">
-                Feedback
-              </label>
-              <textarea
-                id="feedback"
-                value={editGrade.feedback}
-                onChange={(e) => setEditGrade({ ...editGrade, feedback: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Optional feedback for the student"
-              />
-            </div>
-            <div className="flex justify-end mt-4 space-x-3">
-              <button
-                onClick={handleCancelEdit}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveGrade}
-                disabled={isSubmitting || editGrade.score < 0 || editGrade.maxScore <= 0 || editGrade.score > editGrade.maxScore}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
-              >
-                {isSubmitting ? 'Saving...' : 'Save Grade'}
-              </button>
-            </div>
-          </div>
-        )}
         
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -522,6 +359,133 @@ export default function ClassGradebook() {
           </table>
         </div>
       </div>
+
+      {/* Edit Grade Modal */}
+      <Transition appear show={editMode} as={Fragment}>
+        <Dialog as="div" className="relative z-10" onClose={handleCancelEdit}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25 backdrop-blur-sm" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                  <Dialog.Title
+                    as="h3"
+                    className="text-lg font-medium leading-6 text-gray-900 mb-4"
+                  >
+                    Edit Grade: {selectedStudent && selectedAssessment && classData && 
+                      `${classData.students.find(s => s.id === selectedStudent)?.name} - ${selectedAssessment}`
+                    }
+                  </Dialog.Title>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label htmlFor="score" className="block text-sm font-medium text-gray-700 mb-1">
+                        Score *
+                      </label>
+                      <input
+                        type="number"
+                        id="score"
+                        value={editGrade.score}
+                        onChange={(e) => setEditGrade({ ...editGrade, score: Number(e.target.value) })}
+                        min="0"
+                        max={editGrade.maxScore}
+                        step="0.1"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="maxScore" className="block text-sm font-medium text-gray-700 mb-1">
+                        Max Score *
+                      </label>
+                      <input
+                        type="number"
+                        id="maxScore"
+                        value={editGrade.maxScore}
+                        onChange={(e) => setEditGrade({ ...editGrade, maxScore: Number(e.target.value) })}
+                        min="1"
+                        step="0.1"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="percentage" className="block text-sm font-medium text-gray-700 mb-1">
+                        Percentage
+                      </label>
+                      <div className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 sm:text-sm">
+                        {editGrade.maxScore > 0 ? Math.round((editGrade.score / editGrade.maxScore) * 100) : 0}%
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <label htmlFor="feedback" className="block text-sm font-medium text-gray-700 mb-1">
+                      Feedback
+                    </label>
+                    <textarea
+                      id="feedback"
+                      value={editGrade.feedback}
+                      onChange={(e) => setEditGrade({ ...editGrade, feedback: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      placeholder="Optional feedback for the student"
+                    />
+                  </div>
+
+                  <div className="mt-6 flex justify-end space-x-3">
+                    <button
+                      type="button"
+                      className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                      onClick={handleCancelEdit}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                      onClick={handleSaveGrade}
+                      disabled={isSubmitting || editGrade.score < 0 || editGrade.maxScore <= 0 || editGrade.score > editGrade.maxScore}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Saving...
+                        </>
+                      ) : (
+                        'Save Grade'
+                      )}
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 }

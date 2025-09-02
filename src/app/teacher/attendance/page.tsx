@@ -43,6 +43,7 @@ function AttendanceContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [showUpdateMessage, setShowUpdateMessage] = useState(updated);
   const [classes, setClasses] = useState<ClassData[]>([]);
+  const [allClasses, setAllClasses] = useState<ClassData[]>([]);
   const [recentAttendance, setRecentAttendance] = useState<AttendanceRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   
@@ -54,17 +55,35 @@ function AttendanceContent() {
       setIsLoading(true);
       setError(null);
       
-      const response = await fetch('/api/teacher/attendance');
+      // Fetch today's classes specifically for the "Today's Classes" section
+      const [todayResponse, attendanceResponse] = await Promise.all([
+        fetch('/api/teacher/classes/today'),
+        fetch('/api/teacher/attendance')
+      ]);
       
-      if (!response.ok) {
+      if (!todayResponse.ok || !attendanceResponse.ok) {
         throw new Error('Failed to fetch attendance data');
       }
       
-      const data = await response.json();
+      const todayData = await todayResponse.json();
+      const attendanceData = await attendanceResponse.json();
       
-      // Set classes data
-      if (data.classes && Array.isArray(data.classes)) {
-        setClasses(data.classes.map((cls: any) => ({
+      // Set today's classes data (filtered for current day)
+      if (todayData.classes && Array.isArray(todayData.classes)) {
+        setClasses(todayData.classes.map((cls: any) => ({
+          id: cls.id,
+          name: cls.name,
+          schedule: cls.schedule || 'No schedule',
+          room: cls.room || 'No room assigned',
+          students: cls.studentCount || 0,
+          lastAttendance: null, // Today's classes don't need last attendance date
+          attendanceRate: '0%' // Today's classes start with 0% until marked
+        })));
+      }
+      
+      // Set all classes data for statistics (from attendance API)
+      if (attendanceData.classes && Array.isArray(attendanceData.classes)) {
+        setAllClasses(attendanceData.classes.map((cls: any) => ({
           id: cls.id,
           name: cls.name,
           schedule: cls.schedule || 'No schedule',
@@ -75,9 +94,9 @@ function AttendanceContent() {
         })));
       }
       
-      // Set recent attendance records
-      if (data.recentAttendance && Array.isArray(data.recentAttendance)) {
-        const records = data.recentAttendance;
+      // Set recent attendance records from the attendance API
+      if (attendanceData.recentAttendance && Array.isArray(attendanceData.recentAttendance)) {
+        const records = attendanceData.recentAttendance;
         // Sort by date, most recent first
         records.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setRecentAttendance(records);
@@ -208,48 +227,48 @@ function AttendanceContent() {
         <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm">Best Performing</p>
-              <p className="text-2xl font-bold">Class Rate</p>
-            </div>
-            <div className="bg-green-400 rounded-full p-3">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-          <div className="mt-4">
-            {classes.length > 0 ? (
-              <>
-                <p className="text-3xl font-bold">
-                  {Math.max(...classes.map(cls => parseInt(cls.attendanceRate || '0')))}%
-                </p>
-                <p className="text-green-100 text-sm">
-                  {classes.find(cls => parseInt(cls.attendanceRate || '0') === Math.max(...classes.map(c => parseInt(c.attendanceRate || '0'))))?.name || 'N/A'}
-                </p>
-              </>
-            ) : (
-              <p className="text-3xl font-bold">0%</p>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm">Active</p>
+              <p className="text-green-100 text-sm">Active</p>
               <p className="text-2xl font-bold">Classes</p>
             </div>
-            <div className="bg-purple-400 rounded-full p-3">
+            <div className="bg-green-400 rounded-full p-3">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </div>
           </div>
           <div className="mt-4">
-            <p className="text-3xl font-bold">{classes.length}</p>
-            <p className="text-purple-100 text-sm">
-              {classes.reduce((sum, cls) => sum + cls.students, 0)} total students
+            <p className="text-3xl font-bold">{allClasses.length}</p>
+            <p className="text-green-100 text-sm">
+              {allClasses.reduce((sum, cls) => sum + cls.students, 0)} students total
             </p>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-sm">Best Performing</p>
+              <p className="text-2xl font-bold">Class Rate</p>
+            </div>
+            <div className="bg-purple-400 rounded-full p-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-4">
+            {allClasses.length > 0 ? (
+              <>
+                <p className="text-3xl font-bold">
+                  {Math.max(...allClasses.map(cls => parseInt(cls.attendanceRate || '0')))}%
+                </p>
+                <p className="text-purple-100 text-sm">
+                  {allClasses.find(cls => parseInt(cls.attendanceRate || '0') === Math.max(...allClasses.map(c => parseInt(c.attendanceRate || '0'))))?.name || 'N/A'}
+                </p>
+              </>
+            ) : (
+              <p className="text-3xl font-bold">0%</p>
+            )}
           </div>
         </div>
 
@@ -280,8 +299,8 @@ function AttendanceContent() {
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {classes.length > 0 ? (
-              classes.map((cls) => (
+            {allClasses.length > 0 ? (
+              allClasses.map((cls) => (
                 <div key={cls.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-3">
                     <div>
@@ -306,10 +325,6 @@ function AttendanceContent() {
                   <div className="flex justify-between items-center">
                     <div className="w-full bg-gray-200 rounded-full h-2 mr-4">
                       <div 
-                        className={`h-2 rounded-full ${
-                          cls.attendanceRate && parseInt(cls.attendanceRate) >= 90 ? 'bg-green-500' : 
-                          cls.attendanceRate && parseInt(cls.attendanceRate) >= 75 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`} 
                         className={`h-2 rounded-full ${
                           cls.attendanceRate && parseInt(cls.attendanceRate) >= 90 ? 'bg-green-500' : 
                           cls.attendanceRate && parseInt(cls.attendanceRate) >= 75 ? 'bg-yellow-500' : 'bg-red-500'

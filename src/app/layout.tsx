@@ -32,7 +32,7 @@ export default function RootLayout({
         <ClientProvider>
           <div className="min-h-screen flex flex-col">
             <Navbar />
-            <main className="flex-grow">
+            <main className="flex-grow pt-16">
               {children}
             </main>
             <footer className="bg-gray-800 text-white py-6 print:hidden">

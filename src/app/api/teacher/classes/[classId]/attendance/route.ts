@@ -5,7 +5,7 @@ import { prisma } from '@/app/lib/prisma';
 
 export async function POST(
   request: Request,
-  { params }: { params: { classId: string } }
+  { params }: { params: Promise<{ classId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,7 +18,7 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    const classId = params.classId;
+    const { classId } = await params;
     
     if (!classId) {
       return NextResponse.json(
@@ -95,6 +95,7 @@ export async function POST(
           const existingAttendance = await prisma.attendance.findFirst({
             where: {
               studentId,
+              classId,
               date: {
                 gte: new Date(attendanceDate.setHours(0, 0, 0, 0)),
                 lt: new Date(attendanceDate.setHours(23, 59, 59, 999))

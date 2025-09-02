@@ -134,7 +134,6 @@ export default function UserManagement() {
                 className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               >
                 <option value="ALL">All Users</option>
-                <option value="ADMIN">Admins</option>
                 <option value="TEACHER">Teachers</option>
                 <option value="STUDENT">Students</option>
                 <option value="PARENT">Parents</option>

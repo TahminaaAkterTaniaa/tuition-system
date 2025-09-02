@@ -38,7 +38,7 @@ type ProcessedStudent = {
 
 export async function GET(
   request: Request,
-  { params }: { params: { classId: string } }
+  { params }: { params: Promise<{ classId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -51,7 +51,7 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     
-    const classId = params.classId;
+    const { classId } = await params;
     
     // Get teacher profile
     const teacher = await prisma.teacher.findUnique({
@@ -65,9 +65,29 @@ export async function GET(
       );
     }
     
-    // Verify that the class belongs to this teacher
+    // Get class data with schedules and room info
     const classData = await prisma.class.findUnique({
       where: { id: classId },
+      include: {
+        schedules: {
+          include: {
+            room: {
+              select: {
+                name: true,
+                building: true,
+                floor: true
+              }
+            },
+            timeSlot: {
+              select: {
+                startTime: true,
+                endTime: true,
+                label: true
+              }
+            }
+          }
+        }
+      }
     });
     
     if (!classData) {
@@ -159,7 +179,33 @@ export async function GET(
       })
     );
     
-    return NextResponse.json({ students });
+    // Format schedule display
+    const schedulesDisplay = classData.schedules.length > 0 
+      ? classData.schedules.map(schedule => {
+          let timeDisplay = schedule.time || 'Time not set';
+          if (schedule.timeSlot?.label) {
+            timeDisplay = schedule.timeSlot.label;
+          } else if (schedule.timeSlot?.startTime && schedule.timeSlot?.endTime) {
+            timeDisplay = `${schedule.timeSlot.startTime} - ${schedule.timeSlot.endTime}`;
+          }
+          return `${schedule.day} ${timeDisplay}`;
+        }).join(', ')
+      : 'No schedule set';
+    
+    // Format room display
+    const roomDisplay = classData.schedules.length > 0 && classData.schedules[0]?.room
+      ? `${classData.schedules[0].room.name}${classData.schedules[0].room.building ? ` (${classData.schedules[0].room.building}${classData.schedules[0].room.floor ? `, Floor ${classData.schedules[0].room.floor}` : ''})` : ''}`
+      : classData.room || 'No room assigned';
+    
+    // Return class details along with students
+    return NextResponse.json({
+      className: classData.name,
+      subject: classData.subject,
+      schedule: schedulesDisplay,
+      room: roomDisplay,
+      teacherId: classData.teacherId,
+      students
+    });
   } catch (error) {
     console.error('Error fetching students:', error);
     return NextResponse.json(

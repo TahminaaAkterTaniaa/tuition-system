@@ -68,18 +68,7 @@ export async function GET(request: Request) {
       // Convert percentage to letter grade
       let avgGrade = 'N/A';
       if (totalGrades > 0) {
-        if (avgPercentage >= 90) avgGrade = 'A';
-        else if (avgPercentage >= 80) avgGrade = 'B';
-        else if (avgPercentage >= 70) avgGrade = 'C';
-        else if (avgPercentage >= 60) avgGrade = 'D';
-        else avgGrade = 'F';
-        
-        // Add plus/minus
-        if (avgGrade !== 'F') {
-          const remainder = avgPercentage % 10;
-          if (remainder >= 7 && avgGrade !== 'A') avgGrade += '+';
-          else if (remainder < 3 && avgGrade !== 'F') avgGrade += '-';
-        }
+        avgGrade = getLetterGrade(avgPercentage);
       }
       
       return {
@@ -222,18 +211,10 @@ export async function GET(request: Request) {
 
 // Helper function to get letter grade from percentage
 function getLetterGrade(percentage: number): string {
-  if (percentage >= 97) return 'A+';
-  if (percentage >= 93) return 'A';
-  if (percentage >= 90) return 'A-';
-  if (percentage >= 87) return 'B+';
-  if (percentage >= 83) return 'B';
-  if (percentage >= 80) return 'B-';
-  if (percentage >= 77) return 'C+';
-  if (percentage >= 73) return 'C';
-  if (percentage >= 70) return 'C-';
-  if (percentage >= 67) return 'D+';
-  if (percentage >= 63) return 'D';
-  if (percentage >= 60) return 'D-';
+  if (percentage >= 80) return 'A';
+  if (percentage >= 70) return 'B';
+  if (percentage >= 60) return 'C';
+  if (percentage >= 50) return 'D';
   return 'F';
 }
 

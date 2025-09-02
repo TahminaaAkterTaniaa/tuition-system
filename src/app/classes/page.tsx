@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import EnrollmentStatusBadge from '@/app/components/EnrollmentStatusBadge';
@@ -100,27 +100,31 @@ export default function Classes() {
     fetchAllClasses();
   }, []);
 
-  // Filter classes based on search term and subject filter
-  const filteredClasses = classes.filter((classItem) => {
-    const matchesSearch = searchTerm === '' || 
-      classItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (classItem.description && classItem.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (classItem.teacher?.user?.name && classItem.teacher.user.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesSubject = subjectFilter === '' || classItem.subject === subjectFilter;
-    
-    return matchesSearch && matchesSubject;
-  });
+  // Filter classes based on search term and subject filter - memoized for performance
+  const filteredClasses = useMemo(() => {
+    return classes.filter((classItem) => {
+      const matchesSearch = searchTerm === '' || 
+        classItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (classItem.description && classItem.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (classItem.teacher?.user?.name && classItem.teacher.user.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const matchesSubject = subjectFilter === '' || classItem.subject === subjectFilter;
+      
+      return matchesSearch && matchesSubject;
+    });
+  }, [classes, searchTerm, subjectFilter]);
 
-  // Get unique subjects for filter dropdown
-  const subjects = Array.from(new Set(classes.map(c => c.subject))).sort();
+  // Get unique subjects for filter dropdown - memoized
+  const subjects = useMemo(() => {
+    return Array.from(new Set(classes.map(c => c.subject))).sort();
+  }, [classes]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 min-h-screen">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Available Classes</h1>
       
       {/* Search and filter controls */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8 sticky top-20 z-40">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">Search Classes</label>
@@ -163,23 +167,26 @@ export default function Classes() {
         </div>
       </div>
       
-      {/* Loading state */}
-      {isLoading && (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      )}
-      
-      {/* No results */}
-      {!isLoading && filteredClasses.length === 0 && (
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">No Classes Found</h2>
-          <p className="text-gray-600">Try adjusting your search or filter criteria.</p>
-        </div>
-      )}
-      
-      {/* Classes grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Content container with fixed height to prevent layout shift */}
+      <div className="min-h-[600px]">
+        {/* Loading state */}
+        {isLoading && (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        )}
+        
+        {/* No results */}
+        {!isLoading && filteredClasses.length === 0 && (
+          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">No Classes Found</h2>
+            <p className="text-gray-600">Try adjusting your search or filter criteria.</p>
+          </div>
+        )}
+        
+        {/* Classes grid */}
+        {!isLoading && filteredClasses.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredClasses.map((classItem) => {
           // Determine if class is available for enrollment
           const isAvailable = classItem.status === 'active' && !classItem.isFull;
@@ -366,6 +373,8 @@ export default function Classes() {
             </div>
           );
         })}
+          </div>
+        )}
       </div>
       
       {/* Class Details Modal */}
